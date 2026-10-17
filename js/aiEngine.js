@@ -267,18 +267,25 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
       max_tokens: 2048
     };
 
-    const resp = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`
-      },
-      body: JSON.stringify(payload)
-    });
+    let resp;
+    try {
+      resp = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`
+        },
+        body: JSON.stringify(payload)
+      });
+    } catch (netErr) {
+      throw new Error(
+        "NVIDIA NIM API'si güvenlik politikası (CORS) gereği doğrudan web tarayıcısından çağrılmaya izin vermemektedir (Python/Backend gerektirir). Tarayıcıda çalışmak için lütfen Ayarlar'dan 'Google Gemini' veya 'Hızlı REST' sağlayıcısını seçiniz."
+      );
+    }
 
     if (!resp.ok) {
       const err = await resp.json().catch(() => ({}));
-      throw new Error(err?.error?.message || `NVIDIA Hatası (${resp.status})`);
+      throw new Error(err?.error?.message || err?.detail || `NVIDIA Hatası (${resp.status})`);
     }
 
     const data = await resp.json();
