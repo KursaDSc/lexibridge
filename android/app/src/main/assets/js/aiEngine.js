@@ -21,14 +21,10 @@ const AIEngine = (function () {
       name: "Google Gemini",
       icon: "🔵",
       badge: "Google Cloud",
-      default_model: "gemini-3.5-flash",
+      default_model: "gemini-3.5-flash-lite",
       models: [
-        { id: "gemini-3.5-flash", name: "Gemini 3.5 Flash (Ultra Kararlı & Hızlı)", badge: "💎 Önerilen" },
-        { id: "gemini-flash-latest", name: "Gemini Flash Latest (En Güncel Flash)", badge: "🚀 En Yeni" },
-        { id: "gemini-3.8-flash", name: "Gemini 3.8 Flash (Amiral Gemisi Flash)", badge: "⚡ Hızlı" },
-        { id: "gemini-3.1-pro-preview", name: "Gemini 3.1 Pro (Derin Akıl Yürütme)", badge: "🧠 Zeka" },
-        { id: "gemini-3.6-flash", name: "Gemini 3.6 Flash (Ultra Kararlı)", badge: "🛡️ Kararlı" },
-        { id: "gemini-3.5-flash-lite", name: "Gemini 3.5 Flash-Lite (Minimum Gecikme)", badge: "🪶 Seri" }
+        { id: "gemini-3.5-flash-lite", name: "Gemini 3.5 Flash-Lite (Ultra Hızlı - 800ms)", badge: "⚡ Hızlı" },
+        { id: "gemini-3.5-flash", name: "Gemini 3.5 Flash (Detaylı & Dengeli)", badge: "💎 Dengeli" }
       ]
     },
     nvidia: {
@@ -129,9 +125,15 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
 
   // Helper to load settings
   function getSettings() {
+    let savedModel = localStorage.getItem("lexi_model");
+    // Auto-migrate legacy/slow/overloaded models to the ultra-fast gemini-3.5-flash-lite
+    if (!savedModel || savedModel.includes("latest") || savedModel.includes("pro") || savedModel.includes("3.8") || savedModel.includes("3.6") || savedModel.includes("2.5")) {
+      savedModel = "gemini-3.5-flash-lite";
+      localStorage.setItem("lexi_model", savedModel);
+    }
     return {
       provider: localStorage.getItem("lexi_provider") || "google",
-      model: localStorage.getItem("lexi_model") || PROVIDERS.google.default_model,
+      model: savedModel,
       googleKey: localStorage.getItem("gemini_api_key") || SM_STUDIO_KEYS.google,
       nvidiaKey: localStorage.getItem("nvidia_api_key") || SM_STUDIO_KEYS.nvidia,
       localUrl: localStorage.getItem("local_llm_url") || PROVIDERS.local.default_url,
@@ -194,18 +196,23 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
     };
   }
 
-  // Google Gemini API call
+  // Google Gemini API call (Optimized for Sub-Second Latency)
   async function callGoogleGemini(query, sourceLang, model, apiKey) {
     if (!apiKey) throw new Error("Google Gemini API anahtarı girilmedi.");
     const targetLang = sourceLang === "nl" ? "tr" : "nl";
     const userPrompt = `Lütfen şu girdiyi analiz et. Girdi dili: ${sourceLang.toUpperCase()}, Hedef dil: ${targetLang.toUpperCase()}. Girdi: "${query}"`;
     
-    let activeModel = model || "gemini-flash-latest";
+    let activeModel = model;
+    if (!activeModel || activeModel.includes("latest") || activeModel.includes("pro") || activeModel.includes("3.8") || activeModel.includes("3.6") || activeModel.includes("2.5")) {
+      activeModel = "gemini-3.5-flash-lite";
+    }
+
     const payload = {
       system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
       contents: [{ role: "user", parts: [{ text: userPrompt }] }],
       generationConfig: {
-        temperature: 0.2,
+        temperature: 0.1,
+        maxOutputTokens: 1024,
         responseMimeType: "application/json"
       }
     };
@@ -217,21 +224,18 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
       body: JSON.stringify(payload)
     });
 
-    // Auto-fallback for quota (429) or busy (503) like in SM Studio
-    if (resp.status === 429 || resp.status === 503 || resp.status === 404) {
-      const fallbackList = ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-flash-latest"].filter(m => m !== activeModel);
-      for (const fbModel of fallbackList) {
-        const fbUrl = `https://generativelanguage.googleapis.com/v1beta/models/${fbModel}:generateContent?key=${apiKey}`;
-        const fbResp = await fetch(fbUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-        if (fbResp.ok) {
-          resp = fbResp;
-          activeModel = fbModel;
-          break;
-        }
+    // Fast Single Fallback if 429 quota or 503 busy
+    if (!resp.ok && (resp.status === 429 || resp.status === 503 || resp.status === 404)) {
+      const fbModel = activeModel === "gemini-3.5-flash-lite" ? "gemini-3.5-flash" : "gemini-3.5-flash-lite";
+      const fbUrl = `https://generativelanguage.googleapis.com/v1beta/models/${fbModel}:generateContent?key=${apiKey}`;
+      const fbResp = await fetch(fbUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (fbResp.ok) {
+        resp = fbResp;
+        activeModel = fbModel;
       }
     }
 
@@ -267,18 +271,25 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
       max_tokens: 2048
     };
 
-    const resp = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`
-      },
-      body: JSON.stringify(payload)
-    });
+    let resp;
+    try {
+      resp = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`
+        },
+        body: JSON.stringify(payload)
+      });
+    } catch (netErr) {
+      throw new Error(
+        "NVIDIA NIM API'si güvenlik politikası (CORS) gereği doğrudan web tarayıcısından çağrılmaya izin vermemektedir (Python/Backend gerektirir). Tarayıcıda çalışmak için lütfen Ayarlar'dan 'Google Gemini' veya 'Hızlı REST' sağlayıcısını seçiniz."
+      );
+    }
 
     if (!resp.ok) {
       const err = await resp.json().catch(() => ({}));
-      throw new Error(err?.error?.message || `NVIDIA Hatası (${resp.status})`);
+      throw new Error(err?.error?.message || err?.detail || `NVIDIA Hatası (${resp.status})`);
     }
 
     const data = await resp.json();
