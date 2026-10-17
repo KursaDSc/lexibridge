@@ -1,0 +1,72 @@
+name: Build LexiBridge Android APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Sync Web Assets to Android Assets
+        run: |
+          mkdir -p android/app/src/main/assets
+          cp -r index.html css js manifest.json icon-192.png icon-512.png app_icon.ico android/app/src/main/assets/
+
+      - name: Make Gradlew Executable
+        run: chmod +x android/gradlew
+
+      - name: Build Debug & Release APK
+        run: |
+          cd android
+          ./gradlew assembleRelease --stacktrace
+
+      - name: Rename APK for Clarity
+        run: |
+          cp android/app/build/outputs/apk/release/app-release.apk LexiBridge.apk
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LexiBridge-Android-APK
+          path: LexiBridge.apk
+          retention-days: 30
+
+      - name: Create GitHub Release with APK
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        with:
+          files: LexiBridge.apk
+          tag_name: v1.0.0
+          name: LexiBridge v1.0.0 Android APK
+          body: |
+            ### 📱 LexiBridge Android APK (v1.0.0)
+            Hollandaca ↔ Türkçe AI Destekli Sözlük Mobil Uygulaması.
+            
+            - **Google Gemini & NVIDIA NIM & Yerel LLM** çoklu yapay zeka motoru.
+            - Tamamen telefonunuzda bağımsız çalışır.
+            - Bilgisayar veya sunucu gerektirmez.
+            
+            **Kurulum:**
+            `LexiBridge.apk` dosyasını telefonunuza indirin ve dokunarak yükleyin.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

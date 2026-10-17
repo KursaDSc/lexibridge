@@ -1,0 +1,31 @@
+# ── Secrets & Local Configs (CRITICAL) ──
+js/config.local.js
+.env
+.env.*
+*.env
+*settings*.json
+*.key
+*.pem
+
+# ── Android Build Artifacts & Caches ──
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/gradle/
+*.apk
+*.aab
+*.keystore
+*.jks
+
+# ── OS & Editor Files ──
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.log
+
+# ── Local Agent / Temp Directories ──
+.agents/
+scratch/
