@@ -11,8 +11,8 @@ js/config.local.js
 android/.gradle/
 android/build/
 android/app/build/
-android/local.properties
-android/gradle/
+!android/gradle/wrapper/gradle-wrapper.jar
+!android/gradle/wrapper/gradle-wrapper.properties
 *.apk
 *.aab
 *.keystore
