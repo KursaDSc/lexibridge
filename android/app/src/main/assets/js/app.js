@@ -65,6 +65,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── Init Settings ───────────────────────────────────────────────────────
   function init() {
+    // Check URL hash or query for key auto-import (#key=... or ?key=...)
+    try {
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+      const urlParams = new URLSearchParams(window.location.search);
+      const keyFromUrl = hashParams.get('key') || urlParams.get('key');
+      if (keyFromUrl) {
+        localStorage.setItem('gemini_api_key', keyFromUrl.trim());
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+    } catch {}
+
     const settings = AIEngine.getSettings();
     activeProvider = settings.provider || 'google';
     activeModel = settings.model || AIEngine.PROVIDERS[activeProvider]?.default_model;

@@ -9,7 +9,7 @@
  */
 
 const AIEngine = (function () {
-  // Default Keys loaded from local untracked config or empty
+  // Default Keys loaded from local untracked config (config.local.js) or empty
   const SM_STUDIO_KEYS = (typeof window !== "undefined" && window.LEXI_PRESET_KEYS) ? window.LEXI_PRESET_KEYS : {
     google: "",
     nvidia: ""
@@ -131,10 +131,15 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
       savedModel = "gemini-3.5-flash-lite";
       localStorage.setItem("lexi_model", savedModel);
     }
+    let googleKey = localStorage.getItem("gemini_api_key");
+    if (!googleKey) {
+      googleKey = SM_STUDIO_KEYS.google;
+      if (googleKey) localStorage.setItem("gemini_api_key", googleKey);
+    }
     return {
       provider: localStorage.getItem("lexi_provider") || "google",
       model: savedModel,
-      googleKey: localStorage.getItem("gemini_api_key") || SM_STUDIO_KEYS.google,
+      googleKey: googleKey || "",
       nvidiaKey: localStorage.getItem("nvidia_api_key") || SM_STUDIO_KEYS.nvidia,
       localUrl: localStorage.getItem("local_llm_url") || PROVIDERS.local.default_url,
       localModel: localStorage.getItem("local_llm_model") || PROVIDERS.local.default_model
