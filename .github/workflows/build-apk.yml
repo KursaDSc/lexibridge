@@ -22,25 +22,18 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-          cache: 'gradle'
-
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Sync Web Assets to Android Assets
-        run: |
-          mkdir -p android/app/src/main/assets
-          cp -r index.html css js manifest.json icon-192.png icon-512.png app_icon.ico android/app/src/main/assets/
 
       - name: Make Gradlew Executable
         run: chmod +x android/gradlew
 
       - name: Build Debug & Release APK
+        env:
+          ANDROID_HOME: /usr/local/lib/android/sdk
         run: |
           cd android
-          ./gradlew assembleRelease --stacktrace
+          ./gradlew assembleRelease --no-daemon
 
-      - name: Rename APK for Clarity
+      - name: Rename APK for Download
         run: |
           cp android/app/build/outputs/apk/release/app-release.apk LexiBridge.apk
 
@@ -53,7 +46,7 @@ jobs:
 
       - name: Create GitHub Release with APK
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
         with:
           files: LexiBridge.apk
           tag_name: v1.0.0
@@ -67,6 +60,6 @@ jobs:
             - Bilgisayar veya sunucu gerektirmez.
             
             **Kurulum:**
-            `LexiBridge.apk` dosyasını telefonunuza indirin ve dokunarak yükleyin.
+            Aşağıdaki `LexiBridge.apk` dosyasını telefonunuza indirin ve dokunarak kurun.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
