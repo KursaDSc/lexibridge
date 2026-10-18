@@ -49,6 +49,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Settings Modal Elements
   const providerTabs = document.querySelectorAll('.provider-tab');
   const modelSelect = document.getElementById('modelSelect');
+  const refreshModelsBtn = document.getElementById('refreshModelsBtn');
+  const refreshModelsBtnText = document.getElementById('refreshModelsBtnText');
+  const modelDetectionStatus = document.getElementById('modelDetectionStatus');
   const googleKeySection = document.getElementById('googleKeySection');
   const nvidiaKeySection = document.getElementById('nvidiaKeySection');
   const localConfigSection = document.getElementById('localConfigSection');
@@ -77,8 +80,8 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch {}
 
     const settings = AIEngine.getSettings();
-    activeProvider = settings.provider || 'google';
-    activeModel = settings.model || AIEngine.PROVIDERS[activeProvider]?.default_model;
+    activeProvider = settings.provider || (settings.isMobile ? 'local' : 'google');
+    activeModel = settings.model || (activeProvider === 'local' ? settings.localModel : AIEngine.PROVIDERS[activeProvider]?.default_model);
 
     googleKeyInput.value = settings.googleKey || AIEngine.SM_STUDIO_KEYS.google;
     nvidiaKeyInput.value = settings.nvidiaKey || AIEngine.SM_STUDIO_KEYS.nvidia;
@@ -104,6 +107,55 @@ document.addEventListener('DOMContentLoaded', () => {
     headerProviderName.textContent = p.name;
   }
 
+  async function loadLocalModels(baseUrl, silent = false) {
+    if (activeProvider !== 'local') return;
+    if (refreshModelsBtn) refreshModelsBtn.classList.remove('hidden');
+    if (modelDetectionStatus) {
+      modelDetectionStatus.classList.remove('hidden', 'text-red-500', 'text-amber-600', 'text-emerald-600');
+      modelDetectionStatus.classList.add('text-slate-400');
+      modelDetectionStatus.textContent = 'Ollama modelleri taranıyor...';
+    }
+    if (refreshModelsBtnText) refreshModelsBtnText.textContent = 'Taranıyor...';
+
+    try {
+      const installedModels = await AIEngine.fetchInstalledLocalModels(baseUrl || localUrlInput.value);
+      if (installedModels && installedModels.length > 0) {
+        modelSelect.innerHTML = '';
+        installedModels.forEach((m) => {
+          const opt = document.createElement('option');
+          opt.value = m.id;
+          opt.textContent = `${m.name} [${m.badge}]`;
+          if (m.id === activeModel) opt.selected = true;
+          modelSelect.appendChild(opt);
+        });
+
+        if (!installedModels.some((m) => m.id === activeModel)) {
+          activeModel = installedModels[0].id;
+          modelSelect.value = activeModel;
+        }
+
+        if (modelDetectionStatus) {
+          modelDetectionStatus.className = 'text-[11px] mt-1.5 font-medium text-emerald-600';
+          modelDetectionStatus.textContent = `✓ Ollama'dan ${installedModels.length} adet yüklü model algılandı.`;
+        }
+      } else {
+        if (!silent && modelDetectionStatus) {
+          modelDetectionStatus.className = 'text-[11px] mt-1.5 font-medium text-amber-600';
+          modelDetectionStatus.textContent = 'ℹ️ Ollama bağlantısı bulunamadı (Hazır mobil modeller gösteriliyor).';
+        } else if (modelDetectionStatus) {
+          modelDetectionStatus.classList.add('hidden');
+        }
+      }
+    } catch (e) {
+      if (!silent && modelDetectionStatus) {
+        modelDetectionStatus.className = 'text-[11px] mt-1.5 font-medium text-red-500';
+        modelDetectionStatus.textContent = 'Ollama taranamadı: ' + e.message;
+      }
+    } finally {
+      if (refreshModelsBtnText) refreshModelsBtnText.textContent = 'Modelleri Algıla';
+    }
+  }
+
   function updateProviderModalUI() {
     providerTabs.forEach((tab) => {
       const pId = tab.dataset.provider;
@@ -116,7 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Populate models
+    // Populate default preset models
     const prov = AIEngine.PROVIDERS[activeProvider] || AIEngine.PROVIDERS.google;
     modelSelect.innerHTML = '';
     (prov.models || []).forEach((m) => {
@@ -131,6 +183,18 @@ document.addEventListener('DOMContentLoaded', () => {
     googleKeySection.classList.toggle('hidden', activeProvider !== 'google');
     nvidiaKeySection.classList.toggle('hidden', activeProvider !== 'nvidia');
     localConfigSection.classList.toggle('hidden', activeProvider !== 'local');
+
+    if (refreshModelsBtn) {
+      refreshModelsBtn.classList.toggle('hidden', activeProvider !== 'local');
+    }
+    if (modelDetectionStatus) {
+      modelDetectionStatus.classList.add('hidden');
+    }
+
+    // Auto-detect installed models in background when local provider is active
+    if (activeProvider === 'local') {
+      loadLocalModels(localUrlInput.value, true);
+    }
   }
 
   function toggleLanguage() {
@@ -532,9 +596,25 @@ document.addEventListener('DOMContentLoaded', () => {
     tab.addEventListener('click', () => {
       activeProvider = tab.dataset.provider;
       const prov = AIEngine.PROVIDERS[activeProvider];
-      activeModel = prov?.default_model;
+      activeModel = activeProvider === 'local' 
+        ? (AIEngine.getSettings().localModel || prov?.default_model) 
+        : prov?.default_model;
       updateProviderModalUI();
     });
+  });
+
+  // Refresh installed Ollama models manually
+  if (refreshModelsBtn) {
+    refreshModelsBtn.addEventListener('click', () => {
+      loadLocalModels(localUrlInput.value, false);
+    });
+  }
+
+  // Detect models if user changes Ollama URL
+  localUrlInput.addEventListener('change', () => {
+    if (activeProvider === 'local') {
+      loadLocalModels(localUrlInput.value, false);
+    }
   });
 
   // Save Settings
@@ -545,7 +625,8 @@ document.addEventListener('DOMContentLoaded', () => {
       model: activeModel,
       googleKey: googleKeyInput.value,
       nvidiaKey: nvidiaKeyInput.value,
-      localUrl: localUrlInput.value
+      localUrl: localUrlInput.value,
+      localModel: activeProvider === 'local' ? activeModel : undefined
     });
 
     updateHeaderBadge();

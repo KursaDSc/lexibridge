@@ -43,13 +43,16 @@ const AIEngine = (function () {
       id: "local",
       name: "Yerel LLM (Ollama)",
       icon: "🏠",
-      badge: "Localhost / LAN",
-      default_model: "llama3.2",
-      default_url: "http://localhost:11434/v1",
+      badge: "Termux / Localhost",
+      default_model: "llama3.2:1b",
+      default_url: "http://127.0.0.1:11434/v1",
       models: [
-        { id: "llama3.2", name: "Llama 3.2 (Yerel Hızlı)", badge: "🏠 Local" },
-        { id: "qwen2.5", name: "Qwen 2.5 (Çok Dilli Zeka)", badge: "🏠 Local" },
-        { id: "mistral", name: "Mistral (Gramer)", badge: "🏠 Local" },
+        { id: "llama3.2:1b", name: "Llama 3.2 1B (Ultra Hızlı - Termux)", badge: "⚡ 1.3 GB" },
+        { id: "llama3.2:3b", name: "Llama 3.2 3B (Dengeli - Termux)", badge: "📱 2.0 GB" },
+        { id: "qwen2.5:1.5b", name: "Qwen 2.5 1.5B (Çok Dilli - Termux)", badge: "🌍 1.0 GB" },
+        { id: "qwen2.5:3b", name: "Qwen 2.5 3B (Çok Dilli Zeka)", badge: "💎 2.2 GB" },
+        { id: "llama3.2", name: "Llama 3.2 (Varsayılan)", badge: "🏠 Local" },
+        { id: "mistral", name: "Mistral 7B (PC / Yüksek RAM)", badge: "💻 4.1 GB" },
         { id: "custom", name: "Özel Model", badge: "⚙️ Özel" }
       ]
     },
@@ -123,12 +126,79 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
   ]
 }`;
 
-  // Helper to load settings
+  // Device detection helper (Android / Termux / Mobile Phone vs PC)
+  function isMobileDevice() {
+    if (typeof navigator === "undefined") return false;
+    const ua = (navigator.userAgent || navigator.vendor || window.opera || "").toLowerCase();
+    const isMobileUA = /android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua);
+    const isSmallScreen = typeof window !== "undefined" && window.innerWidth <= 800;
+    const isTouch = typeof navigator !== "undefined" && (('ontouchstart' in window) || (navigator.maxTouchPoints > 0));
+    return isMobileUA || (isTouch && isSmallScreen);
+  }
+
+  // Auto-fetch models installed in Ollama via /api/tags or /v1/models
+  async function fetchInstalledLocalModels(baseUrl) {
+    const cleanBase = (baseUrl || "http://127.0.0.1:11434/v1").replace(/\/+$/, "");
+    const rootBase = cleanBase.replace(/\/v1$/, "");
+
+    // 1. Try native Ollama endpoint /api/tags
+    try {
+      const resp = await fetch(`${rootBase}/api/tags`, { method: "GET" });
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data && Array.isArray(data.models) && data.models.length > 0) {
+          return data.models.map(m => {
+            const rawName = m.name || m.model || "unknown";
+            const sizeGb = m.size ? ` (${(m.size / (1024 * 1024 * 1024)).toFixed(1)} GB)` : "";
+            return {
+              id: rawName,
+              name: `${rawName}${sizeGb}`,
+              badge: "🟢 Yüklü"
+            };
+          });
+        }
+      }
+    } catch (e) {
+      // ignore, try fallback
+    }
+
+    // 2. Try OpenAI-compatible /v1/models
+    try {
+      const resp = await fetch(`${cleanBase}/models`, { method: "GET" });
+      if (resp.ok) {
+        const data = await resp.json();
+        const list = data?.data || data?.models;
+        if (Array.isArray(list) && list.length > 0) {
+          return list.map(m => {
+            const id = m.id || m.name;
+            return {
+              id: id,
+              name: id,
+              badge: "🟢 Yüklü"
+            };
+          });
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    return null;
+  }
+
+  // Helper to load settings (Phone defaults to Local Ollama; PC defaults to Google Gemini)
   function getSettings() {
+    const isMobile = isMobileDevice();
+    const defaultProvider = isMobile ? "local" : "google";
+    const userChosen = localStorage.getItem("lexi_provider_user_chosen") === "true";
+    const savedProvider = localStorage.getItem("lexi_provider");
+    const activeProvider = (userChosen && savedProvider) ? savedProvider : defaultProvider;
+
     let savedModel = localStorage.getItem("lexi_model");
-    // Auto-migrate legacy/slow/overloaded models to the ultra-fast gemini-3.5-flash-lite
     if (!savedModel || savedModel.includes("latest") || savedModel.includes("pro") || savedModel.includes("3.8") || savedModel.includes("3.6") || savedModel.includes("2.5")) {
-      savedModel = "gemini-3.5-flash-lite";
+      savedModel = activeProvider === "local"
+        ? (localStorage.getItem("local_llm_model") || PROVIDERS.local.default_model)
+        : "gemini-3.5-flash-lite";
       localStorage.setItem("lexi_model", savedModel);
     }
     let googleKey = localStorage.getItem("gemini_api_key");
@@ -137,17 +207,21 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
       if (googleKey) localStorage.setItem("gemini_api_key", googleKey);
     }
     return {
-      provider: localStorage.getItem("lexi_provider") || "google",
+      isMobile,
+      provider: activeProvider,
       model: savedModel,
       googleKey: googleKey || "",
       nvidiaKey: localStorage.getItem("nvidia_api_key") || SM_STUDIO_KEYS.nvidia,
       localUrl: localStorage.getItem("local_llm_url") || PROVIDERS.local.default_url,
-      localModel: localStorage.getItem("local_llm_model") || PROVIDERS.local.default_model
+      localModel: localStorage.getItem("local_llm_model") || (isMobile ? "llama3.2:1b" : PROVIDERS.local.default_model)
     };
   }
 
   function saveSettings(settings) {
-    if (settings.provider) localStorage.setItem("lexi_provider", settings.provider);
+    if (settings.provider) {
+      localStorage.setItem("lexi_provider", settings.provider);
+      localStorage.setItem("lexi_provider_user_chosen", "true");
+    }
     if (settings.model) localStorage.setItem("lexi_model", settings.model);
     if (settings.googleKey !== undefined) localStorage.setItem("gemini_api_key", settings.googleKey.trim());
     if (settings.nvidiaKey !== undefined) localStorage.setItem("nvidia_api_key", settings.nvidiaKey.trim());
@@ -306,13 +380,13 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
     return parsed;
   }
 
-  // Yerel LLM (Ollama / Localhost)
+  // Yerel LLM (Ollama / Termux / Localhost)
   async function callLocalLLM(query, sourceLang, model, baseUrl) {
     const targetLang = sourceLang === "nl" ? "tr" : "nl";
     const userPrompt = `Lütfen şu girdiyi analiz et. Girdi dili: ${sourceLang.toUpperCase()}, Hedef dil: ${targetLang.toUpperCase()}. Girdi: "${query}"`;
     
-    const activeModel = model || "llama3.2";
-    const cleanBase = (baseUrl || "http://localhost:11434/v1").replace(/\/+$/, "");
+    const activeModel = model || (isMobileDevice() ? "llama3.2:1b" : PROVIDERS.local.default_model);
+    const cleanBase = (baseUrl || PROVIDERS.local.default_url).replace(/\/+$/, "");
     const url = `${cleanBase}/chat/completions`;
 
     const payload = {
@@ -322,31 +396,41 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
         { role: "user", content: userPrompt }
       ],
       temperature: 0.2,
+      stream: false,
       max_tokens: 2048
     };
 
+    let resp;
     try {
-      const resp = await fetch(url, {
+      resp = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
-
-      if (!resp.ok) {
-        const err = await resp.json().catch(() => ({}));
-        throw new Error(err?.error?.message || `Yerel LLM Hatası (${resp.status})`);
-      }
-
-      const data = await resp.json();
-      const content = data.choices?.[0]?.message?.content;
-      if (!content) throw new Error("Yerel modelden boş yanıt döndü.");
-
-      const parsed = parseJSONResponse(content);
-      parsed._provider = "Yerel LLM (" + activeModel + ")";
-      return parsed;
     } catch (e) {
-      throw new Error(`Yerel LLM bağlantı hatası (${cleanBase}): ${e.message}. Ollama veya LM Studio'nun çalıştığından emin olun.`);
+      throw new Error(
+        `Yerel LLM bağlantı hatası (${cleanBase}). Termux'ta Ollama'nın çalıştığından emin olun (Termux'ta: bash termux_baslat.sh). Detay: ${e.message}`
+      );
     }
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      const errMsg = err?.error?.message || err?.error || `HTTP ${resp.status}`;
+      if (resp.status === 404 || errMsg.toLowerCase().includes("not found")) {
+        throw new Error(
+          `'${activeModel}' modeli Ollama'da bulunamadı. Termux'ta 'ollama pull ${activeModel}' komutuyla indirebilir veya Ayarlar'dan yüklü başka bir model seçebilirsiniz.`
+        );
+      }
+      throw new Error(`Yerel LLM Hatası (${resp.status}): ${errMsg}`);
+    }
+
+    const data = await resp.json();
+    const content = data.choices?.[0]?.message?.content;
+    if (!content) throw new Error("Yerel modelden boş yanıt döndü.");
+
+    const parsed = parseJSONResponse(content);
+    parsed._provider = "Yerel LLM (" + activeModel + ")";
+    return parsed;
   }
 
   // Main analyze dispatcher
@@ -373,7 +457,6 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
       }
     } catch (err) {
       console.warn("AI Sağlayıcı hatası:", err);
-      // Fallback: If AI fails and we are not in quick_rest, give user choice or fallback
       throw err;
     }
   }
@@ -381,6 +464,8 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
   return {
     PROVIDERS,
     SM_STUDIO_KEYS,
+    isMobileDevice,
+    fetchInstalledLocalModels,
     getSettings,
     saveSettings,
     analyze,

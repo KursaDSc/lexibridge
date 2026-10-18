@@ -4,12 +4,16 @@ echo ========================================================
 echo   LexiBridge Akilli Sozluk - Mobil Baglanti Sunucusu
 echo ========================================================
 echo.
-echo Telefonunuz ayni Wi-Fi agina bagliyken su adresi acin:
+for /f "tokens=*" %%i in ('powershell -NoProfile -Command "(Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.InterfaceAlias -notmatch 'Loopback|vEthernet' -and $_.IPAddress -notlike '169.254*' -and $_.IPAddress -notlike '127*' }).IPAddress | Select-Object -First 1"') do set LOCAL_IP=%%i
+if "%LOCAL_IP%"=="" set LOCAL_IP=localhost
+
 echo.
-echo   👉 http://192.168.1.13:8080
+echo Telefonunuz veya diger cihazlar icin baglanti adresi:
+echo.
+echo   👉 http://%LOCAL_IP%:8080   (veya http://localhost:8080)
 echo.
 echo Telefonda tarayicidan acip "Ana Ekrana Ekle" diyerek
-echo gercek bir mobil uygulama olarak kullanabilirsiniz!
+echo PWA mobil uygulama olarak kullanabilirsiniz!
 echo.
 echo Kapatmak icin bu pencereyi kapatabilirsiniz.
 echo ========================================================
