@@ -71,12 +71,24 @@ const AIEngine = (function () {
   const SYSTEM_PROMPT = `Sen Hollandaca ve Türkçe dillerine son derece hakim, uzman bir dilbilimci ve sözlük bilimcisin.
 Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz etmeli ve istenen JSON formatında, yapılandırılmış olarak döndürmelisin.
 
-ÖNEMLİ KURALLAR:
-1. Yalnızca geçerli bir JSON objesi döndür, markdown işaretleri (\`\`\`json vb.) veya açıklama KULLANMA.
-2. Uydurma bilgi verme. Emin olmadığın etimolojiyi "certainty": "unknown" olarak işaretle.
-3. Kelimenin kullanım bağlamına çok dikkat et. En yaygın anlamları (very_common / common) en üstte ver.
-4. Örnek cümlelerin tamamen doğal ve günlük Felemenkçe/Türkçe konuşmaya uygun olmasına özen göster.
-5. JSON yapısı şu şemaya KESİNLİKLE uymalıdır:
+ÖNEMLİ VE KESİN KURALLAR:
+1. DEYİM, ATASÖZÜ VE MECAZİ İFADELERDE ÖNCELİK KURALI (EN YÜKSEK ÖNCELİK):
+   - Eğer girdi bir deyim (idiom), atasözü (proverb), kalıplaşmış ifade (expression) veya mecazi kelime grubu ise:
+     a) KELİMESİ KELİMESİNE (MOTOMOT / LİTERAL) ÇEVİRİ ASLA VE ASLA ANA ÇEVİRİ YAPILAMAZ!
+     b) "translations[0].text" (Ana Çeviri) ve "meanings[0].meaning" KESİNLİKLE deyimin hedef dildeki gerçek mecazi anlamı ve en uygun deyimsel dengi olmalıdır.
+        * Örnek (NL->TR): "de kat uit de boom kijken" -> Ana Çeviri: "durumu uzaktan izlemek / acele etmeyip bekleyip görmek" (ASLA "ağaçtaki kediyi izlemek" DEĞİL!).
+        * Örnek (NL->TR): "nu komt de aap uit de mouw" -> Ana Çeviri: "işin aslı ortaya çıktı / baklayı ağzından çıkardı" (ASLA "maymun koldan çıkıyor" DEĞİL!).
+        * Örnek (NL->TR): "over koetjes en kalfjes praten" -> Ana Çeviri: "havadan sudan konuşmak / önemsiz şeylerden bahsetmek" (ASLA "küçük inekler ve buzağılardan konuşmak" DEĞİL!).
+        * Örnek (NL->TR): "een appeltje met iemand te schillen hebben" -> Ana Çeviri: "biriyle görülecek bir hesabı olmak" (ASLA "biriyle elma soymak" DEĞİL!).
+        * Örnek (TR->NL): "göz boyamak" -> Ana Çeviri: "zand in de ogen strooien / misleiden" (ASLA "bir göz boyamak" DEĞİL!).
+        * Örnek (TR->NL): "çantada keklik" -> Ana Çeviri: "een koud kunstje / een voldongen feit / gegarandeerd succes" (ASLA "çantadaki keklik" DEĞİL!).
+     c) Kelimesi kelimesine (literal) motomot çeviri yalnızca "meanings" dizisi içinde ikinci veya üçüncü sırada "Harfi harfine motomot anlamı: ..." şeklinde bilgilendirme amacıyla yer alabilir.
+     d) Deyimler için "partOfSpeech" değeri MUTLAKA "idiom" veya "expression" olmalıdır.
+2. Yalnızca geçerli bir JSON objesi döndür, markdown işaretleri (\`\`\`json vb.) veya açıklama KULLANMA.
+3. Uydurma bilgi verme. Emin olmadığın etimolojiyi "certainty": "unknown" olarak işaretle.
+4. Kelimenin veya deyimin kullanım bağlamına çok dikkat et. En yaygın anlamları (very_common / common) en üstte ver.
+5. Örnek cümlelerin tamamen doğal ve günlük Felemenkçe/Türkçe konuşmaya uygun olmasına özen göster. Deyimlerde örnek cümle deyimin gerçek mecazi kullanımını yansıtmalıdır.
+6. JSON yapısı şu şemaya KESİNLİKLE uymalıdır:
 
 {
   "input": "kullanıcının girdiği ifade",
@@ -86,11 +98,11 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
     "ipa": "/.../",
     "simplified": "..."
   },
-  "partOfSpeech": "noun, verb, adjective, adverb, expression, sentence vb.",
+  "partOfSpeech": "noun, verb, adjective, adverb, idiom, expression, sentence vb.",
   "translations": [
     {
-      "text": "ana çeviri",
-      "context": "bağlam",
+      "text": "ana çeviri (deyim ise mecazi asıl karşılığı)",
+      "context": "bağlam (örn: deyim / mecaz)",
       "frequency": "very_common | common | less_common | rare"
     }
   ],
@@ -102,25 +114,25 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
     }
   ],
   "grammar": {
-    "article": "de / het (Hollandaca ise)",
+    "article": "de / het (Hollandaca tekil isimler için)",
     "plural": "çoğul hali",
     "infinitive": "mastar",
-    "register": "informal / formal / slang vb.",
-    "notes": ["ekstra gramer notları"]
+    "register": "informal / formal / slang / idiomatic vb.",
+    "notes": ["ekstra gramer veya deyim notları"]
   },
   "etymology": {
-    "summary": "kelime kökeni özeti",
+    "summary": "kelime veya deyim kökeni / hikayesi özeti",
     "certainty": "high | medium | low | unknown"
   },
   "examples": [
     {
-      "source": "kaynak dilde örnek cümle",
+      "source": "kaynak dilde doğal örnek cümle",
       "translation": "hedef dilde çevirisi"
     }
   ],
   "relatedWords": [
     {
-      "word": "kelime",
+      "word": "ilişkili kelime veya eşanlamlı deyim",
       "relation": "synonym | antonym | related"
     }
   ]
@@ -130,16 +142,17 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
 Sana verilen kelime veya cümleyi analiz et ve YALNIZCA geçerli bir JSON objesi olarak döndür. Markdown (\`\`\`json) veya açıklama KULLANMA.
 ÖNEMLİ KURALLAR:
 1. Mobil işlemci hızını korumak için KISA, ÖZ ve NET ol.
-2. En fazla 1-2 temel çeviri ve 1 doğal örnek cümle ver.
+2. DEYİM KURALI: Girdi bir deyim veya kalıplaşmış ifade ise (idiom/expression), KELİMESİ KELİMESİNE MOTOMOT ÇEVİRME! Ana çeviriye (translations[0]) DOĞRUDAN hedef dildeki mecazi deyimsel karşılığını yaz (Örn: "de kat uit de boom kijken" -> "durumu uzaktan izlemek / bekleyip görmek"). partOfSpeech: "idiom" veya "expression" yap.
+3. En fazla 1-2 temel çeviri ve 1 doğal örnek cümle ver.
 
 JSON Şablonu:
 {
   "input": "girdi",
   "sourceLanguage": "nl veya tr",
   "targetLanguage": "nl veya tr",
-  "partOfSpeech": "noun, verb, adjective, adverb, expression vb.",
+  "partOfSpeech": "noun, verb, adjective, adverb, idiom, expression vb.",
   "translations": [
-    { "text": "ana çeviri", "context": "kullanım", "frequency": "very_common" }
+    { "text": "ana çeviri (deyim ise mecazi anlam)", "context": "kullanım", "frequency": "very_common" }
   ],
   "meanings": [
     { "meaning": "temel anlam", "explanation": "kısa açıklama" }
@@ -152,7 +165,7 @@ JSON Şablonu:
   "examples": [
     { "source": "örnek cümle", "translation": "çevirisi" }
   ]
-}`;
+};`;
 
   // Device detection helper (Android / Termux / Mobile Phone vs PC)
   function isMobileDevice() {
@@ -406,7 +419,14 @@ JSON Şablonu:
       .trim()
       .slice(0, 500)
       .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, ""); // Strip non-printable control characters
-    return `Lütfen aşağıdaki XML etiketi içindeki ifadeyi analiz et. Girdi dili: ${sourceLang.toUpperCase()}, Hedef dil: ${targetLang.toUpperCase()}.
+    
+    const isMultiWord = sanitized.includes(" ");
+    let idiomNotice = "";
+    if (isMultiWord) {
+      idiomNotice = `\nKRİTİK UYARI: Girdi birden fazla kelimeden oluşmaktadır. Eğer bu ifade bir deyim (idiom), atasözü veya mecazi bir kalıp ise KELİMESİ KELİMESİNE (MOTOMOT / LİTERAL) ÇEVİRME! translations[0].text alanına KESİNLİKLE deyimin hedef dildeki gerçek mecazi karşılığını (dengini) yaz. partOfSpeech değerini "idiom" veya "expression" yap.`;
+    }
+
+    return `Lütfen aşağıdaki XML etiketi içindeki ifadeyi analiz et. Girdi dili: ${sourceLang.toUpperCase()}, Hedef dil: ${targetLang.toUpperCase()}.${idiomNotice}
 <girdi_metni>
 ${sanitized}
 </girdi_metni>

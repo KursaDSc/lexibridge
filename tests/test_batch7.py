@@ -72,5 +72,17 @@ class TestMobileTypography(unittest.TestCase):
         self.assertGreater(history_btn_pos, 0, "historyBtn must be inside header")
         self.assertLess(mode_btn_pos, history_btn_pos, "modeToggleBtn must be placed before historyBtn")
 
+    def test_idiomatic_priority_rules_in_ai_engine(self):
+        """Verify aiEngine.js system prompt and user prompt strictly mandate idiomatic translations."""
+        ai_engine_path = os.path.join(self.root_dir, 'js', 'aiEngine.js')
+        with open(ai_engine_path, 'r', encoding='utf-8') as f:
+            ai_engine_code = f.read()
+        
+        self.assertIn("DEYİM, ATASÖZÜ VE MECAZİ İFADELERDE ÖNCELİK KURALI", ai_engine_code)
+        self.assertIn("KELİMESİ KELİMESİNE (MOTOMOT / LİTERAL) ÇEVİRİ ASLA VE ASLA ANA ÇEVİRİ YAPILAMAZ", ai_engine_code)
+        self.assertIn("de kat uit de boom kijken", ai_engine_code)
+        self.assertIn("nu komt de aap uit de mouw", ai_engine_code)
+        self.assertIn("idiomNotice", ai_engine_code)
+
 if __name__ == '__main__':
     unittest.main()

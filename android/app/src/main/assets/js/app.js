@@ -603,8 +603,9 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="flex flex-wrap items-center gap-2 mt-2">
               ${data.grammar?.article ? renderArticleBadge(data.grammar.article) : ''}
               ${data.partOfSpeech ? `
-                <span class="text-xs px-2.5 py-1 rounded-lg bg-sky-50 text-sky-700 font-semibold border border-sky-100/60">
-                  ${escapeHtml(localizePos(data.partOfSpeech))}
+                <span class="text-xs px-2.5 py-1 rounded-lg ${/idiom|expression|deyim/i.test(data.partOfSpeech) ? 'bg-amber-100 text-amber-900 border-amber-300 font-bold inline-flex items-center gap-1 shadow-2xs' : 'bg-sky-50 text-sky-700 font-semibold border-sky-100/60'} border">
+                  ${/idiom|expression|deyim/i.test(data.partOfSpeech) ? '<i class="ph-bold ph-lightbulb text-amber-600"></i>' : ''}
+                  <span>${escapeHtml(localizePos(data.partOfSpeech))}</span>
                 </span>
               ` : ''}
               ${data.pronunciation?.ipa ? `
