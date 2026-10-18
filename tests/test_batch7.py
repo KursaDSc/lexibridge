@@ -59,5 +59,18 @@ class TestMobileTypography(unittest.TestCase):
             self.assertEqual(len(re.findall(r'text-\[(9|10|11)px\]', android_index)), 0)
             self.assertEqual(len(re.findall(r'text-\[(9|10|11)px\]', android_js)), 0)
 
+    def test_mode_toggle_button_located_in_header(self):
+        """Verify modeToggleBtn is located inside header directly before historyBtn."""
+        header_end = self.index_html.find('</header>')
+        self.assertGreater(header_end, 0)
+        header_part = self.index_html[:header_end]
+        
+        mode_btn_pos = header_part.find('id="modeToggleBtn"')
+        history_btn_pos = header_part.find('id="historyBtn"')
+        
+        self.assertGreater(mode_btn_pos, 0, "modeToggleBtn must be inside header")
+        self.assertGreater(history_btn_pos, 0, "historyBtn must be inside header")
+        self.assertLess(mode_btn_pos, history_btn_pos, "modeToggleBtn must be placed before historyBtn")
+
 if __name__ == '__main__':
     unittest.main()

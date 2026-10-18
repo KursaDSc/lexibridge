@@ -377,13 +377,17 @@ document.addEventListener('DOMContentLoaded', () => {
   function toggleQuickMode() {
     isQuickMode = !isQuickMode;
     if (isQuickMode) {
-      modeToggleIcon.className = 'ph-bold ph-lightning text-emerald-500';
+      modeToggleIcon.className = 'ph-bold ph-lightning text-emerald-500 text-xl';
       modeToggleText.textContent = 'Hızlı REST';
-      modeToggleBtn.classList.add('border-emerald-300', 'bg-emerald-50', 'text-emerald-700');
+      modeToggleBtn.title = 'Aktif Mod: Hızlı REST (Derin AI için dokunun)';
+      modeToggleBtn.classList.remove('border-amber-200/80', 'bg-amber-50/40', 'text-amber-500', 'hover:bg-amber-50');
+      modeToggleBtn.classList.add('border-emerald-300', 'bg-emerald-50', 'text-emerald-600', 'hover:bg-emerald-100');
     } else {
-      modeToggleIcon.className = 'ph-bold ph-sparkle text-amber-500';
+      modeToggleIcon.className = 'ph-bold ph-sparkle text-amber-500 text-xl';
       modeToggleText.textContent = 'Derin AI';
-      modeToggleBtn.classList.remove('border-emerald-300', 'bg-emerald-50', 'text-emerald-700');
+      modeToggleBtn.title = 'Aktif Mod: Derin AI (Hızlı REST için dokunun)';
+      modeToggleBtn.classList.remove('border-emerald-300', 'bg-emerald-50', 'text-emerald-600', 'hover:bg-emerald-100');
+      modeToggleBtn.classList.add('border-amber-200/80', 'bg-amber-50/40', 'text-amber-500', 'hover:bg-amber-50');
     }
   }
 
