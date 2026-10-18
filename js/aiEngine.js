@@ -138,12 +138,15 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
 
   // Auto-fetch models installed in Ollama via /api/tags or /v1/models
   async function fetchInstalledLocalModels(baseUrl) {
-    const cleanBase = (baseUrl || "http://127.0.0.1:11434/v1").replace(/\/+$/, "");
+    const cleanBase = (baseUrl || getLocalLLMBaseUrl()).replace(/\/+$/, "");
     const rootBase = cleanBase.replace(/\/v1$/, "");
 
-    // 1. Try native Ollama endpoint /api/tags
+    // 1. Try native Ollama endpoint /api/tags (with 2500ms timeout)
     try {
-      const resp = await fetch(`${rootBase}/api/tags`, { method: "GET" });
+      const ctrl = new AbortController();
+      const tId = setTimeout(() => ctrl.abort(), 2500);
+      const resp = await fetch(`${rootBase}/api/tags`, { method: "GET", signal: ctrl.signal });
+      clearTimeout(tId);
       if (resp.ok) {
         const data = await resp.json();
         if (data && Array.isArray(data.models) && data.models.length > 0) {
@@ -162,9 +165,12 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
       // ignore, try fallback
     }
 
-    // 2. Try OpenAI-compatible /v1/models
+    // 2. Try OpenAI-compatible /v1/models (with 2500ms timeout)
     try {
-      const resp = await fetch(`${cleanBase}/models`, { method: "GET" });
+      const ctrl = new AbortController();
+      const tId = setTimeout(() => ctrl.abort(), 2500);
+      const resp = await fetch(`${cleanBase}/models`, { method: "GET", signal: ctrl.signal });
+      clearTimeout(tId);
       if (resp.ok) {
         const data = await resp.json();
         const list = data?.data || data?.models;
@@ -186,6 +192,23 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
     return null;
   }
 
+  // Determine optimal base URL for local LLM
+  function getLocalLLMBaseUrl() {
+    const custom = localStorage.getItem("local_llm_url");
+    if (custom && custom.trim()) {
+      let clean = custom.trim().replace(/\/+$/, "");
+      if (clean.includes("localhost")) {
+        clean = clean.replace("localhost", "127.0.0.1");
+      }
+      return clean;
+    }
+    // When running on local python server (port 8080), route through internal proxy
+    if (typeof window !== "undefined" && window.location.hostname === "127.0.0.1" && window.location.port === "8080") {
+      return window.location.origin + "/ollama/v1";
+    }
+    return "http://127.0.0.1:11434/v1";
+  }
+
   // Helper to load settings (Phone defaults to Local Ollama; PC defaults to Google Gemini)
   function getSettings() {
     const isMobile = isMobileDevice();
@@ -197,7 +220,7 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
     let savedModel = localStorage.getItem("lexi_model");
     if (!savedModel || savedModel.includes("latest") || savedModel.includes("pro") || savedModel.includes("3.8") || savedModel.includes("3.6") || savedModel.includes("2.5")) {
       savedModel = activeProvider === "local"
-        ? (localStorage.getItem("local_llm_model") || PROVIDERS.local.default_model)
+        ? (localStorage.getItem("local_llm_model") || (isMobile ? "qwen2.5:3b" : PROVIDERS.local.default_model))
         : "gemini-3.5-flash-lite";
       localStorage.setItem("lexi_model", savedModel);
     }
@@ -208,7 +231,7 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
     }
     let savedLocalUrl = localStorage.getItem("local_llm_url");
     if (!savedLocalUrl || savedLocalUrl.includes("localhost")) {
-      savedLocalUrl = PROVIDERS.local.default_url; // "http://127.0.0.1:11434/v1"
+      savedLocalUrl = getLocalLLMBaseUrl();
       localStorage.setItem("local_llm_url", savedLocalUrl);
     }
     return {
@@ -218,7 +241,7 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
       googleKey: googleKey || "",
       nvidiaKey: localStorage.getItem("nvidia_api_key") || SM_STUDIO_KEYS.nvidia,
       localUrl: savedLocalUrl,
-      localModel: localStorage.getItem("local_llm_model") || (isMobile ? "llama3.2:1b" : PROVIDERS.local.default_model)
+      localModel: localStorage.getItem("local_llm_model") || (isMobile ? "qwen2.5:3b" : PROVIDERS.local.default_model)
     };
   }
 
@@ -390,10 +413,61 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
     const targetLang = sourceLang === "nl" ? "tr" : "nl";
     const userPrompt = `Lütfen şu girdiyi analiz et. Girdi dili: ${sourceLang.toUpperCase()}, Hedef dil: ${targetLang.toUpperCase()}. Girdi: "${query}"`;
     
-    const activeModel = model || (isMobileDevice() ? "llama3.2:1b" : PROVIDERS.local.default_model);
-    let cleanBase = (baseUrl || PROVIDERS.local.default_url).trim().replace(/\/+$/, "");
+    let cleanBase = (baseUrl || getLocalLLMBaseUrl()).trim().replace(/\/+$/, "");
     if (!cleanBase.endsWith("/v1")) {
       cleanBase = cleanBase + "/v1";
+    }
+
+    let activeModel = model || localStorage.getItem("local_llm_model") || (isMobileDevice() ? "qwen2.5:3b" : PROVIDERS.local.default_model);
+
+    // 1. Hızlı erişim ve model doğrulama kontrolü (2.5 saniye timeout)
+    async function probeServer(base) {
+      const root = base.replace(/\/v1$/, "");
+      const ctrl = new AbortController();
+      const tId = setTimeout(() => ctrl.abort(), 2500);
+      try {
+        const r = await fetch(`${root}/api/tags`, { method: "GET", signal: ctrl.signal });
+        clearTimeout(tId);
+        if (r.ok) {
+          const d = await r.json().catch(() => ({}));
+          return { ok: true, models: d.models || [] };
+        }
+      } catch (e) {
+        clearTimeout(tId);
+      }
+      return { ok: false, models: [] };
+    }
+
+    let targetBase = cleanBase;
+    let probe = await probeServer(cleanBase);
+
+    // cleanBase başarısızsa localhost <-> 127.0.0.1 alternatifi dene
+    if (!probe.ok) {
+      const altBase = cleanBase.includes("127.0.0.1")
+        ? cleanBase.replace("127.0.0.1", "localhost")
+        : cleanBase.replace("localhost", "127.0.0.1");
+      const probeAlt = await probeServer(altBase);
+      if (probeAlt.ok) {
+        probe = probeAlt;
+        targetBase = altBase;
+      }
+    }
+
+    if (!probe.ok) {
+      throw new Error(
+        `Yerel Ollama servisine bağlanılamadı (${cleanBase}). Termux'ta 'ollama serve' veya 'bash termux_baslat.sh' çalıştırıldığından emin olun.`
+      );
+    }
+
+    // Yüklü modeller varsa, istenen modeli doğrula ya da otomatik olarak telefondaki yüklü modeli seç
+    if (probe.models && probe.models.length > 0) {
+      const modelNames = probe.models.map(m => m.name || m.model || "");
+      const exists = modelNames.some(n => n === activeModel || n.startsWith(activeModel.split(":")[0]));
+      if (!exists && modelNames[0]) {
+        console.log(`'${activeModel}' bulunamadı, yüklü model '${modelNames[0]}' otomatik seçiliyor.`);
+        activeModel = modelNames[0];
+        localStorage.setItem("local_llm_model", activeModel);
+      }
     }
 
     const payload = {
@@ -407,51 +481,30 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
       max_tokens: 2048
     };
 
+    // 2. LLM Çıkarımı (Mobil CPU için 90 saniye süre tanınır)
+    const inferCtrl = new AbortController();
+    const inferTimeoutId = setTimeout(() => inferCtrl.abort(), 90000);
+
     let resp;
-    let targetBase = cleanBase;
-
-    async function attemptFetch(base) {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3500);
-      try {
-        const r = await fetch(`${base}/chat/completions`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-          signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-        return r;
-      } catch (err) {
-        clearTimeout(timeoutId);
-        throw err;
-      }
-    }
-
     try {
-      resp = await attemptFetch(targetBase);
-    } catch (e1) {
-      // If 127.0.0.1 failed, try localhost (or vice versa)
-      const altBase = targetBase.includes("127.0.0.1")
-        ? targetBase.replace("127.0.0.1", "localhost")
-        : targetBase.replace("localhost", "127.0.0.1");
-      try {
-        resp = await attemptFetch(altBase);
-      } catch (e2) {
-        throw new Error(
-          `Yerel LLM bağlantı hatası (${cleanBase}). Termux'ta Ollama'nın çalıştığından ve OLLAMA_ORIGINS="*" ayarlı olduğundan emin olun. Detay: ${e1.message}`
-        );
+      resp = await fetch(`${targetBase}/chat/completions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        signal: inferCtrl.signal
+      });
+      clearTimeout(inferTimeoutId);
+    } catch (inferErr) {
+      clearTimeout(inferTimeoutId);
+      if (inferErr.name === "AbortError") {
+        throw new Error(`Yerel model (${activeModel}) 90 saniye içinde yanıt veremedi. Telefon işlemcisi meşgul olabilir.`);
       }
+      throw new Error(`Yerel LLM çıkarım hatası: ${inferErr.message}`);
     }
 
     if (!resp.ok) {
       const err = await resp.json().catch(() => ({}));
       const errMsg = err?.error?.message || err?.error || `HTTP ${resp.status}`;
-      if (resp.status === 404 || errMsg.toLowerCase().includes("not found")) {
-        throw new Error(
-          `'${activeModel}' modeli Ollama'da bulunamadı. Termux'ta 'ollama pull ${activeModel}' komutuyla indirebilir veya Ayarlar'dan yüklü başka bir model seçebilirsiniz.`
-        );
-      }
       throw new Error(`Yerel LLM Hatası (${resp.status}): ${errMsg}`);
     }
 

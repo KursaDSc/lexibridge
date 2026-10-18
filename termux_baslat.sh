@@ -14,24 +14,40 @@ set -e
 
 PORT=8080
 export OLLAMA_ORIGINS="*"
-export OLLAMA_HOST="127.0.0.1:11434"
+export OLLAMA_HOST="0.0.0.0:11434"
 
 echo "========================================================"
 echo " 📱 LexiBridge Android Termux & Ollama Baslatici"
 echo "========================================================"
 echo ""
 
-# 1. Ollama Kontrolü
+# 1. Ollama Kontrolü ve CORS Doğrulaması
 if command -v ollama >/dev/null 2>&1; then
+  RESTART_OLLAMA=0
   if curl -s http://127.0.0.1:11434/api/tags >/dev/null 2>&1; then
-    echo "✓ Ollama servisi zaten calisiyor (127.0.0.1:11434)."
+    # CORS kontrolü yap (Origin header'ı ile test)
+    CORS_OK=$(curl -s -I -X OPTIONS http://127.0.0.1:11434/api/tags -H "Origin: http://127.0.0.1:8080" 2>/dev/null | grep -i "access-control-allow-origin" || true)
+    if [ -z "$CORS_OK" ]; then
+      echo "⚠️  Ollama calisiyor ancak tarayici izni (CORS) eksik."
+      echo "   Tarayici erisimi icin CORS ile yeniden baslatiliyor..."
+      killall ollama 2>/dev/null || true
+      sleep 1
+      RESTART_OLLAMA=1
+    else
+      echo "✓ Ollama servisi CORS izniyle aktif (127.0.0.1:11434)."
+    fi
   else
-    echo "⏳ Ollama servisi arka planda baslatiliyor..."
+    RESTART_OLLAMA=1
+  fi
+
+  if [ "$RESTART_OLLAMA" -eq 1 ]; then
+    echo "⏳ Ollama servisi tarayici izniyle arka planda baslatiliyor..."
+    export OLLAMA_ORIGINS="*"
+    export OLLAMA_HOST="0.0.0.0:11434"
     ollama serve >/dev/null 2>&1 &
-    OLLAMA_PID=$!
     
-    # 5 saniye hazir olmasini bekle
-    for i in 1 2 3 4 5 6 7 8 9 10; do
+    # 6 saniye hazir olmasini bekle
+    for i in 1 2 3 4 5 6 7 8 9 10 11 12; do
       if curl -s http://127.0.0.1:11434/api/tags >/dev/null 2>&1; then
         echo "✓ Ollama servisi hazir."
         break
@@ -46,8 +62,8 @@ if command -v ollama >/dev/null 2>&1; then
     echo ""
     echo "⚠️  Ollama'da henuz yuklu bir model bulunamadi!"
     echo "   Telefonunuz icin onerilen ultra hafif modeller:"
+    echo "   👉 ollama pull qwen2.5:3b     (Kaliteli Türkçe & Flemenkçe)"
     echo "   👉 ollama pull llama3.2:1b    (~1.3 GB - Hizli & Hafif)"
-    echo "   👉 ollama pull qwen2.5:1.5b   (~1.0 GB - Cok Dilli)"
     echo ""
   else
     echo "✓ Yuklu Ollama Modelleri Algilandi:"

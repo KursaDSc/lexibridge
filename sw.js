@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lexibridge-cache-v4';
+const CACHE_NAME = 'lexibridge-cache-v5';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -36,6 +36,7 @@ self.addEventListener('fetch', (event) => {
     url.includes('googleapis.com') ||
     url.includes('nvidia.com') ||
     url.includes(':11434') ||
+    url.includes('/ollama/') ||
     url.includes('translate.googleapis.com')
   ) {
     return;

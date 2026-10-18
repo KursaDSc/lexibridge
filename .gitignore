@@ -29,3 +29,5 @@ Thumbs.db
 # ── Local Agent / Temp Directories ──
 .agents/
 scratch/
+__pycache__/
+*.pyc

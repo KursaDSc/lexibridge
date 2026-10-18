@@ -529,17 +529,21 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
 
     if (data._fallbackFrom === 'local') {
+      const errDetail = data._localError || 'Bağlantı kurulamadı';
       html += `
         <div class="text-left text-[11px] text-amber-800 bg-amber-50/90 border border-amber-200/80 rounded-xl p-3 max-w-md mx-auto mt-2.5 animate-slide-up shadow-2xs">
           <div class="font-bold flex items-center gap-1.5 text-amber-900 mb-1">
             <i class="ph-bold ph-info text-amber-600 text-sm"></i>
             <span>Akıllı Yedek Devrede: ${escapeHtml(data._provider)}</span>
           </div>
+          <div class="text-[11px] text-amber-950 font-medium mb-1.5 bg-amber-100/60 p-2 rounded-lg border border-amber-200/50 leading-relaxed">
+            🔍 <strong>Ollama Durumu:</strong> ${escapeHtml(errDetail)}
+          </div>
           <p class="text-amber-700 leading-relaxed text-[11px]">
-            Telefonunuzdaki Ollama'ya ulaşılamadı (CORS veya kapalı). Termux'ta tarayıcı izniyle başlatmak için:
+            Ollama'yı Termux'ta tarayıcı erişimine tam açmak için:
           </p>
-          <div class="font-mono bg-amber-100/80 text-amber-950 px-2 py-1 rounded my-1 text-[10px] select-all break-all">
-            killall ollama 2>/dev/null; export OLLAMA_ORIGINS="*"; ollama serve &
+          <div class="font-mono bg-white text-slate-800 border border-amber-200 px-2 py-1 rounded my-1 text-[10px] select-all break-all">
+            killall ollama 2>/dev/null; export OLLAMA_ORIGINS="*"; export OLLAMA_HOST="0.0.0.0:11434"; ollama serve &
           </div>
         </div>
       `;

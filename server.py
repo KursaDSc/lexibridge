@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-LexiBridge Termux & Local Server with Tab-Close Auto-Shutdown
+LexiBridge Termux & Local Server with Reverse Proxy to Ollama
 - Serves static files on port 8080
-- Listens for browser heartbeats (/api/heartbeat)
-- On tab close (/api/shutdown or 8s heartbeat timeout):
-  Terminates Ollama and shuts down the local server cleanly.
+- Proxies /ollama/* requests to http://127.0.0.1:11434/*
+- Full CORS & Private Network Access support for browser compatibility
+- Clean shutdown handling
 """
 
 import http.server
@@ -15,6 +15,9 @@ import os
 import signal
 import sys
 import subprocess
+import urllib.request
+import urllib.error
+import json
 
 # Ensure UTF-8 output on all platforms
 if hasattr(sys.stdout, 'reconfigure'):
@@ -49,11 +52,63 @@ def perform_shutdown():
     os._exit(0)
 
 class LexiHandler(http.server.SimpleHTTPRequestHandler):
+    def proxy_to_ollama(self, method):
+        # Strip /ollama prefix: e.g. /ollama/v1/chat/completions -> /v1/chat/completions
+        rel_path = self.path[len("/ollama"):]
+        target_url = f"http://127.0.0.1:11434{rel_path}"
+        try:
+            content_length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(content_length) if content_length > 0 else None
+            
+            headers = {}
+            for h in ["Content-Type", "Accept", "Authorization"]:
+                if h in self.headers:
+                    headers[h] = self.headers[h]
+            
+            req = urllib.request.Request(target_url, data=body, headers=headers, method=method)
+            # 120 seconds timeout for local model inference on mobile CPU
+            with urllib.request.urlopen(req, timeout=120) as resp:
+                resp_data = resp.read()
+                self.send_response(resp.status)
+                self.send_header("Content-Type", resp.headers.get("Content-Type", "application/json"))
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Private-Network", "true")
+                self.send_header("Content-Length", str(len(resp_data)))
+                self.end_headers()
+                self.wfile.write(resp_data)
+        except urllib.error.HTTPError as he:
+            err_data = he.read()
+            self.send_response(he.code)
+            self.send_header("Content-Type", he.headers.get("Content-Type", "application/json"))
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Private-Network", "true")
+            self.send_header("Content-Length", str(len(err_data)))
+            self.end_headers()
+            self.wfile.write(err_data)
+        except Exception as e:
+            err_json = json.dumps({"error": f"Ollama proxy baglanti hatasi: {str(e)}"}).encode("utf-8")
+            self.send_response(502)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Private-Network", "true")
+            self.send_header("Content-Length", str(len(err_json)))
+            self.end_headers()
+            self.wfile.write(err_json)
+
+    def do_OPTIONS(self):
+        # Support CORS preflight + Private Network Access preflight
+        self.send_response(204)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "*")
+        self.send_header("Access-Control-Allow-Private-Network", "true")
+        self.end_headers()
+
     def do_GET(self):
-        global last_heartbeat, client_ever_connected
+        if self.path.startswith("/ollama/"):
+            self.proxy_to_ollama("GET")
+            return
         if self.path == "/api/heartbeat":
-            last_heartbeat = time.time()
-            client_ever_connected = True
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.send_header("Access-Control-Allow-Origin", "*")
@@ -63,6 +118,9 @@ class LexiHandler(http.server.SimpleHTTPRequestHandler):
         super().do_GET()
 
     def do_POST(self):
+        if self.path.startswith("/ollama/"):
+            self.proxy_to_ollama("POST")
+            return
         if self.path == "/api/shutdown":
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
@@ -72,14 +130,6 @@ class LexiHandler(http.server.SimpleHTTPRequestHandler):
             threading.Thread(target=lambda: (time.sleep(0.3), perform_shutdown())).start()
             return
         self.send_response(404)
-        self.end_headers()
-
-    def do_OPTIONS(self):
-        # Support CORS preflight
-        self.send_response(200)
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "*")
         self.end_headers()
 
     def log_message(self, format, *args):
@@ -100,6 +150,7 @@ def main():
     socketserver.TCPServer.allow_reuse_address = True
     with socketserver.TCPServer(("127.0.0.1", port), LexiHandler) as httpd:
         print(f"[OK] LexiBridge Sunucu aktif: http://127.0.0.1:{port}")
+        print(f"[OK] Ollama Yerel Proxy aktif: http://127.0.0.1:{port}/ollama/")
         print("[BILGI] Durdurmak icin Termux'ta CTRL + C tuslarina basabilirsiniz.")
         try:
             httpd.serve_forever()
