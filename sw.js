@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lexibridge-cache-v1';
+const CACHE_NAME = 'lexibridge-cache-v3';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -12,10 +12,9 @@ const ASSETS_TO_CACHE = [
 ];
 
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
-    }).then(() => self.skipWaiting())
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE))
   );
 });
 
@@ -30,8 +29,9 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Pass API requests straight to network without caching
   const url = event.request.url;
+
+  // Never cache external APIs or local LLM requests
   if (
     url.includes('googleapis.com') ||
     url.includes('nvidia.com') ||
@@ -41,21 +41,37 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Network-First for HTML, Scripts & App Logic (Always get latest version when online)
+  if (
+    event.request.mode === 'navigate' ||
+    url.includes('/js/') ||
+    url.endsWith('.html') ||
+    url.endsWith('.js')
+  ) {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const respClone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, respClone));
+          }
+          return networkResponse;
+        })
+        .catch(() => caches.match(event.request).then((cached) => cached || caches.match('./index.html')))
+    );
+    return;
+  }
+
+  // Cache-First for static assets (images, icons, styles)
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(event.request).then((response) => {
-        if (!response || response.status !== 200 || response.type !== 'basic') {
-          return response;
+      return cachedResponse || fetch(event.request).then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          const respClone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, respClone));
         }
-        const responseToCache = response.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache);
-        });
-        return response;
+        return networkResponse;
       });
-    }).catch(() => caches.match('./index.html'))
+    })
   );
 });

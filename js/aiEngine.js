@@ -401,22 +401,44 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
     };
 
     let resp;
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3500);
+    let targetBase = cleanBase;
+
+    async function attemptFetch(base) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3500);
+      try {
+        const r = await fetch(`${base}/chat/completions`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        return r;
+      } catch (err) {
+        clearTimeout(timeoutId);
+        throw err;
+      }
+    }
 
     try {
-      resp = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-    } catch (e) {
-      clearTimeout(timeoutId);
-      throw new Error(
-        `Yerel LLM bağlantı hatası (${cleanBase}). Termux'ta Ollama'nın çalıştığından emin olun. Detay: ${e.message}`
-      );
+      resp = await attemptFetch(targetBase);
+    } catch (e1) {
+      // If localhost failed (common IPv6 issue on Android), try 127.0.0.1
+      if (targetBase.includes("localhost")) {
+        try {
+          targetBase = targetBase.replace("localhost", "127.0.0.1");
+          resp = await attemptFetch(targetBase);
+        } catch (e2) {
+          throw new Error(
+            `Yerel LLM bağlantı hatası (${cleanBase}). Termux'ta Ollama'nın çalıştığından ve OLLAMA_ORIGINS="*" ayarlı olduğundan emin olun. Detay: ${e1.message}`
+          );
+        }
+      } else {
+        throw new Error(
+          `Yerel LLM bağlantı hatası (${cleanBase}). Termux'ta Ollama'nın çalıştığından ve OLLAMA_ORIGINS="*" ayarlı olduğundan emin olun. Detay: ${e1.message}`
+        );
+      }
     }
 
     if (!resp.ok) {
