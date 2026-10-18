@@ -40,7 +40,7 @@ class TestBatch3OfflineQuality(unittest.TestCase):
         """index.html must load local vendor assets and js/cache.js before app.js."""
         self.assertIn('src="vendor/tailwindcss.js"', self.html_content)
         self.assertIn('href="vendor/phosphor/style.css"', self.html_content)
-        self.assertIn('src="js/cache.js?v=3.3"', self.html_content)
+        self.assertIn('src="js/cache.js', self.html_content)
 
         idx_cache = self.html_content.find('js/cache.js')
         idx_engine = self.html_content.find('js/aiEngine.js')

@@ -550,15 +550,15 @@
     </div>
   </div>
 
-  <!-- PWA Service Worker Registration & AI Engine Scripts (Cache-Busted v3.3) -->
-  <script src="js/config.local.js?v=3.3" onerror="this.remove()"></script>
-  <script src="js/cache.js?v=3.3"></script>
-  <script src="js/aiEngine.js?v=3.3"></script>
-  <script src="js/app.js?v=3.3"></script>
+  <!-- PWA Service Worker Registration & AI Engine Scripts (Cache-Busted v3.4) -->
+  <script src="js/config.local.js?v=3.4" onerror="this.remove()"></script>
+  <script src="js/cache.js?v=3.4"></script>
+  <script src="js/aiEngine.js?v=3.4"></script>
+  <script src="js/app.js?v=3.4"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=3.3').then(reg => {
+        navigator.serviceWorker.register('./sw.js?v=3.4').then(reg => {
           reg.update();
         }).catch(err => {
           console.log('SW registration note:', err);
