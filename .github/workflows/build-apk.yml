@@ -26,40 +26,50 @@ jobs:
       - name: Make Gradlew Executable
         run: chmod +x android/gradlew
 
-      - name: Build Debug & Release APK
+      - name: Synchronize Web Assets to Android
+        run: |
+          chmod +x scripts/sync-assets.sh
+          bash scripts/sync-assets.sh
+
+      - name: Build Release APK and App Bundle (AAB for Google Play)
         env:
           ANDROID_HOME: /usr/local/lib/android/sdk
         run: |
           cd android
-          ./gradlew assembleRelease --no-daemon
+          ./gradlew assembleRelease bundleRelease --no-daemon
 
-      - name: Rename APK for Download
+      - name: Prepare Artifacts for Release
         run: |
           cp android/app/build/outputs/apk/release/app-release.apk LexiBridge.apk
+          if [ -f android/app/build/outputs/bundle/release/app-release.aab ]; then
+            cp android/app/build/outputs/bundle/release/app-release.aab LexiBridge.aab
+          fi
 
-      - name: Upload APK Artifact
+      - name: Upload APK and AAB Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: LexiBridge-Android-APK
-          path: LexiBridge.apk
+          name: LexiBridge-Android-Builds
+          path: |
+            LexiBridge.apk
+            LexiBridge.aab
           retention-days: 30
 
-      - name: Create GitHub Release with APK
+      - name: Create GitHub Release with APK & AAB
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
         with:
-          files: LexiBridge.apk
+          files: |
+            LexiBridge.apk
+            LexiBridge.aab
           tag_name: v1.0.0
-          name: LexiBridge v1.0.0 Android APK
+          name: LexiBridge v1.0.0 Android APK & AAB
           body: |
-            ### 📱 LexiBridge Android APK (v1.0.0)
-            Hollandaca ↔ Türkçe AI Destekli Sözlük Mobil Uygulaması.
+            ### 📱 LexiBridge Android (v1.0.0)
+            Felemenkçe ↔ Türkçe AI Destekli Sözlük Mobil Uygulaması.
             
-            - **Google Gemini & NVIDIA NIM & Yerel LLM** çoklu yapay zeka motoru.
-            - Tamamen telefonunuzda bağımsız çalışır.
-            - Bilgisayar veya sunucu gerektirmez.
-            
-            **Kurulum:**
-            Aşağıdaki `LexiBridge.apk` dosyasını telefonunuza indirin ve dokunarak kurun.
+            - **LexiBridge.apk:** Doğrudan telefona kurmak için (Sideload / Doğrudan Kurulum).
+            - **LexiBridge.aab:** Google Play Store Console yüklemesi için (Android App Bundle).
+            - **Tam Çevrimdışı Önbellek:** Daha önce aranan kelimeler internetsiz anında açılır.
+            - **Gizlilik Odaklı (BYOK):** Kişisel veri toplanmaz; API anahtarı sadece yerel cihazda durur.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

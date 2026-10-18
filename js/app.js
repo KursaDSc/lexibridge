@@ -58,6 +58,102 @@ document.addEventListener('DOMContentLoaded', () => {
   const googleKeyInput = document.getElementById('googleKeyInput');
   const nvidiaKeyInput = document.getElementById('nvidiaKeyInput');
   const localUrlInput = document.getElementById('localUrlInput');
+  const seedChipsContainer = document.getElementById('seedChipsContainer');
+
+  // ── Localization Mappings (L10N-01, L10N-02, L10N-03) ──────────────────
+  const FREQUENCY_MAP_TR = {
+    very_common: 'Çok Yaygın',
+    common: 'Yaygın',
+    less_common: 'Daha Az Yaygın',
+    rare: 'Nadir'
+  };
+
+  const REGISTER_MAP_TR = {
+    informal: 'Günlük / Samimi',
+    formal: 'Resmi',
+    slang: 'Argo',
+    vulgar: 'Kaba / Argo',
+    colloquial: 'Konuşma Dili',
+    archaic: 'Eski Dil / Tarihî',
+    poetic: 'Edebi / Şiirsel'
+  };
+
+  const POS_MAP_TR = {
+    noun: 'İsim',
+    verb: 'Fiil',
+    adjective: 'Sıfat',
+    adverb: 'Zarf',
+    pronoun: 'Zamir',
+    preposition: 'Edat',
+    conjunction: 'Bağlaç',
+    interjection: 'Ünlem',
+    expression: 'Deyim / İfade',
+    phrase: 'Deyim / Kelime Grubu',
+    sentence: 'Cümle',
+    idiom: 'Deyim',
+    kelime: 'Kelime',
+    'cümle / ifade': 'Cümle / İfade'
+  };
+
+  function localizeFrequency(freq) {
+    if (!freq) return '';
+    const clean = String(freq).toLowerCase().trim().replace(/[\s-]+/g, '_');
+    return FREQUENCY_MAP_TR[clean] || clean.replace('_', ' ').toUpperCase();
+  }
+
+  function localizeRegister(reg) {
+    if (!reg) return '';
+    const clean = String(reg).toLowerCase().trim();
+    return REGISTER_MAP_TR[clean] || clean.charAt(0).toUpperCase() + clean.slice(1);
+  }
+
+  function localizePos(pos) {
+    if (!pos) return '';
+    const clean = String(pos).toLowerCase().trim();
+    return POS_MAP_TR[clean] || pos;
+  }
+
+  // ── Dynamic Seed Chips (UX-02) ──────────────────────────────────────────
+  const SEED_EXAMPLES = {
+    nl: [
+      'gezellig',
+      'uitwaaien',
+      'alsjeblieft',
+      'boodschappen doen',
+      'de aap komt uit de mouw'
+    ],
+    tr: [
+      'kolay gelsin',
+      'afiyet olsun',
+      'gözden geçirmek',
+      'eline sağlık',
+      'hoşça kal'
+    ]
+  };
+
+  function renderSeedChips() {
+    if (!seedChipsContainer) return;
+    const list = SEED_EXAMPLES[sourceLang] || SEED_EXAMPLES.nl;
+    seedChipsContainer.innerHTML = list
+      .map(
+        (word) => `
+        <button class="seed-chip px-3 py-1.5 min-h-[38px] bg-white border border-slate-200/80 rounded-xl text-slate-700 hover:border-primary-400 hover:text-primary-700 font-medium whitespace-nowrap shadow-2xs transition-all active:scale-95" data-word="${escapeHtml(word)}">
+          ${escapeHtml(word)}
+        </button>
+      `
+      )
+      .join('');
+
+    seedChipsContainer.querySelectorAll('.seed-chip').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        const word = chip.dataset.word || chip.textContent.trim();
+        searchInput.value = word;
+        searchBtn.disabled = false;
+        clearBtn.classList.remove('hidden');
+        handleSearch();
+      });
+    });
+  }
 
   // ── State ───────────────────────────────────────────────────────────────
   let sourceLang = 'nl'; // 'nl' | 'tr'
@@ -90,6 +186,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateHeaderBadge();
     updateProviderModalUI();
     renderHistory();
+    renderSeedChips();
 
     // Check query params if any
     const urlParams = new URLSearchParams(window.location.search);
@@ -102,6 +199,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── UI Updates ──────────────────────────────────────────────────────────
   function updateHeaderBadge() {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      headerProviderIcon.textContent = '✈️';
+      headerProviderName.textContent = 'Çevrimdışı';
+      return;
+    }
     const p = AIEngine.PROVIDERS[activeProvider] || AIEngine.PROVIDERS.google;
     headerProviderIcon.textContent = p.icon;
     headerProviderName.textContent = p.name;
@@ -212,6 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
       targetLangBtn.querySelector('span:first-child').textContent = '🇳🇱';
       searchInput.placeholder = 'Türkçe bir kelime, deyim veya cümle yazın...';
     }
+    renderSeedChips();
   }
 
   function toggleQuickMode() {
@@ -337,9 +440,36 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ── Search Execution ────────────────────────────────────────────────────
-  async function handleSearch() {
+  async function handleSearch(forceRefresh = false) {
     const query = searchInput.value.trim();
     if (!query) return;
+
+    const targetLang = sourceLang === 'nl' ? 'tr' : 'nl';
+
+    // 1. Check Offline Smart Cache first (unless user explicitly requested live refresh)
+    if (!forceRefresh && typeof LexiCache !== 'undefined') {
+      try {
+        const cached = await LexiCache.get(sourceLang, targetLang, query);
+        if (cached && cached.data) {
+          const cachedData = { ...cached.data };
+          cachedData._isCached = true;
+          cachedData._cacheTimestamp = cached.timestamp;
+          cachedData._latency = 0;
+          renderResult(cachedData);
+          const firstTrans = cachedData.translations?.[0]?.text || '';
+          saveToHistory(query, sourceLang, firstTrans);
+          return;
+        }
+      } catch (cacheErr) {
+        console.warn('LexiCache lookup failed:', cacheErr);
+      }
+    }
+
+    // 2. If user is offline and word not found in cache, display informative offline state
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      showError('Çevrimdışı Mod: Bu kelime henüz cihazınıza kaydedilmemiş. Lütfen internete bağlanın veya daha önce aradığınız kelimeleri Geçmiş sekmesinden inceleyin.');
+      return;
+    }
 
     setLoading(true);
     const startTime = Date.now();
@@ -347,12 +477,21 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       let data;
       if (isQuickMode) {
-        data = await AIEngine.quickTranslateRest(query, sourceLang, sourceLang === 'nl' ? 'tr' : 'nl');
+        data = await AIEngine.quickTranslateRest(query, sourceLang, targetLang);
         data._latency = Date.now() - startTime;
         data._provider = 'Google REST (Hızlı Çeviri)';
       } else {
         data = await AIEngine.analyze(query, sourceLang);
         data._latency = Date.now() - startTime;
+      }
+
+      // Save to offline smart cache
+      if (typeof LexiCache !== 'undefined') {
+        try {
+          await LexiCache.set(sourceLang, targetLang, query, data, isQuickMode);
+        } catch (saveCacheErr) {
+          console.warn('LexiCache save failed:', saveCacheErr);
+        }
       }
 
       renderResult(data);
@@ -395,8 +534,8 @@ document.addEventListener('DOMContentLoaded', () => {
           <div>
             <div class="flex items-center gap-2">
               <h2 class="text-2xl md:text-3xl font-bold text-slate-800 tracking-tight">${escapeHtml(data.input)}</h2>
-              <button class="speak-btn w-8 h-8 flex items-center justify-center text-primary-600 bg-primary-50 hover:bg-primary-100 active:scale-95 rounded-full transition-all" data-text="${escapeHtml(data.input)}" data-lang="${data.sourceLanguage}">
-                <i class="ph-fill ph-speaker-high text-lg"></i>
+              <button class="speak-btn w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-primary-600 bg-primary-50 hover:bg-primary-100 active:scale-95 rounded-full transition-all" aria-label="Kelimeyi sesli telaffuz et" data-text="${escapeHtml(data.input)}" data-lang="${data.sourceLanguage}">
+                <i class="ph-bold ph-speaker-high text-xl"></i>
               </button>
             </div>
 
@@ -407,12 +546,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 </span>
               ` : ''}
               ${data.partOfSpeech ? `
-                <span class="text-xs px-2 py-0.5 rounded-md bg-sky-50 text-sky-700 font-medium">
-                  ${escapeHtml(data.partOfSpeech)}
+                <span class="text-xs px-2.5 py-1 rounded-lg bg-sky-50 text-sky-700 font-semibold border border-sky-100/60">
+                  ${escapeHtml(localizePos(data.partOfSpeech))}
                 </span>
               ` : ''}
               ${data.grammar?.article ? `
-                <span class="text-xs px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-bold">
+                <span class="text-xs px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 font-bold border border-emerald-100/80">
                   ${escapeHtml(data.grammar.article)}
                 </span>
               ` : ''}
@@ -427,8 +566,8 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="flex flex-wrap items-baseline gap-2">
               <span class="text-xl md:text-2xl font-bold text-slate-900">${escapeHtml(mainTrans)}</span>
               ${data.translations?.[0]?.frequency && data.translations[0].frequency !== 'rare' ? `
-                <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600">
-                  ${data.translations[0].frequency.replace('_', ' ')}
+                <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100/80">
+                  ${escapeHtml(localizeFrequency(data.translations[0].frequency))}
                 </span>
               ` : ''}
             </div>
@@ -483,7 +622,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <div class="p-3 bg-slate-50 rounded-xl border border-slate-100/80">
                 <div class="flex items-center justify-between gap-2">
                   <div class="font-medium text-xs text-slate-800">${escapeHtml(ex.source)}</div>
-                  <button class="speak-btn text-slate-400 hover:text-primary-600 p-1" data-text="${escapeHtml(ex.source)}" data-lang="${data.sourceLanguage}">
+                  <button class="speak-btn text-slate-500 hover:text-primary-600 p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors" aria-label="Örnek cümleyi sesli oku" data-text="${escapeHtml(ex.source)}" data-lang="${data.sourceLanguage}">
                     <i class="ph ph-speaker-simple-high text-base"></i>
                   </button>
                 </div>
@@ -511,10 +650,10 @@ document.addEventListener('DOMContentLoaded', () => {
               <span>Gramer & Çekim</span>
             </div>
             <div class="space-y-1.5">
-              ${g.article ? `<div class="flex justify-between py-1 border-b border-slate-50"><span class="text-slate-400">Belirteç (Article)</span><span class="font-bold text-slate-800">${escapeHtml(g.article)}</span></div>` : ''}
-              ${g.plural ? `<div class="flex justify-between py-1 border-b border-slate-50"><span class="text-slate-400">Çoğul (Plural)</span><span class="font-semibold text-slate-700">${escapeHtml(g.plural)}</span></div>` : ''}
-              ${g.infinitive ? `<div class="flex justify-between py-1 border-b border-slate-50"><span class="text-slate-400">Mastar (Infinitive)</span><span class="font-semibold text-slate-700">${escapeHtml(g.infinitive)}</span></div>` : ''}
-              ${g.register ? `<div class="flex justify-between py-1 border-b border-slate-50"><span class="text-slate-400">Kullanım Düzeyi</span><span class="font-semibold text-slate-700 capitalize">${escapeHtml(g.register)}</span></div>` : ''}
+              ${g.article ? `<div class="flex justify-between py-1.5 border-b border-slate-50"><span class="text-slate-500 font-medium">Belirteç (Artikel)</span><span class="font-bold text-slate-900">${escapeHtml(g.article)}</span></div>` : ''}
+              ${g.plural ? `<div class="flex justify-between py-1.5 border-b border-slate-50"><span class="text-slate-500 font-medium">Çoğul</span><span class="font-semibold text-slate-800">${escapeHtml(g.plural)}</span></div>` : ''}
+              ${g.infinitive ? `<div class="flex justify-between py-1.5 border-b border-slate-50"><span class="text-slate-500 font-medium">Mastar</span><span class="font-semibold text-slate-800">${escapeHtml(g.infinitive)}</span></div>` : ''}
+              ${g.register ? `<div class="flex justify-between py-1.5 border-b border-slate-50"><span class="text-slate-500 font-medium">Kullanım Düzeyi</span><span class="font-semibold text-slate-800">${escapeHtml(localizeRegister(g.register))}</span></div>` : ''}
             </div>
           </div>
         `;
@@ -523,9 +662,16 @@ document.addEventListener('DOMContentLoaded', () => {
       if (hasEtymology) {
         html += `
           <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm text-xs">
-            <div class="flex items-center gap-1.5 mb-2.5 font-bold text-slate-700">
-              <i class="ph-bold ph-info text-indigo-500 text-base"></i>
-              <span>Etimoloji</span>
+            <div class="flex items-center justify-between mb-2.5">
+              <div class="flex items-center gap-1.5 font-bold text-slate-700">
+                <i class="ph-bold ph-info text-indigo-500 text-base"></i>
+                <span>Etimoloji</span>
+              </div>
+              ${data.etymology?.certainty && data.etymology.certainty !== 'unknown' ? `
+                <span class="text-[9px] uppercase font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100/80">
+                  ${data.etymology.certainty === 'high' ? 'Doğrulanmış Kaynak' : 'Muhtemel Köken'}
+                </span>
+              ` : ''}
             </div>
             <p class="text-slate-600 leading-relaxed">${escapeHtml(data.etymology.summary)}</p>
           </div>
@@ -545,9 +691,9 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
           <div class="flex flex-wrap gap-1.5">
             ${data.relatedWords.map(rw => `
-              <button class="related-chip flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200/60 hover:border-primary-400 hover:text-primary-700 text-xs text-slate-700 transition-colors" data-word="${escapeHtml(rw.word)}">
-                <span>${escapeHtml(rw.word)}</span>
-                <span class="text-[9px] text-slate-400 uppercase">${rw.relation === 'synonym' ? 'eş' : rw.relation === 'antonym' ? 'zıt' : 'ilişkili'}</span>
+              <button class="related-chip flex items-center gap-1 px-3 py-1.5 min-h-[40px] rounded-xl bg-slate-50 border border-slate-200/70 hover:border-primary-400 hover:text-primary-700 text-xs text-slate-700 transition-colors" data-word="${escapeHtml(rw.word)}">
+                <span class="font-medium">${escapeHtml(rw.word)}</span>
+                <span class="text-[9px] text-slate-400 uppercase font-semibold">${rw.relation === 'synonym' ? 'eş' : rw.relation === 'antonym' ? 'zıt' : 'ilişkili'}</span>
               </button>
             `).join('')}
           </div>
@@ -555,31 +701,46 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     }
 
-    // 6. Footer Provider Badge & Smart Hybrid Notice
+    // 6. Footer Provider Badge & In-App Flag Button (Google Play Compliance - STR-01)
     html += `
-      <div class="text-center text-[11px] text-slate-400 pt-1">
-        <span>⚡ ${escapeHtml(data._provider || 'SM Studio Engine')}</span>
-        ${data._latency ? ` · <span>${data._latency}ms</span>` : ''}
+      <div class="flex items-center justify-between text-[11px] text-slate-400 pt-2 px-1">
+        <div class="flex items-center gap-1.5">
+          ${data._isCached ? `
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-medium border border-emerald-100">
+              <i class="ph-bold ph-lightning text-xs"></i> Çevrimdışı Önbellek
+            </span>
+            <button id="refreshCachedBtn" class="text-primary-600 hover:text-primary-700 font-semibold underline ml-1 cursor-pointer" title="Canlı yapay zeka ile yeniden sorgula">
+              Yenile
+            </button>
+          ` : `
+            <span>⚡ ${escapeHtml(data._provider || 'LexiBridge Dil Motoru')}</span>
+            ${data._latency ? ` · <span>${data._latency}ms</span>` : ''}
+          `}
+        </div>
+        <button class="flag-response-btn flex items-center gap-1 text-[11px] text-slate-400 hover:text-rose-600 transition-colors px-2 py-1 rounded-md hover:bg-rose-50" title="Hatalı veya uygunsuz AI yanıtını bildir" aria-label="Hatalı veya uygunsuz yanıtı bildir" data-query="${escapeHtml(data.input)}" data-provider="${escapeHtml(data._provider || '')}">
+          <i class="ph-bold ph-flag text-xs text-rose-500"></i>
+          <span>Yanıtı Bildir</span>
+        </button>
       </div>
     `;
 
     if (data._fallbackFrom === 'local') {
       const errDetail = data._localError || 'Bağlantı kurulamadı';
       html += `
-        <div class="text-left text-[11px] text-amber-800 bg-amber-50/90 border border-amber-200/80 rounded-xl p-3 max-w-md mx-auto mt-2.5 animate-slide-up shadow-2xs">
-          <div class="font-bold flex items-center gap-1.5 text-amber-900 mb-1">
+        <div class="text-left text-xs text-amber-900 bg-amber-50/90 border border-amber-200/80 rounded-2xl p-3.5 max-w-md mx-auto mt-2.5 animate-slide-up shadow-2xs">
+          <div class="font-bold flex items-center gap-1.5 text-amber-950 mb-1">
             <i class="ph-bold ph-info text-amber-600 text-sm"></i>
-            <span>Akıllı Yedek Devrede: ${escapeHtml(data._provider)}</span>
+            <span>Akıllı Hibrit Yedek Devrede: ${escapeHtml(data._provider)}</span>
           </div>
-          <div class="text-[11px] text-amber-950 font-medium mb-1.5 bg-amber-100/60 p-2 rounded-lg border border-amber-200/50 leading-relaxed">
-            🔍 <strong>Ollama Durumu:</strong> ${escapeHtml(errDetail)}
-          </div>
-          <p class="text-amber-700 leading-relaxed text-[11px]">
-            Ollama'yı Termux'ta tarayıcı erişimine tam açmak için:
+          <p class="text-amber-800 text-[11px] leading-relaxed mb-2">
+            Yerel Ollama servisi o sırada yanıt vermediği için sorgunuz otomatik olarak bulut / hızlı yedek motorla çözümlendi.
           </p>
-          <div class="font-mono bg-white text-slate-800 border border-amber-200 px-2 py-1 rounded my-1 text-[10px] select-all break-all">
-            killall ollama 2>/dev/null; export OLLAMA_ORIGINS="*"; export OLLAMA_HOST="0.0.0.0:11434"; ollama serve &
-          </div>
+          <details class="text-[11px] text-slate-600 mt-1 cursor-pointer">
+            <summary class="font-semibold text-amber-900 hover:underline">Geliştirici / Termux Ayarları (İsteğe Bağlı)</summary>
+            <div class="font-mono bg-white text-slate-800 border border-amber-200 p-2 rounded-lg my-1.5 text-[10px] select-all break-all leading-normal">
+              killall ollama 2>/dev/null; export OLLAMA_ORIGINS="*"; export OLLAMA_HOST="0.0.0.0:11434"; ollama serve &
+            </div>
+          </details>
         </div>
       `;
     }
@@ -610,6 +771,27 @@ document.addEventListener('DOMContentLoaded', () => {
         handleSearch();
       });
     });
+
+    // Attach flag response button (Google Play GenAI in-app reporting)
+    resultsContainer.querySelectorAll('.flag-response-btn').forEach((b) => {
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const q = b.dataset.query || searchInput.value.trim();
+        window.activeFlagQuery = q;
+        window.activeFlagProvider = b.dataset.provider || '';
+        if (typeof window.openFlagModal === 'function') {
+          window.openFlagModal(q);
+        }
+      });
+    });
+
+    // Attach refresh cached result button
+    const refreshCachedBtn = resultsContainer.querySelector('#refreshCachedBtn');
+    if (refreshCachedBtn) {
+      refreshCachedBtn.addEventListener('click', () => {
+        handleSearch(true);
+      });
+    }
   }
 
   // Helper
@@ -701,6 +883,42 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 600);
   });
 
+  // Flag Modal Action Handler (Google Play GenAI in-app reporting)
+  const submitFlagBtn = document.getElementById('submitFlagBtn');
+  const flagCommentInput = document.getElementById('flagCommentInput');
+  const flagStatusMsg = document.getElementById('flagStatusMsg');
+
+  if (submitFlagBtn) {
+    submitFlagBtn.addEventListener('click', () => {
+      const selectedReason = document.querySelector('input[name="flagReason"]:checked')?.value || 'unspecified';
+      const comment = flagCommentInput ? flagCommentInput.value.trim() : '';
+      const query = window.activeFlagQuery || searchInput.value.trim();
+      const provider = window.activeFlagProvider || '';
+
+      const report = {
+        query: query,
+        provider: provider,
+        reason: selectedReason,
+        comment: comment,
+        timestamp: new Date().toISOString()
+      };
+
+      try {
+        const stored = JSON.parse(localStorage.getItem('lexi_flagged_reports') || '[]');
+        stored.push(report);
+        localStorage.setItem('lexi_flagged_reports', JSON.stringify(stored));
+      } catch (err) {
+        console.error('Failed to save flagged report:', err);
+      }
+
+      if (flagStatusMsg) flagStatusMsg.classList.remove('hidden');
+      setTimeout(() => {
+        if (typeof window.closeFlagModal === 'function') window.closeFlagModal();
+        if (flagCommentInput) flagCommentInput.value = '';
+      }, 900);
+    });
+  }
+
   // Quick fallback on error
   quickFallbackBtn.addEventListener('click', async () => {
     const q = searchInput.value.trim();
@@ -755,16 +973,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   searchBtn.addEventListener('click', handleSearch);
 
-  // Quick seed buttons
-  document.querySelectorAll('.seed-chip').forEach((chip) => {
-    chip.addEventListener('click', () => {
-      if (sourceLang !== 'nl') toggleLanguage();
-      searchInput.value = chip.textContent.trim();
-      searchBtn.disabled = false;
-      clearBtn.classList.remove('hidden');
-      handleSearch();
-    });
+  // Global Escape key listener for accessible modal closing
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (typeof window.closeSettingsModal === 'function') window.closeSettingsModal();
+      if (typeof window.closeHistoryModal === 'function') window.closeHistoryModal();
+      if (typeof window.closeFlagModal === 'function') window.closeFlagModal();
+    }
   });
+
+  // Network online/offline status monitors
+  window.addEventListener('online', updateHeaderBadge);
+  window.addEventListener('offline', updateHeaderBadge);
 
   // Run initial setup safely
   try {

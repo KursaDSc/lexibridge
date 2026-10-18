@@ -1,0 +1,28 @@
+{
+  "name": "lexibridge",
+  "version": "1.0.0",
+  "description": "Felemenkçe - Türkçe Yapay Zeka Destekli Mobil Sözlük",
+  "main": "index.html",
+  "scripts": {
+    "sync-assets": "powershell -ExecutionPolicy Bypass -File scripts/sync-assets.ps1",
+    "sync-assets:bash": "bash scripts/sync-assets.sh",
+    "test": "python -m unittest discover tests",
+    "build:android": "cd android && ./gradlew assembleRelease bundleRelease"
+  },
+  "keywords": [
+    "dictionary",
+    "dutch",
+    "turkish",
+    "ai",
+    "gemini",
+    "mobile"
+  ],
+  "author": "LexiBridge Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@capacitor/cli": "^6.0.0",
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/ios": "^6.0.0"
+  }
+}

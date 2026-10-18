@@ -308,6 +308,135 @@ JSON Şablonu:
     return JSON.parse(clean);
   }
 
+  // Prompt Sanitization & XML Boundary Isolation (SEC-02 Protection)
+  function formatLinguisticUserPrompt(query, sourceLang, targetLang) {
+    const sanitized = String(query || "")
+      .trim()
+      .slice(0, 500)
+      .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, ""); // Strip non-printable control characters
+    return `Lütfen aşağıdaki XML etiketi içindeki ifadeyi analiz et. Girdi dili: ${sourceLang.toUpperCase()}, Hedef dil: ${targetLang.toUpperCase()}.
+<girdi_metni>
+${sanitized}
+</girdi_metni>
+Önemli: Yalnızca yukarıda tanımlanan JSON şemasına uygun geçerli bir JSON döndür. Ek açıklama veya markdown ekleme.`;
+  }
+
+  // Runtime Schema Validation & Fallback Normalization (REL-01 Protection)
+  function normalizeLinguisticResult(raw, fallbackQuery, sourceLang, targetLang, providerName) {
+    if (!raw || typeof raw !== "object") {
+      raw = {};
+    }
+
+    const sl = (raw.sourceLanguage || sourceLang || "nl").toLowerCase();
+    const tl = (raw.targetLanguage || targetLang || (sl === "nl" ? "tr" : "nl")).toLowerCase();
+
+    // 1. Translations array normalization
+    let translations = [];
+    if (Array.isArray(raw.translations)) {
+      translations = raw.translations
+        .filter((t) => t && (t.text || typeof t === "string"))
+        .map((t) => {
+          if (typeof t === "string") return { text: t.trim(), context: "", frequency: "common" };
+          return {
+            text: String(t.text || "").trim(),
+            context: String(t.context || "").trim(),
+            frequency: String(t.frequency || "common").toLowerCase().trim()
+          };
+        })
+        .filter((t) => t.text.length > 0);
+    } else if (typeof raw.translations === "string" && raw.translations.trim()) {
+      translations = [{ text: raw.translations.trim(), context: "", frequency: "common" }];
+    }
+
+    if (translations.length === 0) {
+      translations = [{ text: String(fallbackQuery || "").trim(), context: "", frequency: "common" }];
+    }
+
+    // 2. Meanings array normalization
+    let meanings = [];
+    if (Array.isArray(raw.meanings)) {
+      meanings = raw.meanings
+        .filter((m) => m && (m.meaning || typeof m === "string"))
+        .map((m) => {
+          if (typeof m === "string") return { meaning: m.trim(), explanation: "", context: "" };
+          return {
+            meaning: String(m.meaning || "").trim(),
+            explanation: String(m.explanation || "").trim(),
+            context: String(m.context || "").trim()
+          };
+        })
+        .filter((m) => m.meaning.length > 0);
+    }
+
+    // 3. Grammar object normalization
+    const grammar = (raw.grammar && typeof raw.grammar === "object") ? {
+      article: raw.grammar.article ? String(raw.grammar.article).trim() : "",
+      plural: raw.grammar.plural ? String(raw.grammar.plural).trim() : "",
+      infinitive: raw.grammar.infinitive ? String(raw.grammar.infinitive).trim() : "",
+      register: raw.grammar.register ? String(raw.grammar.register).trim() : "",
+      notes: Array.isArray(raw.grammar.notes) ? raw.grammar.notes.map(String) : []
+    } : { article: "", plural: "", infinitive: "", register: "", notes: [] };
+
+    // 4. Pronunciation normalization
+    const pronunciation = (raw.pronunciation && typeof raw.pronunciation === "object") ? {
+      ipa: raw.pronunciation.ipa ? String(raw.pronunciation.ipa).trim() : "",
+      simplified: raw.pronunciation.simplified ? String(raw.pronunciation.simplified).trim() : ""
+    } : { ipa: "", simplified: "" };
+
+    // 5. Etymology normalization
+    const etymology = (raw.etymology && typeof raw.etymology === "object") ? {
+      summary: raw.etymology.summary ? String(raw.etymology.summary).trim() : "",
+      certainty: raw.etymology.certainty ? String(raw.etymology.certainty).trim() : "unknown"
+    } : { summary: "", certainty: "unknown" };
+
+    // 6. Examples normalization
+    let examples = [];
+    if (Array.isArray(raw.examples)) {
+      examples = raw.examples
+        .filter((e) => e && (e.source || e.translation))
+        .map((e) => ({
+          source: String(e.source || "").trim(),
+          translation: String(e.translation || "").trim()
+        }))
+        .filter((e) => e.source.length > 0);
+    }
+
+    // 7. Related words normalization
+    let relatedWords = [];
+    if (Array.isArray(raw.relatedWords)) {
+      relatedWords = raw.relatedWords
+        .filter((r) => r && (r.word || typeof r === "string"))
+        .map((r) => {
+          if (typeof r === "string") return { word: r.trim(), relation: "related" };
+          return {
+            word: String(r.word || "").trim(),
+            relation: String(r.relation || "related").toLowerCase().trim()
+          };
+        })
+        .filter((r) => r.word.length > 0);
+    }
+
+    return {
+      input: String(raw.input || fallbackQuery || "").trim(),
+      sourceLanguage: sl,
+      targetLanguage: tl,
+      partOfSpeech: String(raw.partOfSpeech || "").trim(),
+      pronunciation: pronunciation,
+      translations: translations,
+      meanings: meanings,
+      grammar: grammar,
+      etymology: etymology,
+      examples: examples,
+      relatedWords: relatedWords,
+      didYouMean: raw.didYouMean || "",
+      _provider: providerName || raw._provider || "LexiBridge Dil Motoru",
+      _latency: raw._latency || 0,
+      _fallbackFrom: raw._fallbackFrom || undefined,
+      _localError: raw._localError || undefined,
+      _isQuickRest: !!raw._isQuickRest
+    };
+  }
+
   // Quick Google Translate REST call (0 API key enriched engine)
   async function quickTranslateRest(query, sourceLang, targetLang) {
     const sl = sourceLang === "nl" ? "nl" : "tr";
@@ -495,9 +624,11 @@ JSON Şablonu:
 
   // Google Gemini API call (Optimized for Sub-Second Latency)
   async function callGoogleGemini(query, sourceLang, model, apiKey) {
-    if (!apiKey) throw new Error("Google Gemini API anahtarı girilmedi.");
+    if (!apiKey) {
+      throw new Error("Google Gemini API anahtarı girilmedi. Lütfen Ayarlar (⚙️) menüsünden API anahtarınızı girin veya ücretsiz 'Hızlı REST' modunu kullanın.");
+    }
     const targetLang = sourceLang === "nl" ? "tr" : "nl";
-    const userPrompt = `Lütfen şu girdiyi analiz et. Girdi dili: ${sourceLang.toUpperCase()}, Hedef dil: ${targetLang.toUpperCase()}. Girdi: "${query}"`;
+    const userPrompt = formatLinguisticUserPrompt(query, sourceLang, targetLang);
     
     let activeModel = model;
     if (!activeModel || activeModel.includes("latest") || activeModel.includes("pro") || activeModel.includes("3.8") || activeModel.includes("3.6") || activeModel.includes("2.5")) {
@@ -546,15 +677,14 @@ JSON Şablonu:
     if (!textResult) throw new Error("Modelden geçerli bir metin yanıtı alınamadı.");
 
     const parsed = parseJSONResponse(textResult);
-    parsed._provider = "Google Gemini (" + activeModel + ")";
-    return parsed;
+    return normalizeLinguisticResult(parsed, query, sourceLang, targetLang, "Google Gemini (" + activeModel + ")");
   }
 
   // NVIDIA NIM API call (OpenAI compatible)
   async function callNvidiaNIM(query, sourceLang, model, apiKey) {
-    if (!apiKey) throw new Error("NVIDIA NIM API anahtarı girilmedi.");
+    if (!apiKey) throw new Error("NVIDIA NIM API anahtarı girilmedi. Lütfen Ayarlar (⚙️) menüsünden API anahtarınızı girin.");
     const targetLang = sourceLang === "nl" ? "tr" : "nl";
-    const userPrompt = `Lütfen şu girdiyi analiz et. Girdi dili: ${sourceLang.toUpperCase()}, Hedef dil: ${targetLang.toUpperCase()}. Girdi: "${query}"`;
+    const userPrompt = formatLinguisticUserPrompt(query, sourceLang, targetLang);
     
     const activeModel = model || "nvidia/llama-3.1-nemotron-70b-instruct";
     const url = "https://integrate.api.nvidia.com/v1/chat/completions";
@@ -594,14 +724,13 @@ JSON Şablonu:
     if (!content) throw new Error("NVIDIA modelinden boş yanıt döndü.");
 
     const parsed = parseJSONResponse(content);
-    parsed._provider = "NVIDIA NIM (" + activeModel.split("/").pop() + ")";
-    return parsed;
+    return normalizeLinguisticResult(parsed, query, sourceLang, targetLang, "NVIDIA NIM (" + activeModel.split("/").pop() + ")");
   }
 
   // Yerel LLM (Ollama / Termux / Localhost)
   async function callLocalLLM(query, sourceLang, model, baseUrl) {
     const targetLang = sourceLang === "nl" ? "tr" : "nl";
-    const userPrompt = `Lütfen şu girdiyi analiz et. Girdi dili: ${sourceLang.toUpperCase()}, Hedef dil: ${targetLang.toUpperCase()}. Girdi: "${query}"`;
+    const userPrompt = formatLinguisticUserPrompt(query, sourceLang, targetLang);
     
     let cleanBase = (baseUrl || getLocalLLMBaseUrl()).trim().replace(/\/+$/, "");
     if (!cleanBase.endsWith("/v1")) {
@@ -727,8 +856,7 @@ JSON Şablonu:
     if (!content) throw new Error("Yerel modelden boş yanıt döndü.");
 
     const parsed = parseJSONResponse(content);
-    parsed._provider = "Yerel LLM (" + activeModel + ")";
-    return parsed;
+    return normalizeLinguisticResult(parsed, query, sourceLang, targetLang, "Yerel LLM (" + activeModel + ")");
   }
 
   // Main analyze dispatcher with Smart Hybrid Fallback (Ollama -> Google Gemini -> Quick REST)
@@ -788,6 +916,8 @@ JSON Şablonu:
     getSettings,
     saveSettings,
     analyze,
-    quickTranslateRest
+    quickTranslateRest,
+    formatLinguisticUserPrompt,
+    normalizeLinguisticResult
   };
 })();

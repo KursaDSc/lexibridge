@@ -15,11 +15,12 @@
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="icon" type="image/x-icon" href="app_icon.ico">
 
-  <!-- Tailwind CSS via CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Local Tailwind Engine (with CDN fallback) -->
+  <script src="vendor/tailwindcss.js" onerror="this.onerror=null;this.src='https://cdn.tailwindcss.com'"></script>
   
-  <!-- Phosphor Icons via CDN -->
-  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <!-- Local Phosphor Icons (Offline-First) -->
+  <link rel="stylesheet" href="vendor/phosphor/style.css">
+  <script src="https://unpkg.com/@phosphor-icons/web" onerror="this.remove()"></script>
   
   <script>
     tailwind.config = {
@@ -49,6 +50,42 @@
   
   <!-- Custom CSS -->
   <link rel="stylesheet" href="css/styles.css">
+
+  <!-- Immediate Modal Handlers (Fail-Safe) -->
+  <script>
+    window.openSettingsModal = function() {
+      var m = document.getElementById('settingsModal');
+      if (m) m.classList.remove('hidden');
+      if (typeof window.syncSettingsModalUI === 'function') window.syncSettingsModalUI();
+    };
+    window.closeSettingsModal = function() {
+      var m = document.getElementById('settingsModal');
+      if (m) m.classList.add('hidden');
+    };
+    window.openHistoryModal = function() {
+      var m = document.getElementById('historyModal');
+      if (m) m.classList.remove('hidden');
+      if (typeof window.syncHistoryUI === 'function') window.syncHistoryUI();
+    };
+    window.closeHistoryModal = function() {
+      var m = document.getElementById('historyModal');
+      if (m) m.classList.add('hidden');
+    };
+    window.openFlagModal = function(query) {
+      var m = document.getElementById('flagModal');
+      if (m) {
+        m.classList.remove('hidden');
+        var targetWordEl = document.getElementById('flagTargetWord');
+        if (targetWordEl && query) targetWordEl.textContent = query;
+      }
+    };
+    window.closeFlagModal = function() {
+      var m = document.getElementById('flagModal');
+      if (m) m.classList.add('hidden');
+      var statusMsg = document.getElementById('flagStatusMsg');
+      if (statusMsg) statusMsg.classList.add('hidden');
+    };
+  </script>
 </head>
 <body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col selection:bg-primary-500 selection:text-white">
 
@@ -66,20 +103,38 @@
             <h1 class="text-lg font-bold tracking-tight text-slate-800 leading-tight">LexiBridge</h1>
             <span class="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-primary-50 text-primary-600 border border-primary-100/80">AI</span>
           </div>
-          <button id="headerProviderBadge" class="flex items-center gap-1 text-[11px] text-slate-500 hover:text-primary-600 transition-colors font-medium">
-            <span id="headerProviderIcon">🔵</span>
-            <span id="headerProviderName" class="truncate max-w-[120px]">Google Gemini</span>
+          <button id="headerProviderBadge" onclick="window.openSettingsModal()" class="flex items-center gap-1 text-[11px] text-slate-500 hover:text-primary-600 transition-colors font-medium">
+            <span id="headerProviderIcon">🏠</span>
+            <span id="headerProviderName" class="truncate max-w-[120px]">Yerel LLM (Ollama)</span>
             <i class="ph ph-caret-down text-[10px]"></i>
           </button>
+          <script>
+            (function() {
+              try {
+                var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+                var saved = localStorage.getItem('lexi_provider');
+                var chosen = localStorage.getItem('lexi_provider_user_chosen') === 'true';
+                var prov = (chosen && saved) ? saved : (isMobile ? 'local' : 'google');
+                var icon = document.getElementById('headerProviderIcon');
+                var name = document.getElementById('headerProviderName');
+                if (icon && name) {
+                  if (prov === 'local') { icon.textContent = '🏠'; name.textContent = 'Yerel LLM (Ollama)'; }
+                  else if (prov === 'nvidia') { icon.textContent = '🟢'; name.textContent = 'NVIDIA NIM'; }
+                  else if (prov === 'quick_rest') { icon.textContent = '⚡'; name.textContent = 'Hızlı REST'; }
+                  else { icon.textContent = '🔵'; name.textContent = 'Google Gemini'; }
+                }
+              } catch(e) {}
+            })();
+          </script>
         </div>
       </div>
 
-      <!-- Action Buttons -->
-      <div class="flex items-center gap-1.5">
-        <button id="historyBtn" title="Geçmiş Aramalar" class="w-9 h-9 flex items-center justify-center text-slate-600 hover:bg-slate-100 active:scale-95 rounded-full transition-all">
+      <!-- Action Buttons (WCAG AA >= 44x44px Touch Targets) -->
+      <div class="flex items-center gap-2">
+        <button id="historyBtn" onclick="window.openHistoryModal()" title="Geçmiş Aramalar" aria-label="Arama Geçmişini Aç" class="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-600 hover:bg-slate-100 active:scale-95 rounded-full transition-all">
           <i class="ph ph-clock-counter-clockwise text-xl"></i>
         </button>
-        <button id="settingsBtn" title="Ayarlar & API Sağlayıcı" class="w-9 h-9 flex items-center justify-center text-slate-600 hover:bg-slate-100 active:scale-95 rounded-full transition-all">
+        <button id="settingsBtn" onclick="window.openSettingsModal()" title="Ayarlar & API Sağlayıcı" aria-label="Ayarlar Menüsünü Aç" class="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-600 hover:bg-slate-100 active:scale-95 rounded-full transition-all">
           <i class="ph ph-gear text-xl"></i>
         </button>
       </div>
@@ -94,25 +149,25 @@
     <div class="w-full bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 overflow-hidden mb-4 transition-all">
       
       <!-- Language Switcher Bar -->
-      <div class="flex items-center justify-between px-4 py-2.5 border-b border-slate-50 bg-slate-50/70">
-        <div class="flex items-center gap-2 flex-1">
-          <button id="sourceLangBtn" class="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 shadow-sm text-primary-700">
+      <div class="flex items-center justify-between px-3 py-2 border-b border-slate-50 bg-slate-50/70">
+        <div class="flex items-center gap-1.5 flex-1">
+          <button id="sourceLangBtn" class="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 min-h-[44px] rounded-xl bg-white border border-slate-200 shadow-xs text-primary-700">
             <span class="text-sm">🇳🇱</span>
             <span id="sourceLangText">Nederlands</span>
           </button>
           
-          <button id="swapLangBtn" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-primary-600 hover:bg-white active:rotate-180 rounded-full transition-all border border-transparent hover:border-slate-200">
+          <button id="swapLangBtn" aria-label="Dilleri Değiştir" class="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-500 hover:text-primary-600 hover:bg-white active:rotate-180 rounded-full transition-all border border-transparent hover:border-slate-200">
             <i class="ph-bold ph-arrows-left-right text-base"></i>
           </button>
 
-          <button id="targetLangBtn" class="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 shadow-sm text-slate-700">
+          <button id="targetLangBtn" class="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 min-h-[44px] rounded-xl bg-white border border-slate-200 shadow-xs text-slate-700">
             <span class="text-sm">🇹🇷</span>
             <span id="targetLangText">Türkçe</span>
           </button>
         </div>
 
         <!-- Mode Toggle (AI vs Fast REST) -->
-        <button id="modeToggleBtn" title="Hızlı REST / Detaylı AI Geçişi" class="flex items-center gap-1 text-[11px] font-medium text-slate-500 bg-white border border-slate-200 px-2.5 py-1 rounded-full shadow-2xs">
+        <button id="modeToggleBtn" title="Hızlı REST / Detaylı AI Geçişi" aria-label="Derin AI ve Hızlı REST Arasında Geçiş Yap" class="flex items-center gap-1 text-[11px] font-semibold text-slate-600 bg-white border border-slate-200 px-3 py-2 min-h-[44px] rounded-xl shadow-2xs">
           <i id="modeToggleIcon" class="ph-bold ph-sparkle text-amber-500"></i>
           <span id="modeToggleText">Derin AI</span>
         </button>
@@ -122,9 +177,9 @@
       <div class="p-3.5 md:p-4">
         <div class="relative">
           <textarea id="searchInput" rows="2" placeholder="Hollandaca bir kelime, deyim veya cümle yazın..." 
-            class="w-full text-base md:text-lg bg-transparent border-none focus:ring-0 resize-none outline-none placeholder:text-slate-300 text-slate-800 leading-relaxed"></textarea>
+            class="w-full text-base md:text-lg bg-transparent border-none focus:ring-0 resize-none outline-none placeholder:text-slate-400 text-slate-800 leading-relaxed pr-10"></textarea>
           
-          <button id="clearBtn" class="hidden absolute right-1 top-1 p-1.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors">
+          <button id="clearBtn" aria-label="Arama Metnini Temizle" class="hidden absolute right-0 top-0 w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors">
             <i class="ph-bold ph-x text-base"></i>
           </button>
         </div>
@@ -132,14 +187,14 @@
         <!-- Controls & Search Button -->
         <div class="flex items-center justify-between pt-2 border-t border-slate-50 mt-1">
           <div class="flex items-center gap-1">
-            <button id="pasteBtn" class="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 px-2 py-1 rounded-md transition-colors">
-              <i class="ph ph-clipboard-text"></i>
+            <button id="pasteBtn" aria-label="Panodan Yapıştır" class="flex items-center gap-1.5 text-xs text-slate-600 hover:text-slate-800 hover:bg-slate-100 px-3 py-2 min-h-[44px] rounded-xl transition-colors font-medium">
+              <i class="ph ph-clipboard-text text-base"></i>
               <span>Yapıştır</span>
             </button>
           </div>
 
-          <button id="searchBtn" disabled
-            class="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary-600 to-primary-700 active:scale-98 text-white rounded-xl font-semibold hover:from-primary-700 hover:to-primary-800 disabled:opacity-40 disabled:pointer-events-none transition-all shadow-sm shadow-primary-500/20">
+          <button id="searchBtn" disabled aria-label="Sözlükte Ara"
+            class="flex items-center gap-2 px-5 py-2.5 min-h-[48px] bg-gradient-to-r from-primary-600 to-primary-700 active:scale-98 text-white rounded-xl font-semibold hover:from-primary-700 hover:to-primary-800 disabled:opacity-40 disabled:pointer-events-none transition-all shadow-sm shadow-primary-500/20">
             <span id="searchBtnText">Sözlükte Ara</span>
             <i id="searchBtnIcon" class="ph-bold ph-magnifying-glass text-base"></i>
             <i id="loadingSpinner" class="ph-bold ph-spinner-gap text-base animate-spin hidden"></i>
@@ -151,25 +206,23 @@
 
     <!-- Quick Seed Suggestions (One-tap test) -->
     <div id="quickSeeds" class="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none mb-3 text-xs">
-      <span class="text-slate-400 flex items-center gap-1 pl-1 font-medium flex-shrink-0">
+      <span class="text-slate-600 flex items-center gap-1 pl-1 font-semibold flex-shrink-0">
         <i class="ph ph-sparkle text-amber-500"></i> Örnekler:
       </span>
-      <button class="seed-chip px-2.5 py-1 bg-white border border-slate-200/80 rounded-lg text-slate-600 hover:border-primary-400 hover:text-primary-700 font-medium whitespace-nowrap shadow-2xs">gezellig</button>
-      <button class="seed-chip px-2.5 py-1 bg-white border border-slate-200/80 rounded-lg text-slate-600 hover:border-primary-400 hover:text-primary-700 font-medium whitespace-nowrap shadow-2xs">uitwaaien</button>
-      <button class="seed-chip px-2.5 py-1 bg-white border border-slate-200/80 rounded-lg text-slate-600 hover:border-primary-400 hover:text-primary-700 font-medium whitespace-nowrap shadow-2xs">alsjeblieft</button>
-      <button class="seed-chip px-2.5 py-1 bg-white border border-slate-200/80 rounded-lg text-slate-600 hover:border-primary-400 hover:text-primary-700 font-medium whitespace-nowrap shadow-2xs">boodschappen doen</button>
-      <button class="seed-chip px-2.5 py-1 bg-white border border-slate-200/80 rounded-lg text-slate-600 hover:border-primary-400 hover:text-primary-700 font-medium whitespace-nowrap shadow-2xs">de aap komt uit de mouw</button>
+      <div id="seedChipsContainer" class="flex items-center gap-1.5">
+        <!-- Dynamically rendered based on active language direction via JS -->
+      </div>
     </div>
 
     <!-- Error Alert Box -->
-    <div id="errorBox" class="hidden w-full bg-red-50 text-red-600 p-3.5 rounded-xl flex items-start gap-3 border border-red-100 mb-4 animate-slide-up">
-      <i class="ph-fill ph-warning-circle text-xl flex-shrink-0 mt-0.5"></i>
+    <div id="errorBox" role="alert" class="hidden w-full bg-red-50 text-red-600 p-3.5 rounded-xl flex items-start gap-3 border border-red-100 mb-4 animate-slide-up">
+      <i class="ph-bold ph-warning-circle text-xl flex-shrink-0 mt-0.5"></i>
       <div class="flex-1">
         <div class="flex items-center justify-between">
           <h4 class="font-semibold text-sm">Analiz Başarısız Oldu</h4>
-          <button id="quickFallbackBtn" class="text-xs bg-red-100/80 hover:bg-red-200 text-red-800 px-2 py-0.5 rounded font-medium">Hızlı REST Çevir</button>
+          <button id="quickFallbackBtn" class="text-xs bg-red-100/80 hover:bg-red-200 text-red-800 px-3 py-1.5 min-h-[36px] rounded-lg font-medium">Hızlı REST Çevir</button>
         </div>
-        <p id="errorMsg" class="text-xs mt-1 text-red-500/95 leading-relaxed"></p>
+        <p id="errorMsg" class="text-xs mt-1 text-red-600 leading-relaxed"></p>
       </div>
     </div>
 
@@ -178,9 +231,9 @@
       <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-50 to-sky-100 border border-primary-100 flex items-center justify-center text-primary-600 mb-3 shadow-inner">
         <i class="ph ph-translate text-3xl"></i>
       </div>
-      <h3 class="font-semibold text-slate-700 text-base">Hollandaca ↔ Türkçe Sözlük</h3>
-      <p class="text-xs text-slate-400 max-w-xs mt-1">
-        SM Studio mimarisiyle Google Gemini, NVIDIA NIM veya Yerel LLM destekli dilbilimsel analiz.
+      <h3 class="font-bold text-slate-800 text-base">Felemenkçe ↔ Türkçe Akıllı Sözlük</h3>
+      <p class="text-xs text-slate-600 max-w-xs mt-1.5 leading-relaxed">
+        Derin dilbilimsel analiz, artikeller (de/het), deyim çözümlemeleri ve doğal sesli telaffuz.
       </p>
     </div>
 
@@ -202,23 +255,23 @@
     </div>
 
     <!-- Active Results Container -->
-    <div id="resultsContainer" class="hidden w-full space-y-4 pb-12">
+    <div id="resultsContainer" class="hidden w-full space-y-4 pb-12" aria-live="polite">
       <!-- Populated dynamically via JS -->
     </div>
 
   </main>
 
   <!-- History Drawer Modal -->
-  <div id="historyModal" class="hidden fixed inset-0 z-50 flex flex-col justify-end md:justify-center items-center bg-slate-900/40 backdrop-blur-xs p-0 md:p-4">
+  <div id="historyModal" class="hidden fixed inset-0 z-50 flex flex-col justify-end md:justify-center items-center bg-slate-900/40 backdrop-blur-xs p-0 md:p-4" role="dialog" aria-modal="true" aria-labelledby="historyModalTitle">
     <div class="bg-white rounded-t-3xl md:rounded-2xl w-full max-w-md max-h-[80vh] flex flex-col shadow-2xl overflow-hidden animate-slide-up">
       <div class="flex items-center justify-between p-4 border-b border-slate-100">
         <div class="flex items-center gap-2">
           <i class="ph ph-clock-counter-clockwise text-xl text-primary-600"></i>
-          <h3 class="font-bold text-slate-800 text-base">Arama Geçmişi</h3>
+          <h3 id="historyModalTitle" class="font-bold text-slate-800 text-base">Arama Geçmişi</h3>
         </div>
         <div class="flex items-center gap-2">
-          <button id="clearHistoryBtn" class="text-xs text-red-500 hover:text-red-700 font-medium px-2 py-1">Temizle</button>
-          <button id="closeHistoryBtn" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-full">
+          <button id="clearHistoryBtn" class="text-xs text-red-500 hover:text-red-700 font-semibold px-3 py-2 min-h-[44px] rounded-lg">Temizle</button>
+          <button id="closeHistoryBtn" onclick="window.closeHistoryModal()" aria-label="Kapat" class="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-full">
             <i class="ph-bold ph-x text-lg"></i>
           </button>
         </div>
@@ -230,16 +283,16 @@
   </div>
 
   <!-- Settings & Provider Modal -->
-  <div id="settingsModal" class="hidden fixed inset-0 z-50 flex flex-col justify-end md:justify-center items-center bg-slate-900/50 backdrop-blur-xs p-0 md:p-4">
+  <div id="settingsModal" class="hidden fixed inset-0 z-50 flex flex-col justify-end md:justify-center items-center bg-slate-900/50 backdrop-blur-xs p-0 md:p-4" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle">
     <div class="bg-white rounded-t-3xl md:rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-slide-up">
       
       <!-- Modal Header -->
       <div class="flex items-center justify-between p-4 border-b border-slate-100 bg-slate-50/50">
         <div class="flex items-center gap-2">
           <i class="ph ph-sliders text-xl text-primary-600"></i>
-          <h3 class="font-bold text-slate-800 text-base">SM Studio AI Ayarları</h3>
+          <h3 id="settingsModalTitle" class="font-bold text-slate-800 text-base">LexiBridge Yapay Zeka Ayarları</h3>
         </div>
-        <button id="closeSettingsBtn" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-full">
+        <button id="closeSettingsBtn" onclick="window.closeSettingsModal()" aria-label="Kapat" class="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-full">
           <i class="ph-bold ph-x text-lg"></i>
         </button>
       </div>
@@ -268,8 +321,8 @@
             <button data-provider="local" class="provider-tab flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 font-semibold text-left transition-all">
               <span class="text-xl">🏠</span>
               <div>
-                <div class="text-xs">Yerel LLM</div>
-                <div class="text-[10px] text-slate-500 font-normal">Ollama / LM Studio</div>
+                <div class="text-xs">Yerel LLM (Ollama)</div>
+                <div class="text-[10px] text-slate-500 font-normal">Termux / Localhost</div>
               </div>
             </button>
             <button data-provider="quick_rest" class="provider-tab flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 font-semibold text-left transition-all">
@@ -284,10 +337,17 @@
 
         <!-- Model Selection Dropdown -->
         <div>
-          <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Model Seçimi</label>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Model Seçimi</label>
+            <button id="refreshModelsBtn" type="button" class="hidden text-[11px] text-primary-600 hover:text-primary-800 flex items-center gap-1 font-semibold px-2 py-0.5 rounded hover:bg-primary-50 transition-colors" title="Ollama'daki Modelleri Algıla">
+              <i class="ph ph-arrows-clockwise text-xs"></i>
+              <span id="refreshModelsBtnText">Modelleri Algıla</span>
+            </button>
+          </div>
           <select id="modelSelect" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary-500/20 text-xs">
             <!-- Dynamically populated based on provider -->
           </select>
+          <div id="modelDetectionStatus" class="hidden text-[11px] mt-1.5 font-medium"></div>
         </div>
 
         <!-- Keys Section -->
@@ -298,7 +358,7 @@
             <label class="block text-xs font-semibold text-slate-700 mb-1">Google Gemini API Key</label>
             <input type="password" id="googleKeyInput" placeholder="AIzaSy... veya AQ..." 
               class="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/20 font-mono text-xs bg-slate-50">
-            <p class="text-[11px] text-slate-400 mt-1">SM Studio gemini_settings.json içindeki anahtarınız varsayılan olarak yüklendi.</p>
+            <p class="text-[11px] text-slate-500 mt-1">Kişisel Google Gemini API anahtarınızı girerek derin dilbilimsel modelleri kullanabilirsiniz.</p>
           </div>
 
           <!-- NVIDIA API Key -->
@@ -306,17 +366,32 @@
             <label class="block text-xs font-semibold text-slate-700 mb-1">NVIDIA NIM API Key</label>
             <input type="password" id="nvidiaKeyInput" placeholder="nvapi-..." 
               class="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/20 font-mono text-xs bg-slate-50">
-            <p class="text-[11px] text-slate-400 mt-1">SM Studio nvidia_api_key hazır yüklendi.</p>
+            <p class="text-[11px] text-slate-500 mt-1">Kişisel NVIDIA NIM API anahtarınızı girerek Nemotron modellerini kullanabilirsiniz.</p>
           </div>
 
           <!-- Local LLM URL & Model -->
           <div id="localConfigSection" class="hidden space-y-2">
             <div>
               <label class="block text-xs font-semibold text-slate-700 mb-1">Yerel LLM Endpoint URL</label>
-              <input type="text" id="localUrlInput" placeholder="http://192.168.1.50:11434/v1" 
+              <input type="text" id="localUrlInput" placeholder="http://127.0.0.1:11434/v1" 
                 class="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/20 font-mono text-xs bg-slate-50">
-              <p class="text-[11px] text-slate-400 mt-1">Telefonunuzdan bilgisayardaki Ollama'ya erişmek için bilgisayarınızın yerel IP'sini yazabilirsiniz.</p>
+              <p class="text-[11px] text-slate-400 mt-1">📱 <strong>Termux (Android):</strong> <code>http://127.0.0.1:11434/v1</code><br>💻 <strong>Bilgisayar:</strong> <code>http://localhost:11434/v1</code> veya yerel IP adresi.</p>
             </div>
+          </div>
+
+          <!-- Privacy & Data Safety Notice (Apple & Google Play Store Compliance) -->
+          <div class="pt-3 border-t border-slate-100">
+            <details class="text-[11px] text-slate-600 cursor-pointer">
+              <summary class="font-semibold text-slate-700 flex items-center gap-1.5 hover:text-primary-700">
+                <i class="ph-bold ph-info text-primary-600"></i>
+                <span>Gizlilik & Veri Güvenliği Beyanı</span>
+              </summary>
+              <div class="mt-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 text-[11px] leading-relaxed text-slate-600 space-y-1.5">
+                <p>• <strong>Sıfır Kişisel Veri:</strong> LexiBridge hiçbir kişisel veri, kimlik, konum veya analitik takip verisi toplamaz.</p>
+                <p>• <strong>BYOK Güvenliği:</strong> Girdiğiniz API anahtarları yalnızca cihazınızda saklanır, geliştiriciye veya harici sunucuya iletilmez.</p>
+                <p>• <strong>Yapay Zeka İletimi:</strong> Sözcükler yalnızca anlık dilbilimsel analiz için seçilen yapay zeka modeline iletilir.</p>
+              </div>
+            </details>
           </div>
 
         </div>
@@ -325,8 +400,11 @@
 
       <!-- Modal Footer -->
       <div class="p-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-        <span id="saveStatusText" class="text-xs text-emerald-600 font-semibold opacity-0 transition-opacity">Kaydedildi ✓</span>
-        <div class="flex gap-2">
+        <button id="resetAppBtn" type="button" onclick="if(confirm('Tüm ayarlar ve önbellek sıfırlansın mı?')) { localStorage.clear(); if('caches' in window) caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).then(() => location.reload(true)); else location.reload(true); }" class="text-[11px] text-red-500 hover:text-red-700 font-medium">
+          Önbelleği & Ayarları Sıfırla
+        </button>
+        <div class="flex items-center gap-2">
+          <span id="saveStatusText" class="text-xs text-emerald-600 font-semibold opacity-0 transition-opacity">Kaydedildi ✓</span>
           <button id="saveSettingsBtn" class="px-5 py-2 bg-primary-600 text-white rounded-xl text-xs font-semibold hover:bg-primary-700 active:scale-95 transition-all shadow-sm">
             Ayarları Kaydet
           </button>
@@ -336,14 +414,77 @@
     </div>
   </div>
 
-  <!-- PWA Service Worker Registration & AI Engine Scripts -->
-  <script src="js/config.local.js"></script>
-  <script src="js/aiEngine.js"></script>
-  <script src="js/app.js"></script>
+  <!-- In-App AI Feedback & Flag Modal (Google Play GenAI Policy Compliance - STR-01) -->
+  <div id="flagModal" class="hidden fixed inset-0 z-50 flex flex-col justify-end md:justify-center items-center bg-slate-900/50 backdrop-blur-xs p-0 md:p-4" role="dialog" aria-modal="true" aria-labelledby="flagModalTitle">
+    <div class="bg-white rounded-t-3xl md:rounded-2xl w-full max-w-md flex flex-col shadow-2xl overflow-hidden animate-slide-up">
+      <div class="flex items-center justify-between p-4 border-b border-slate-100 bg-slate-50/50">
+        <div class="flex items-center gap-2">
+          <i class="ph-bold ph-flag text-rose-500 text-lg"></i>
+          <div>
+            <h3 id="flagModalTitle" class="font-bold text-slate-800 text-sm">Yapay Zeka Yanıtını Bildir</h3>
+            <span id="flagTargetWord" class="text-[11px] text-slate-500 font-mono"></span>
+          </div>
+        </div>
+        <button id="closeFlagModalBtn" onclick="window.closeFlagModal()" class="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-full" aria-label="Kapat">
+          <i class="ph-bold ph-x text-lg"></i>
+        </button>
+      </div>
+
+      <div class="p-4 space-y-3 text-xs text-slate-700">
+        <p class="text-slate-500 text-[11px] leading-relaxed">
+          Google Play ve güvenlik ilkeleri gereğince, hatalı veya uygunsuz bulduğunuz yapay zeka çıktısını doğrudan bildirebilirsiniz:
+        </p>
+
+        <div class="space-y-1.5" id="flagReasonOptions">
+          <label class="flex items-center gap-2.5 p-2 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer transition-colors">
+            <input type="radio" name="flagReason" value="inaccurate_translation" checked class="text-primary-600 focus:ring-0">
+            <span>Hatalı / eksik çeviri veya anlam</span>
+          </label>
+          <label class="flex items-center gap-2.5 p-2 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer transition-colors">
+            <input type="radio" name="flagReason" value="wrong_grammar" class="text-primary-600 focus:ring-0">
+            <span>Yanlış artikel (de/het) veya gramer çekimi</span>
+          </label>
+          <label class="flex items-center gap-2.5 p-2 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer transition-colors">
+            <input type="radio" name="flagReason" value="offensive_content" class="text-primary-600 focus:ring-0">
+            <span>Uygunsuz, saldırgan veya zararlı içerik</span>
+          </label>
+          <label class="flex items-center gap-2.5 p-2 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer transition-colors">
+            <input type="radio" name="flagReason" value="other" class="text-primary-600 focus:ring-0">
+            <span>Diğer teknik / biçimsel sorun</span>
+          </label>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-600 mb-1">Açıklama (İsteğe bağlı):</label>
+          <textarea id="flagCommentInput" rows="2" placeholder="Sorunu kısaca belirtebilirsiniz..." 
+            class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-primary-500/20 text-slate-800 resize-none"></textarea>
+        </div>
+
+        <div id="flagStatusMsg" class="hidden text-xs text-emerald-600 font-semibold p-2 bg-emerald-50 rounded-lg border border-emerald-200">
+          ✓ Bildiriminiz cihazınıza kaydedildi. Geri bildiriminiz için teşekkür ederiz.
+        </div>
+      </div>
+
+      <div class="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2">
+        <button id="cancelFlagBtn" onclick="window.closeFlagModal()" class="px-4 py-2 text-slate-500 hover:text-slate-700 font-medium text-xs">Vazgeç</button>
+        <button id="submitFlagBtn" class="px-5 py-2 bg-rose-600 text-white rounded-xl font-semibold text-xs hover:bg-rose-700 active:scale-95 transition-all shadow-sm">
+          Bildirimi Gönder
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PWA Service Worker Registration & AI Engine Scripts (Cache-Busted v3.3) -->
+  <script src="js/config.local.js?v=3.3" onerror="this.remove()"></script>
+  <script src="js/cache.js?v=3.3"></script>
+  <script src="js/aiEngine.js?v=3.3"></script>
+  <script src="js/app.js?v=3.3"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').catch(err => {
+        navigator.serviceWorker.register('./sw.js?v=3.3').then(reg => {
+          reg.update();
+        }).catch(err => {
           console.log('SW registration note:', err);
         });
       });

@@ -1,5 +1,5 @@
 # ── Secrets & Local Configs (CRITICAL) ──
-js/config.local.js
+*config.local.js
 .env
 .env.*
 *.env

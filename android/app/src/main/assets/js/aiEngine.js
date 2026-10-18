@@ -43,13 +43,16 @@ const AIEngine = (function () {
       id: "local",
       name: "Yerel LLM (Ollama)",
       icon: "🏠",
-      badge: "Localhost / LAN",
-      default_model: "llama3.2",
-      default_url: "http://localhost:11434/v1",
+      badge: "Termux / Localhost",
+      default_model: "llama3.2:1b",
+      default_url: "http://127.0.0.1:11434/v1",
       models: [
-        { id: "llama3.2", name: "Llama 3.2 (Yerel Hızlı)", badge: "🏠 Local" },
-        { id: "qwen2.5", name: "Qwen 2.5 (Çok Dilli Zeka)", badge: "🏠 Local" },
-        { id: "mistral", name: "Mistral (Gramer)", badge: "🏠 Local" },
+        { id: "llama3.2:1b", name: "Llama 3.2 1B (Ultra Hızlı - Termux)", badge: "⚡ 1.3 GB" },
+        { id: "llama3.2:3b", name: "Llama 3.2 3B (Dengeli - Termux)", badge: "📱 2.0 GB" },
+        { id: "qwen2.5:1.5b", name: "Qwen 2.5 1.5B (Çok Dilli - Termux)", badge: "🌍 1.0 GB" },
+        { id: "qwen2.5:3b", name: "Qwen 2.5 3B (Çok Dilli Zeka)", badge: "💎 2.2 GB" },
+        { id: "llama3.2", name: "Llama 3.2 (Varsayılan)", badge: "🏠 Local" },
+        { id: "mistral", name: "Mistral 7B (PC / Yüksek RAM)", badge: "💻 4.1 GB" },
         { id: "custom", name: "Özel Model", badge: "⚙️ Özel" }
       ]
     },
@@ -123,12 +126,135 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
   ]
 }`;
 
-  // Helper to load settings
+  const LOCAL_SYSTEM_PROMPT = `Sen Felemenkçe ve Türkçe dillerinde uzman, hızlı bir mobil sözlük asistanısın.
+Sana verilen kelime veya cümleyi analiz et ve YALNIZCA geçerli bir JSON objesi olarak döndür. Markdown (\`\`\`json) veya açıklama KULLANMA.
+ÖNEMLİ KURALLAR:
+1. Mobil işlemci hızını korumak için KISA, ÖZ ve NET ol.
+2. En fazla 1-2 temel çeviri ve 1 doğal örnek cümle ver.
+
+JSON Şablonu:
+{
+  "input": "girdi",
+  "sourceLanguage": "nl veya tr",
+  "targetLanguage": "nl veya tr",
+  "partOfSpeech": "noun, verb, adjective, adverb, expression vb.",
+  "translations": [
+    { "text": "ana çeviri", "context": "kullanım", "frequency": "very_common" }
+  ],
+  "meanings": [
+    { "meaning": "temel anlam", "explanation": "kısa açıklama" }
+  ],
+  "grammar": {
+    "article": "de / het (Felemenkçe ise)",
+    "plural": "çoğul",
+    "infinitive": "mastar"
+  },
+  "examples": [
+    { "source": "örnek cümle", "translation": "çevirisi" }
+  ]
+}`;
+
+  // Device detection helper (Android / Termux / Mobile Phone vs PC)
+  function isMobileDevice() {
+    if (typeof navigator === "undefined") return false;
+    const ua = (navigator.userAgent || navigator.vendor || window.opera || "").toLowerCase();
+    const isMobileUA = /android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua);
+    const isSmallScreen = typeof window !== "undefined" && window.innerWidth <= 800;
+    const isTouch = typeof navigator !== "undefined" && (('ontouchstart' in window) || (navigator.maxTouchPoints > 0));
+    return isMobileUA || (isTouch && isSmallScreen);
+  }
+
+  // Auto-fetch models installed in Ollama via /api/tags or /v1/models
+  async function fetchInstalledLocalModels(baseUrl) {
+    const cleanBase = (baseUrl || getLocalLLMBaseUrl()).replace(/\/+$/, "");
+    const rootBase = cleanBase.replace(/\/v1$/, "");
+
+    // 1. Try native Ollama endpoint /api/tags (with 2500ms timeout)
+    try {
+      const ctrl = new AbortController();
+      const tId = setTimeout(() => ctrl.abort(), 2500);
+      const resp = await fetch(`${rootBase}/api/tags`, { method: "GET", signal: ctrl.signal });
+      clearTimeout(tId);
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data && Array.isArray(data.models) && data.models.length > 0) {
+          return data.models.map(m => {
+            const rawName = m.name || m.model || "unknown";
+            const sizeGb = m.size ? ` (${(m.size / (1024 * 1024 * 1024)).toFixed(1)} GB)` : "";
+            return {
+              id: rawName,
+              name: `${rawName}${sizeGb}`,
+              badge: "🟢 Yüklü"
+            };
+          });
+        }
+      }
+    } catch (e) {
+      // ignore, try fallback
+    }
+
+    // 2. Try OpenAI-compatible /v1/models (with 2500ms timeout)
+    try {
+      const ctrl = new AbortController();
+      const tId = setTimeout(() => ctrl.abort(), 2500);
+      const resp = await fetch(`${cleanBase}/models`, { method: "GET", signal: ctrl.signal });
+      clearTimeout(tId);
+      if (resp.ok) {
+        const data = await resp.json();
+        const list = data?.data || data?.models;
+        if (Array.isArray(list) && list.length > 0) {
+          return list.map(m => {
+            const id = m.id || m.name;
+            return {
+              id: id,
+              name: id,
+              badge: "🟢 Yüklü"
+            };
+          });
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    return null;
+  }
+
+  // Determine optimal base URL for local LLM
+  function getLocalLLMBaseUrl() {
+    const isLocalServer = typeof window !== "undefined" && window.location.hostname === "127.0.0.1" && window.location.port === "8080";
+    const custom = localStorage.getItem("local_llm_url");
+
+    if (isLocalServer) {
+      if (!custom || custom.includes("11434") || custom.includes("localhost")) {
+        return window.location.origin + "/ollama/v1";
+      }
+    }
+
+    if (custom && custom.trim()) {
+      let clean = custom.trim().replace(/\/+$/, "");
+      if (clean.includes("localhost")) {
+        clean = clean.replace("localhost", "127.0.0.1");
+      }
+      return clean;
+    }
+
+    return "http://127.0.0.1:11434/v1";
+  }
+
+  // Helper to load settings (Phone defaults to Local Ollama; PC defaults to Google Gemini)
   function getSettings() {
+    const isMobile = isMobileDevice();
+    const defaultProvider = isMobile ? "local" : "google";
+    const userChosen = localStorage.getItem("lexi_provider_user_chosen") === "true";
+    const savedProvider = localStorage.getItem("lexi_provider");
+    const activeProvider = (userChosen && savedProvider) ? savedProvider : defaultProvider;
+
     let savedModel = localStorage.getItem("lexi_model");
-    // Auto-migrate legacy/slow/overloaded models to the ultra-fast gemini-3.5-flash-lite
     if (!savedModel || savedModel.includes("latest") || savedModel.includes("pro") || savedModel.includes("3.8") || savedModel.includes("3.6") || savedModel.includes("2.5")) {
-      savedModel = "gemini-3.5-flash-lite";
+      savedModel = activeProvider === "local"
+        ? (localStorage.getItem("local_llm_model") || (isMobile ? "qwen2.5:1.5b" : PROVIDERS.local.default_model))
+        : "gemini-3.5-flash-lite";
       localStorage.setItem("lexi_model", savedModel);
     }
     let googleKey = localStorage.getItem("gemini_api_key");
@@ -136,18 +262,27 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
       googleKey = SM_STUDIO_KEYS.google;
       if (googleKey) localStorage.setItem("gemini_api_key", googleKey);
     }
+    let savedLocalUrl = localStorage.getItem("local_llm_url");
+    if (!savedLocalUrl || savedLocalUrl.includes("localhost")) {
+      savedLocalUrl = getLocalLLMBaseUrl();
+      localStorage.setItem("local_llm_url", savedLocalUrl);
+    }
     return {
-      provider: localStorage.getItem("lexi_provider") || "google",
+      isMobile,
+      provider: activeProvider,
       model: savedModel,
       googleKey: googleKey || "",
       nvidiaKey: localStorage.getItem("nvidia_api_key") || SM_STUDIO_KEYS.nvidia,
-      localUrl: localStorage.getItem("local_llm_url") || PROVIDERS.local.default_url,
-      localModel: localStorage.getItem("local_llm_model") || PROVIDERS.local.default_model
+      localUrl: savedLocalUrl,
+      localModel: localStorage.getItem("local_llm_model") || (isMobile ? "qwen2.5:1.5b" : PROVIDERS.local.default_model)
     };
   }
 
   function saveSettings(settings) {
-    if (settings.provider) localStorage.setItem("lexi_provider", settings.provider);
+    if (settings.provider) {
+      localStorage.setItem("lexi_provider", settings.provider);
+      localStorage.setItem("lexi_provider_user_chosen", "true");
+    }
     if (settings.model) localStorage.setItem("lexi_model", settings.model);
     if (settings.googleKey !== undefined) localStorage.setItem("gemini_api_key", settings.googleKey.trim());
     if (settings.nvidiaKey !== undefined) localStorage.setItem("nvidia_api_key", settings.nvidiaKey.trim());
@@ -173,39 +308,327 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
     return JSON.parse(clean);
   }
 
-  // Quick Google Translate REST call (0 API key fallback)
+  // Prompt Sanitization & XML Boundary Isolation (SEC-02 Protection)
+  function formatLinguisticUserPrompt(query, sourceLang, targetLang) {
+    const sanitized = String(query || "")
+      .trim()
+      .slice(0, 500)
+      .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, ""); // Strip non-printable control characters
+    return `Lütfen aşağıdaki XML etiketi içindeki ifadeyi analiz et. Girdi dili: ${sourceLang.toUpperCase()}, Hedef dil: ${targetLang.toUpperCase()}.
+<girdi_metni>
+${sanitized}
+</girdi_metni>
+Önemli: Yalnızca yukarıda tanımlanan JSON şemasına uygun geçerli bir JSON döndür. Ek açıklama veya markdown ekleme.`;
+  }
+
+  // Runtime Schema Validation & Fallback Normalization (REL-01 Protection)
+  function normalizeLinguisticResult(raw, fallbackQuery, sourceLang, targetLang, providerName) {
+    if (!raw || typeof raw !== "object") {
+      raw = {};
+    }
+
+    const sl = (raw.sourceLanguage || sourceLang || "nl").toLowerCase();
+    const tl = (raw.targetLanguage || targetLang || (sl === "nl" ? "tr" : "nl")).toLowerCase();
+
+    // 1. Translations array normalization
+    let translations = [];
+    if (Array.isArray(raw.translations)) {
+      translations = raw.translations
+        .filter((t) => t && (t.text || typeof t === "string"))
+        .map((t) => {
+          if (typeof t === "string") return { text: t.trim(), context: "", frequency: "common" };
+          return {
+            text: String(t.text || "").trim(),
+            context: String(t.context || "").trim(),
+            frequency: String(t.frequency || "common").toLowerCase().trim()
+          };
+        })
+        .filter((t) => t.text.length > 0);
+    } else if (typeof raw.translations === "string" && raw.translations.trim()) {
+      translations = [{ text: raw.translations.trim(), context: "", frequency: "common" }];
+    }
+
+    if (translations.length === 0) {
+      translations = [{ text: String(fallbackQuery || "").trim(), context: "", frequency: "common" }];
+    }
+
+    // 2. Meanings array normalization
+    let meanings = [];
+    if (Array.isArray(raw.meanings)) {
+      meanings = raw.meanings
+        .filter((m) => m && (m.meaning || typeof m === "string"))
+        .map((m) => {
+          if (typeof m === "string") return { meaning: m.trim(), explanation: "", context: "" };
+          return {
+            meaning: String(m.meaning || "").trim(),
+            explanation: String(m.explanation || "").trim(),
+            context: String(m.context || "").trim()
+          };
+        })
+        .filter((m) => m.meaning.length > 0);
+    }
+
+    // 3. Grammar object normalization
+    const grammar = (raw.grammar && typeof raw.grammar === "object") ? {
+      article: raw.grammar.article ? String(raw.grammar.article).trim() : "",
+      plural: raw.grammar.plural ? String(raw.grammar.plural).trim() : "",
+      infinitive: raw.grammar.infinitive ? String(raw.grammar.infinitive).trim() : "",
+      register: raw.grammar.register ? String(raw.grammar.register).trim() : "",
+      notes: Array.isArray(raw.grammar.notes) ? raw.grammar.notes.map(String) : []
+    } : { article: "", plural: "", infinitive: "", register: "", notes: [] };
+
+    // 4. Pronunciation normalization
+    const pronunciation = (raw.pronunciation && typeof raw.pronunciation === "object") ? {
+      ipa: raw.pronunciation.ipa ? String(raw.pronunciation.ipa).trim() : "",
+      simplified: raw.pronunciation.simplified ? String(raw.pronunciation.simplified).trim() : ""
+    } : { ipa: "", simplified: "" };
+
+    // 5. Etymology normalization
+    const etymology = (raw.etymology && typeof raw.etymology === "object") ? {
+      summary: raw.etymology.summary ? String(raw.etymology.summary).trim() : "",
+      certainty: raw.etymology.certainty ? String(raw.etymology.certainty).trim() : "unknown"
+    } : { summary: "", certainty: "unknown" };
+
+    // 6. Examples normalization
+    let examples = [];
+    if (Array.isArray(raw.examples)) {
+      examples = raw.examples
+        .filter((e) => e && (e.source || e.translation))
+        .map((e) => ({
+          source: String(e.source || "").trim(),
+          translation: String(e.translation || "").trim()
+        }))
+        .filter((e) => e.source.length > 0);
+    }
+
+    // 7. Related words normalization
+    let relatedWords = [];
+    if (Array.isArray(raw.relatedWords)) {
+      relatedWords = raw.relatedWords
+        .filter((r) => r && (r.word || typeof r === "string"))
+        .map((r) => {
+          if (typeof r === "string") return { word: r.trim(), relation: "related" };
+          return {
+            word: String(r.word || "").trim(),
+            relation: String(r.relation || "related").toLowerCase().trim()
+          };
+        })
+        .filter((r) => r.word.length > 0);
+    }
+
+    return {
+      input: String(raw.input || fallbackQuery || "").trim(),
+      sourceLanguage: sl,
+      targetLanguage: tl,
+      partOfSpeech: String(raw.partOfSpeech || "").trim(),
+      pronunciation: pronunciation,
+      translations: translations,
+      meanings: meanings,
+      grammar: grammar,
+      etymology: etymology,
+      examples: examples,
+      relatedWords: relatedWords,
+      didYouMean: raw.didYouMean || "",
+      _provider: providerName || raw._provider || "LexiBridge Dil Motoru",
+      _latency: raw._latency || 0,
+      _fallbackFrom: raw._fallbackFrom || undefined,
+      _localError: raw._localError || undefined,
+      _isQuickRest: !!raw._isQuickRest
+    };
+  }
+
+  // Quick Google Translate REST call (0 API key enriched engine)
   async function quickTranslateRest(query, sourceLang, targetLang) {
     const sl = sourceLang === "nl" ? "nl" : "tr";
     const tl = targetLang === "nl" ? "nl" : "tr";
-    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl}&tl=${tl}&dt=t&q=${encodeURIComponent(query)}`;
-    
-    const resp = await fetch(url);
-    if (!resp.ok) throw new Error(`REST Çeviri hatası: ${resp.status}`);
-    const data = await resp.json();
-    
+    const encoded = encodeURIComponent(query);
+
+    // Request rich metadata: translation (t), alternatives (at), bilingual dict (bd),
+    // romanization (rm), spell-check (qc), examples (ex), definitions (md), synsets (ss)
+    const primaryUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl}&tl=${tl}&hl=tr&dt=t&dt=at&dt=bd&dt=rm&dt=qc&dt=ex&dt=md&dt=ss&dt=rw&q=${encoded}`;
+
+    const isSingleWord = !query.trim().includes(" ");
+
+    // 1. Primary Request
+    const primaryPromise = fetch(primaryUrl).then((r) => {
+      if (!r.ok) throw new Error(`REST Çeviri hatası: ${r.status}`);
+      return r.json();
+    });
+
+    // 2. Parallel Secondary POS lookup (for single words to cleanly map noun/verb/adjective/adverb)
+    let posPromise = Promise.resolve(null);
+    if (isSingleWord) {
+      const posUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl}&tl=en&hl=en&dt=bd&q=${encoded}`;
+      posPromise = fetch(posUrl)
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null);
+    }
+
+    const [data, posData] = await Promise.all([primaryPromise, posPromise]);
+
+    // 1. Primary Translation & Transliteration
     let translated = "";
-    if (data && Array.isArray(data) && data[0] && Array.isArray(data[0])) {
-      translated = data[0].map(item => item[0]).filter(Boolean).join("").trim();
+    let transliteration = "";
+    if (data && Array.isArray(data[0])) {
+      translated = data[0]
+        .map((item) => (item && item[0] ? item[0] : ""))
+        .filter(Boolean)
+        .join("")
+        .trim();
+      const lastItem = data[0][data[0].length - 1];
+      if (Array.isArray(lastItem) && typeof lastItem[3] === "string") {
+        transliteration = lastItem[3];
+      }
+    }
+    if (!translated) translated = query;
+
+    // 2. Alternative Translations (Index 5)
+    const alternativeList = [];
+    if (data && Array.isArray(data[5])) {
+      for (const entry of data[5]) {
+        if (Array.isArray(entry) && Array.isArray(entry[2])) {
+          for (const sub of entry[2]) {
+            if (Array.isArray(sub) && sub[0] && typeof sub[0] === "string") {
+              const altText = sub[0].trim();
+              if (
+                altText &&
+                !alternativeList.includes(altText) &&
+                altText.toLowerCase() !== translated.toLowerCase()
+              ) {
+                alternativeList.push(altText);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // 3. Plural & Inflected Forms (Index 14)
+    let pluralForm = "";
+    if (data && Array.isArray(data[14])) {
+      for (const formEntry of data[14]) {
+        if (Array.isArray(formEntry) && formEntry[0] && typeof formEntry[0] === "string") {
+          pluralForm = formEntry[0].trim();
+          break;
+        }
+      }
+    }
+
+    // 4. "Did You Mean?" Spell Correction (Index 7)
+    let didYouMean = "";
+    if (data && Array.isArray(data[7]) && data[7][1]) {
+      const candidate = String(data[7][1]).replace(/<[^>]*>/g, "").trim();
+      if (candidate && candidate.toLowerCase() !== query.toLowerCase()) {
+        didYouMean = candidate;
+      }
+    }
+
+    // 5. Part of Speech (POS) Detection
+    const POS_MAP = {
+      noun: "İsim",
+      verb: "Fiil",
+      adjective: "Sıfat",
+      adverb: "Zarf",
+      pronoun: "Zamir",
+      preposition: "Edat",
+      conjunction: "Bağlaç",
+      interjection: "Ünlem"
+    };
+    let detectedPos = "";
+    const extraSynonyms = [];
+
+    // Check posData from parallel lookup
+    if (posData && Array.isArray(posData[1])) {
+      for (const pGroup of posData[1]) {
+        const pTag = pGroup[0];
+        if (!detectedPos && pTag && POS_MAP[pTag]) {
+          detectedPos = POS_MAP[pTag];
+        }
+        if (Array.isArray(pGroup[1])) {
+          for (const word of pGroup[1]) {
+            if (typeof word === "string" && !extraSynonyms.includes(word)) {
+              extraSynonyms.push(word);
+            }
+          }
+        }
+      }
+    }
+
+    // Fallback POS check from direct dict (Index 1)
+    if (!detectedPos && data && Array.isArray(data[1])) {
+      for (const pGroup of data[1]) {
+        const pTag = pGroup[0];
+        if (pTag) {
+          detectedPos = POS_MAP[pTag] || pTag.charAt(0).toUpperCase() + pTag.slice(1);
+          break;
+        }
+      }
+    }
+
+    if (!detectedPos) {
+      detectedPos = isSingleWord ? "kelime" : "cümle / ifade";
+    }
+
+    // 6. Build Consolidated Translations Array
+    const translations = [
+      { text: translated, frequency: "very_common" }
+    ];
+    const seen = new Set([translated.toLowerCase()]);
+    for (const alt of alternativeList) {
+      const lower = alt.toLowerCase();
+      if (!seen.has(lower)) {
+        seen.add(lower);
+        translations.push({
+          text: alt,
+          frequency: "common"
+        });
+      }
+      if (translations.length >= 8) break;
+    }
+
+    // 7. Structured Meanings List
+    const meanings = translations.slice(0, 4).map((t, idx) => ({
+      meaning: t.text,
+      explanation: idx === 0 ? "Temel ve en yaygın karşılık" : "Alternatif kullanım / eşanlam",
+      context: detectedPos
+    }));
+
+    // 8. Grammar info
+    const grammar = {};
+    if (pluralForm) {
+      grammar.plural = pluralForm;
+    }
+    if (detectedPos === "Fiil") {
+      grammar.infinitive = (sl === "nl" ? query : translated);
     }
 
     return {
       input: query,
       sourceLanguage: sl,
       targetLanguage: tl,
-      translations: [{ text: translated || query, frequency: "common" }],
-      meanings: [{ meaning: translated }],
-      partOfSpeech: "expression",
+      pronunciation: {
+        ipa: transliteration || "",
+        simplified: ""
+      },
+      partOfSpeech: detectedPos,
+      translations: translations,
+      meanings: meanings,
+      grammar: grammar,
       examples: [],
-      relatedWords: [],
-      _isQuickRest: true
+      relatedWords: translations.slice(1, 6).map((t) => t.text),
+      didYouMean: didYouMean,
+      _isQuickRest: true,
+      _provider: "Hızlı REST (Zenginleştirilmiş Sözlük)"
     };
   }
 
   // Google Gemini API call (Optimized for Sub-Second Latency)
   async function callGoogleGemini(query, sourceLang, model, apiKey) {
-    if (!apiKey) throw new Error("Google Gemini API anahtarı girilmedi.");
+    if (!apiKey) {
+      throw new Error("Google Gemini API anahtarı girilmedi. Lütfen Ayarlar (⚙️) menüsünden API anahtarınızı girin veya ücretsiz 'Hızlı REST' modunu kullanın.");
+    }
     const targetLang = sourceLang === "nl" ? "tr" : "nl";
-    const userPrompt = `Lütfen şu girdiyi analiz et. Girdi dili: ${sourceLang.toUpperCase()}, Hedef dil: ${targetLang.toUpperCase()}. Girdi: "${query}"`;
+    const userPrompt = formatLinguisticUserPrompt(query, sourceLang, targetLang);
     
     let activeModel = model;
     if (!activeModel || activeModel.includes("latest") || activeModel.includes("pro") || activeModel.includes("3.8") || activeModel.includes("3.6") || activeModel.includes("2.5")) {
@@ -254,15 +677,14 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
     if (!textResult) throw new Error("Modelden geçerli bir metin yanıtı alınamadı.");
 
     const parsed = parseJSONResponse(textResult);
-    parsed._provider = "Google Gemini (" + activeModel + ")";
-    return parsed;
+    return normalizeLinguisticResult(parsed, query, sourceLang, targetLang, "Google Gemini (" + activeModel + ")");
   }
 
   // NVIDIA NIM API call (OpenAI compatible)
   async function callNvidiaNIM(query, sourceLang, model, apiKey) {
-    if (!apiKey) throw new Error("NVIDIA NIM API anahtarı girilmedi.");
+    if (!apiKey) throw new Error("NVIDIA NIM API anahtarı girilmedi. Lütfen Ayarlar (⚙️) menüsünden API anahtarınızı girin.");
     const targetLang = sourceLang === "nl" ? "tr" : "nl";
-    const userPrompt = `Lütfen şu girdiyi analiz et. Girdi dili: ${sourceLang.toUpperCase()}, Hedef dil: ${targetLang.toUpperCase()}. Girdi: "${query}"`;
+    const userPrompt = formatLinguisticUserPrompt(query, sourceLang, targetLang);
     
     const activeModel = model || "nvidia/llama-3.1-nemotron-70b-instruct";
     const url = "https://integrate.api.nvidia.com/v1/chat/completions";
@@ -302,54 +724,142 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
     if (!content) throw new Error("NVIDIA modelinden boş yanıt döndü.");
 
     const parsed = parseJSONResponse(content);
-    parsed._provider = "NVIDIA NIM (" + activeModel.split("/").pop() + ")";
-    return parsed;
+    return normalizeLinguisticResult(parsed, query, sourceLang, targetLang, "NVIDIA NIM (" + activeModel.split("/").pop() + ")");
   }
 
-  // Yerel LLM (Ollama / Localhost)
+  // Yerel LLM (Ollama / Termux / Localhost)
   async function callLocalLLM(query, sourceLang, model, baseUrl) {
     const targetLang = sourceLang === "nl" ? "tr" : "nl";
-    const userPrompt = `Lütfen şu girdiyi analiz et. Girdi dili: ${sourceLang.toUpperCase()}, Hedef dil: ${targetLang.toUpperCase()}. Girdi: "${query}"`;
+    const userPrompt = formatLinguisticUserPrompt(query, sourceLang, targetLang);
     
-    const activeModel = model || "llama3.2";
-    const cleanBase = (baseUrl || "http://localhost:11434/v1").replace(/\/+$/, "");
-    const url = `${cleanBase}/chat/completions`;
+    let cleanBase = (baseUrl || getLocalLLMBaseUrl()).trim().replace(/\/+$/, "");
+    if (!cleanBase.endsWith("/v1")) {
+      cleanBase = cleanBase + "/v1";
+    }
+
+    let activeModel = model || localStorage.getItem("local_llm_model") || (isMobileDevice() ? "qwen2.5:1.5b" : PROVIDERS.local.default_model);
+
+    // 1. Hızlı erişim ve model doğrulama kontrolü (2.5 saniye timeout)
+    async function probeServer(base) {
+      const root = base.replace(/\/v1$/, "");
+      const ctrl = new AbortController();
+      const tId = setTimeout(() => ctrl.abort(), 2500);
+      try {
+        const r = await fetch(`${root}/api/tags`, { method: "GET", signal: ctrl.signal });
+        clearTimeout(tId);
+        if (r.ok) {
+          const d = await r.json().catch(() => ({}));
+          return { ok: true, models: d.models || [] };
+        }
+      } catch (e) {
+        clearTimeout(tId);
+      }
+      return { ok: false, models: [] };
+    }
+
+    let targetBase = cleanBase;
+    let probe = await probeServer(cleanBase);
+
+    // cleanBase başarısızsa localhost, 127.0.0.1 ve ters proxy alternatiflerini dene
+    if (!probe.ok) {
+      const candidates = [];
+      if (cleanBase.includes("127.0.0.1:11434")) {
+        candidates.push(cleanBase.replace("127.0.0.1:11434", "localhost:11434"));
+      } else if (cleanBase.includes("localhost:11434")) {
+        candidates.push(cleanBase.replace("localhost:11434", "127.0.0.1:11434"));
+      }
+      
+      if (typeof window !== "undefined" && window.location.port === "8080") {
+        candidates.push(window.location.origin + "/ollama/v1");
+      } else {
+        candidates.push("http://127.0.0.1:8080/ollama/v1");
+      }
+
+      for (const alt of candidates) {
+        if (alt === cleanBase) continue;
+        const probeAlt = await probeServer(alt);
+        if (probeAlt.ok) {
+          probe = probeAlt;
+          targetBase = alt;
+          break;
+        }
+      }
+    }
+
+    if (!probe.ok) {
+      throw new Error(
+        `Yerel Ollama servisine bağlanılamadı (${cleanBase}). Termux'ta 'ollama serve' veya 'bash termux_baslat.sh' çalıştırıldığından emin olun.`
+      );
+    }
+
+    // Yüklü modeller varsa, istenen modeli doğrula ya da hafif modeli otomatik seç
+    if (probe.models && probe.models.length > 0) {
+      const modelNames = probe.models.map(m => m.name || m.model || "");
+      const exists = modelNames.some(n => n === activeModel || n.startsWith(activeModel.split(":")[0]));
+      if (!exists) {
+        // Telefondaysa öncelikle hafif 1.5b veya 1b modelleri tercih et
+        const lightModel = modelNames.find(n => n.includes("1.5b") || n.includes("1b"));
+        activeModel = lightModel || modelNames[0];
+        console.log(`'${activeModel}' modeli otomatik seçildi.`);
+        localStorage.setItem("local_llm_model", activeModel);
+      }
+    }
+
+    const isMobile = isMobileDevice();
+    const systemPromptToUse = isMobile ? LOCAL_SYSTEM_PROMPT : SYSTEM_PROMPT;
+    const maxTokensToUse = isMobile ? 512 : 2048;
 
     const payload = {
       model: activeModel,
       messages: [
-        { role: "system", content: SYSTEM_PROMPT },
+        { role: "system", content: systemPromptToUse },
         { role: "user", content: userPrompt }
       ],
-      temperature: 0.2,
-      max_tokens: 2048
+      temperature: 0.1,
+      stream: false,
+      max_tokens: maxTokensToUse,
+      options: {
+        num_predict: maxTokensToUse,
+        temperature: 0.1
+      }
     };
 
+    // 2. LLM Çıkarımı (Mobil CPU için 180 saniye / 3 dakika süre tanınır)
+    const inferCtrl = new AbortController();
+    const inferTimeoutId = setTimeout(() => inferCtrl.abort(), 180000);
+
+    let resp;
     try {
-      const resp = await fetch(url, {
+      resp = await fetch(`${targetBase}/chat/completions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
+        signal: inferCtrl.signal
       });
-
-      if (!resp.ok) {
-        const err = await resp.json().catch(() => ({}));
-        throw new Error(err?.error?.message || `Yerel LLM Hatası (${resp.status})`);
+      clearTimeout(inferTimeoutId);
+    } catch (inferErr) {
+      clearTimeout(inferTimeoutId);
+      if (inferErr.name === "AbortError") {
+        throw new Error(`Yerel model (${activeModel}) 180 saniye içinde yanıt veremedi. Telefon işlemcisi için hafif 'qwen2.5:1.5b' veya 'llama3.2:1b' önerilir.`);
       }
-
-      const data = await resp.json();
-      const content = data.choices?.[0]?.message?.content;
-      if (!content) throw new Error("Yerel modelden boş yanıt döndü.");
-
-      const parsed = parseJSONResponse(content);
-      parsed._provider = "Yerel LLM (" + activeModel + ")";
-      return parsed;
-    } catch (e) {
-      throw new Error(`Yerel LLM bağlantı hatası (${cleanBase}): ${e.message}. Ollama veya LM Studio'nun çalıştığından emin olun.`);
+      throw new Error(`Yerel LLM çıkarım hatası: ${inferErr.message}`);
     }
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      const errMsg = err?.error?.message || err?.error || `HTTP ${resp.status}`;
+      throw new Error(`Yerel LLM Hatası (${resp.status}): ${errMsg}`);
+    }
+
+    const data = await resp.json();
+    const content = data.choices?.[0]?.message?.content;
+    if (!content) throw new Error("Yerel modelden boş yanıt döndü.");
+
+    const parsed = parseJSONResponse(content);
+    return normalizeLinguisticResult(parsed, query, sourceLang, targetLang, "Yerel LLM (" + activeModel + ")");
   }
 
-  // Main analyze dispatcher
+  // Main analyze dispatcher with Smart Hybrid Fallback (Ollama -> Google Gemini -> Quick REST)
   async function analyze(query, sourceLang) {
     const cleanQuery = (query || "").trim();
     if (!cleanQuery) throw new Error("Lütfen bir kelime veya cümle girin.");
@@ -366,14 +876,34 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
       if (provider === "nvidia") {
         return await callNvidiaNIM(cleanQuery, sourceLang, settings.model, settings.nvidiaKey);
       } else if (provider === "local") {
-        return await callLocalLLM(cleanQuery, sourceLang, settings.localModel, settings.localUrl);
+        // Smart Hybrid: Try local Ollama first; if unreachable/offline, fallback seamlessly to cloud
+        try {
+          return await callLocalLLM(cleanQuery, sourceLang, settings.localModel, settings.localUrl);
+        } catch (localErr) {
+          console.warn("Yerel Ollama'ya ulaşılamadı. Akıllı hibrit yedek devreye giriyor:", localErr.message);
+          // Fallback 1: Google Gemini (High-speed linguistic AI)
+          try {
+            const geminiResult = await callGoogleGemini(cleanQuery, sourceLang, "gemini-3.5-flash-lite", settings.googleKey);
+            geminiResult._provider = "Google Gemini (Ollama Çevrimdışı)";
+            geminiResult._fallbackFrom = "local";
+            geminiResult._localError = localErr.message;
+            return geminiResult;
+          } catch (geminiErr) {
+            console.warn("Google Gemini de yanıt vermedi, Hızlı REST yedeğe geçiliyor:", geminiErr.message);
+            // Fallback 2: Quick REST (0 API Key, reliable fallback)
+            const restResult = await quickTranslateRest(cleanQuery, sourceLang, targetLang);
+            restResult._provider = "Hızlı REST (Ollama & Gemini Çevrimdışı)";
+            restResult._fallbackFrom = "local";
+            restResult._localError = localErr.message;
+            return restResult;
+          }
+        }
       } else {
         // default google
         return await callGoogleGemini(cleanQuery, sourceLang, settings.model, settings.googleKey);
       }
     } catch (err) {
       console.warn("AI Sağlayıcı hatası:", err);
-      // Fallback: If AI fails and we are not in quick_rest, give user choice or fallback
       throw err;
     }
   }
@@ -381,9 +911,13 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
   return {
     PROVIDERS,
     SM_STUDIO_KEYS,
+    isMobileDevice,
+    fetchInstalledLocalModels,
     getSettings,
     saveSettings,
     analyze,
-    quickTranslateRest
+    quickTranslateRest,
+    formatLinguisticUserPrompt,
+    normalizeLinguisticResult
   };
 })();
