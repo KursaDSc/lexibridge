@@ -370,6 +370,8 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderResult(data) {
     resultsContainer.innerHTML = '';
     const isSourceNl = data.sourceLanguage === 'nl';
+    const mainTrans = data.translations?.[0]?.text || '';
+
     // 0. Did You Mean Banner (Spell Check)
     let html = '';
     if (data.didYouMean) {
