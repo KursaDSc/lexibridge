@@ -63,12 +63,15 @@ else
 fi
 
 # 2. Web Sunucusu ve Tarayici
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
 echo "🚀 LexiBridge Mobil Sunucu baslatiliyor..."
 echo "   Yerel Adres: http://127.0.0.1:$PORT"
 echo ""
 echo "📱 Tarayicinizda acildiginda 'Ana Ekrana Ekle' diyerek"
-echo "   tam ekran mobil PWA seklinde kullanabilirsiniz."
-echo "🛑 Durdurmak icin: CTRL + C"
+echo "   tam ekran mobil PWA seklinde de kullanabilirsiniz."
+echo "💡 Tarayici sekmesini kapattiginizda Ollama ve sunucu otomatik sonlanacaktir."
 echo "========================================================"
 
 # Tarayıcıyı otomatik açma denemesi (Termux api veya intent)
@@ -85,13 +88,16 @@ echo "========================================================"
   fi
 ) &
 
-# Sunucuyu baslat
+# Sunucuyu baslat (server.py: heartbeat ve sekme kapandığında otomatik kapatma)
 if command -v python3 >/dev/null 2>&1; then
-  exec python3 -m http.server $PORT --bind 127.0.0.1
+  python3 "$SCRIPT_DIR/server.py" $PORT
 elif command -v python >/dev/null 2>&1; then
-  exec python -m http.server $PORT --bind 127.0.0.1
+  python "$SCRIPT_DIR/server.py" $PORT
 else
   echo "❌ Hata: Python bulunamadi."
   echo "   Termux'ta su komutla kurabilirsiniz: pkg install python"
   exit 1
 fi
+
+# Termux oturumunu kapat
+exit 0

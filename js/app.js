@@ -702,6 +702,33 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // ── Local Server Heartbeat & Auto-Shutdown on Tab Close ──────────────────
+  function setupLocalServerLifecycle() {
+    const isLocal = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost';
+    if (!isLocal) return;
+
+    // Send immediate heartbeat on load
+    fetch('/api/heartbeat').catch(() => {});
+
+    // Periodic heartbeat every 3 seconds
+    setInterval(() => {
+      fetch('/api/heartbeat').catch(() => {});
+    }, 3000);
+
+    // Send shutdown request when browser tab is closed or navigated away
+    function sendShutdown() {
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon('/api/shutdown');
+      } else {
+        fetch('/api/shutdown', { method: 'POST', keepalive: true }).catch(() => {});
+      }
+    }
+
+    window.addEventListener('pagehide', sendShutdown);
+    window.addEventListener('beforeunload', sendShutdown);
+  }
+
   // Run initial setup
+  setupLocalServerLifecycle();
   init();
 });
