@@ -124,6 +124,34 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
       "relation": "synonym | antonym | related"
     }
   ]
+};
+
+  const LOCAL_SYSTEM_PROMPT = `Sen Felemenkçe ve Türkçe dillerinde uzman, hızlı bir mobil sözlük asistanısın.
+Sana verilen kelime veya cümleyi analiz et ve YALNIZCA geçerli bir JSON objesi olarak döndür. Markdown (\`\`\`json) veya açıklama KULLANMA.
+ÖNEMLİ KURALLAR:
+1. Mobil işlemci hızını korumak için KISA, ÖZ ve NET ol.
+2. En fazla 1-2 temel çeviri ve 1 doğal örnek cümle ver.
+
+JSON Şablonu:
+{
+  "input": "girdi",
+  "sourceLanguage": "nl veya tr",
+  "targetLanguage": "nl veya tr",
+  "partOfSpeech": "noun, verb, adjective, adverb, expression vb.",
+  "translations": [
+    { "text": "ana çeviri", "context": "kullanım", "frequency": "very_common" }
+  ],
+  "meanings": [
+    { "meaning": "temel anlam", "explanation": "kısa açıklama" }
+  ],
+  "grammar": {
+    "article": "de / het (Felemenkçe ise)",
+    "plural": "çoğul",
+    "infinitive": "mastar"
+  },
+  "examples": [
+    { "source": "örnek cümle", "translation": "çevirisi" }
+  ]
 }`;
 
   // Device detection helper (Android / Termux / Mobile Phone vs PC)
@@ -489,20 +517,28 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
       }
     }
 
+    const isMobile = isMobileDevice();
+    const systemPromptToUse = isMobile ? LOCAL_SYSTEM_PROMPT : SYSTEM_PROMPT;
+    const maxTokensToUse = isMobile ? 512 : 2048;
+
     const payload = {
       model: activeModel,
       messages: [
-        { role: "system", content: SYSTEM_PROMPT },
+        { role: "system", content: systemPromptToUse },
         { role: "user", content: userPrompt }
       ],
-      temperature: 0.2,
+      temperature: 0.1,
       stream: false,
-      max_tokens: 2048
+      max_tokens: maxTokensToUse,
+      options: {
+        num_predict: maxTokensToUse,
+        temperature: 0.1
+      }
     };
 
-    // 2. LLM Çıkarımı (Mobil CPU için 90 saniye süre tanınır)
+    // 2. LLM Çıkarımı (Mobil CPU için 180 saniye / 3 dakika süre tanınır)
     const inferCtrl = new AbortController();
-    const inferTimeoutId = setTimeout(() => inferCtrl.abort(), 90000);
+    const inferTimeoutId = setTimeout(() => inferCtrl.abort(), 180000);
 
     let resp;
     try {
@@ -516,7 +552,7 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
     } catch (inferErr) {
       clearTimeout(inferTimeoutId);
       if (inferErr.name === "AbortError") {
-        throw new Error(`Yerel model (${activeModel}) 90 saniye içinde yanıt veremedi. Telefon işlemcisi meşgul olabilir.`);
+        throw new Error(`Yerel model (${activeModel}) 180 saniye içinde yanıt veremedi. Telefon işlemcisi için hafif 'qwen2.5:1.5b' veya 'llama3.2:1b' önerilir.`);
       }
       throw new Error(`Yerel LLM çıkarım hatası: ${inferErr.message}`);
     }
