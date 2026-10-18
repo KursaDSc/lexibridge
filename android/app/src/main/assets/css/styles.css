@@ -4,10 +4,21 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 html, body {
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+}
+
+/* Ensure mobile form controls never auto-zoom on focus (iOS HIG Best Practice) */
+input, textarea, select {
+  font-size: 16px !important;
 }
 
 body {

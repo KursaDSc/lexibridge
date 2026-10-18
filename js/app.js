@@ -294,12 +294,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (modelDetectionStatus) {
-          modelDetectionStatus.className = 'text-[11px] mt-1.5 font-medium text-emerald-600';
+          modelDetectionStatus.className = 'text-xs mt-1.5 font-medium text-emerald-600';
           modelDetectionStatus.textContent = `✓ Ollama'dan ${installedModels.length} adet yüklü model algılandı.`;
         }
       } else {
         if (!silent && modelDetectionStatus) {
-          modelDetectionStatus.className = 'text-[11px] mt-1.5 font-medium text-amber-600';
+          modelDetectionStatus.className = 'text-xs mt-1.5 font-medium text-amber-600';
           modelDetectionStatus.textContent = 'ℹ️ Ollama bağlantısı bulunamadı (Hazır mobil modeller gösteriliyor).';
         } else if (modelDetectionStatus) {
           modelDetectionStatus.classList.add('hidden');
@@ -307,7 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } catch (e) {
       if (!silent && modelDetectionStatus) {
-        modelDetectionStatus.className = 'text-[11px] mt-1.5 font-medium text-red-500';
+        modelDetectionStatus.className = 'text-xs mt-1.5 font-medium text-red-500';
         modelDetectionStatus.textContent = 'Ollama taranamadı: ' + e.message;
       }
     } finally {
@@ -467,7 +467,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderHistory() {
     const hist = getHistory();
     if (hist.length === 0) {
-      historyList.innerHTML = `<div class="p-6 text-center text-xs text-slate-400">Henüz arama geçmişi yok.</div>`;
+      historyList.innerHTML = `<div class="p-6 text-center text-sm text-slate-400">Henüz arama geçmişi yok.</div>`;
       return;
     }
     historyList.innerHTML = hist
@@ -475,10 +475,10 @@ document.addEventListener('DOMContentLoaded', () => {
         (h) => `
       <div class="history-item flex items-center justify-between p-2.5 hover:bg-slate-50 rounded-xl cursor-pointer transition-colors" data-query="${escapeHtml(h.query)}" data-source="${h.source}">
         <div>
-          <div class="font-semibold text-xs text-slate-800">${escapeHtml(h.query)}</div>
-          <div class="text-[11px] text-slate-500">${escapeHtml(h.translation || '')}</div>
+          <div class="font-semibold text-sm text-slate-800">${escapeHtml(h.query)}</div>
+          <div class="text-xs text-slate-500">${escapeHtml(h.translation || '')}</div>
         </div>
-        <span class="text-xs text-slate-300 font-mono">${h.source === 'nl' ? '🇳🇱➔🇹🇷' : '🇹🇷➔🇳🇱'}</span>
+        <span class="text-xs text-slate-400 font-mono">${h.source === 'nl' ? '🇳🇱➔🇹🇷' : '🇹🇷➔🇳🇱'}</span>
       </div>
     `
       )
@@ -572,12 +572,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let html = '';
     if (data.didYouMean) {
       html += `
-        <div class="p-3 bg-amber-50/90 border border-amber-200/80 rounded-2xl flex items-center justify-between gap-3 text-xs text-amber-900 shadow-sm animate-slide-up mb-3">
+        <div class="p-3 bg-amber-50/90 border border-amber-200/80 rounded-2xl flex items-center justify-between gap-3 text-xs md:text-sm text-amber-900 shadow-sm animate-slide-up mb-3">
           <div class="flex items-center gap-2">
             <i class="ph-bold ph-lightbulb text-amber-600 text-base"></i>
             <span>Bunu mu demek istediniz: <button class="font-bold underline text-amber-950 did-you-mean-btn hover:text-primary-600" data-word="${escapeHtml(data.didYouMean)}">${escapeHtml(data.didYouMean)}</button>?</span>
           </div>
-          <button class="did-you-mean-btn px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[11px] font-semibold transition-all active:scale-95 shadow-xs" data-word="${escapeHtml(data.didYouMean)}">
+          <button class="did-you-mean-btn px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold transition-all active:scale-95 shadow-xs" data-word="${escapeHtml(data.didYouMean)}">
             Ara
           </button>
         </div>
@@ -610,13 +610,13 @@ document.addEventListener('DOMContentLoaded', () => {
               ` : ''}
               ${data.grammar?.plural ? `
                 <span class="text-xs px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 font-medium border border-indigo-100/70 inline-flex items-center gap-1" title="Çoğul Hali">
-                  <span class="text-[10px] text-indigo-400 font-bold uppercase">çoğul:</span>
+                  <span class="text-xs text-indigo-500 font-bold uppercase">çoğul:</span>
                   <span class="font-semibold text-slate-800">${escapeHtml(data.grammar.plural)}</span>
                 </span>
               ` : ''}
               ${data.grammar?.infinitive && data.grammar.infinitive !== data.input ? `
                 <span class="text-xs px-2.5 py-1 rounded-lg bg-purple-50 text-purple-700 font-medium border border-purple-100/70 inline-flex items-center gap-1" title="Fiil Mastar Hali">
-                  <span class="text-[10px] text-purple-400 font-bold uppercase">mastar:</span>
+                  <span class="text-xs text-purple-500 font-bold uppercase">mastar:</span>
                   <span class="font-semibold text-slate-800">${escapeHtml(data.grammar.infinitive)}</span>
                 </span>
               ` : ''}
@@ -631,7 +631,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="flex flex-wrap items-baseline gap-2">
               <span class="text-xl md:text-2xl font-bold text-slate-900">${escapeHtml(mainTrans)}</span>
               ${data.translations?.[0]?.frequency && data.translations[0].frequency !== 'rare' ? `
-                <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100/80">
+                <span class="text-xs uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100/80">
                   ${escapeHtml(localizeFrequency(data.translations[0].frequency))}
                 </span>
               ` : ''}
@@ -639,8 +639,8 @@ document.addEventListener('DOMContentLoaded', () => {
             ${data.translations?.length > 1 ? `
               <div class="flex flex-wrap gap-1.5 mt-2">
                 ${data.translations.slice(1).map(t => `
-                  <span class="text-xs px-2 py-1 bg-slate-50 border border-slate-100 rounded-lg text-slate-600">
-                    ${escapeHtml(t.text)} ${t.context ? `<span class="text-slate-400 text-[10px]">(${escapeHtml(t.context)})</span>` : ''}
+                  <span class="text-xs md:text-sm px-2.5 py-1 bg-slate-50 border border-slate-100 rounded-lg text-slate-700">
+                    ${escapeHtml(t.text)} ${t.context ? `<span class="text-slate-400 text-xs">(${escapeHtml(t.context)})</span>` : ''}
                   </span>
                 `).join('')}
               </div>
@@ -656,16 +656,16 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="bg-white rounded-2xl p-4 md:p-5 border border-slate-100 shadow-sm animate-slide-up" style="animation-delay: 0.05s">
           <div class="flex items-center gap-2 mb-3 text-slate-700">
             <i class="ph-bold ph-book-open text-primary-600 text-lg"></i>
-            <h3 class="font-bold text-sm text-slate-800">Detaylı Anlamlar & Bağlam</h3>
+            <h3 class="font-bold text-base text-slate-800">Detaylı Anlamlar & Bağlam</h3>
           </div>
           <div class="space-y-3">
             ${data.meanings.map((m, idx) => `
-              <div class="flex items-start gap-3 text-xs leading-relaxed">
-                <span class="font-mono text-slate-300 font-bold mt-0.5">${String(idx + 1).padStart(2, '0')}</span>
+              <div class="flex items-start gap-3 leading-relaxed">
+                <span class="font-mono text-slate-400 text-xs md:text-sm font-bold mt-0.5">${String(idx + 1).padStart(2, '0')}</span>
                 <div>
-                  <div class="font-semibold text-slate-800">${escapeHtml(m.meaning)}</div>
-                  ${m.explanation ? `<div class="text-slate-500 mt-0.5">${escapeHtml(m.explanation)}</div>` : ''}
-                  ${m.context ? `<span class="inline-block mt-1 text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">${escapeHtml(m.context)}</span>` : ''}
+                  <div class="font-semibold text-sm md:text-base text-slate-800">${escapeHtml(m.meaning)}</div>
+                  ${m.explanation ? `<div class="text-xs md:text-sm text-slate-600 mt-1 leading-relaxed">${escapeHtml(m.explanation)}</div>` : ''}
+                  ${m.context ? `<span class="inline-block mt-1 text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-medium">${escapeHtml(m.context)}</span>` : ''}
                 </div>
               </div>
             `).join('')}
@@ -680,18 +680,18 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="bg-white rounded-2xl p-4 md:p-5 border border-slate-100 shadow-sm animate-slide-up" style="animation-delay: 0.1s">
           <div class="flex items-center gap-2 mb-3 text-slate-700">
             <i class="ph-bold ph-chat-circle-text text-blue-500 text-lg"></i>
-            <h3 class="font-bold text-sm text-slate-800">Doğal Örnek Cümleler</h3>
+            <h3 class="font-bold text-base text-slate-800">Doğal Örnek Cümleler</h3>
           </div>
           <div class="space-y-2.5">
             ${data.examples.map(ex => `
               <div class="p-3 bg-slate-50 rounded-xl border border-slate-100/80">
                 <div class="flex items-center justify-between gap-2">
-                  <div class="font-medium text-xs text-slate-800 leading-relaxed">${highlightKeyword(ex.source, data.input)}</div>
+                  <div class="font-medium text-sm md:text-base text-slate-800 leading-relaxed">${highlightKeyword(ex.source, data.input)}</div>
                   <button class="speak-btn text-slate-500 hover:text-primary-600 p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors" aria-label="Örnek cümleyi sesli oku" data-text="${escapeHtml(ex.source)}" data-lang="${data.sourceLanguage}">
                     <i class="ph ph-speaker-simple-high text-base"></i>
                   </button>
                 </div>
-                <div class="text-[11px] text-slate-500 mt-1">${escapeHtml(ex.translation)}</div>
+                <div class="text-xs md:text-sm text-slate-600 mt-1.5 leading-relaxed">${escapeHtml(ex.translation)}</div>
               </div>
             `).join('')}
           </div>
@@ -709,8 +709,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (hasGrammar) {
         const g = data.grammar;
         html += `
-          <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm text-xs">
-            <div class="flex items-center gap-1.5 mb-2.5 font-bold text-slate-700">
+          <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm text-xs md:text-sm">
+            <div class="flex items-center gap-1.5 mb-2.5 font-bold text-sm md:text-base text-slate-700">
               <i class="ph-bold ph-sparkle text-amber-500 text-base"></i>
               <span>Gramer & Çekim</span>
             </div>
@@ -726,19 +726,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (hasEtymology) {
         html += `
-          <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm text-xs">
+          <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm text-xs md:text-sm">
             <div class="flex items-center justify-between mb-2.5">
-              <div class="flex items-center gap-1.5 font-bold text-slate-700">
+              <div class="flex items-center gap-1.5 font-bold text-sm md:text-base text-slate-700">
                 <i class="ph-bold ph-info text-indigo-500 text-base"></i>
                 <span>Etimoloji</span>
               </div>
               ${data.etymology?.certainty && data.etymology.certainty !== 'unknown' ? `
-                <span class="text-[9px] uppercase font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100/80">
+                <span class="text-xs uppercase font-semibold px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100/80">
                   ${data.etymology.certainty === 'high' ? 'Doğrulanmış Kaynak' : 'Muhtemel Köken'}
                 </span>
               ` : ''}
             </div>
-            <p class="text-slate-600 leading-relaxed">${escapeHtml(data.etymology.summary)}</p>
+            <p class="text-slate-600 text-xs md:text-sm leading-relaxed">${escapeHtml(data.etymology.summary)}</p>
           </div>
         `;
       }
@@ -750,15 +750,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (data.relatedWords && data.relatedWords.length > 0) {
       html += `
         <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm animate-slide-up" style="animation-delay: 0.2s">
-          <div class="flex items-center gap-1.5 mb-2.5 font-bold text-slate-700 text-xs">
+          <div class="flex items-center gap-1.5 mb-2.5 font-bold text-sm md:text-base text-slate-700">
             <i class="ph-bold ph-git-fork text-rose-500 text-base"></i>
             <span>İlişkili Kelimeler & Eş Anlamlılar</span>
           </div>
           <div class="flex flex-wrap gap-1.5">
             ${data.relatedWords.map(rw => `
-              <button class="related-chip flex items-center gap-1 px-3 py-1.5 min-h-[40px] rounded-xl bg-slate-50 border border-slate-200/70 hover:border-primary-400 hover:text-primary-700 text-xs text-slate-700 transition-colors" data-word="${escapeHtml(rw.word)}">
+              <button class="related-chip flex items-center gap-1.5 px-3 py-1.5 min-h-[40px] rounded-xl bg-slate-50 border border-slate-200/70 hover:border-primary-400 hover:text-primary-700 text-xs md:text-sm text-slate-700 transition-colors" data-word="${escapeHtml(rw.word)}">
                 <span class="font-medium">${escapeHtml(rw.word)}</span>
-                <span class="text-[9px] text-slate-400 uppercase font-semibold">${rw.relation === 'synonym' ? 'eş' : rw.relation === 'antonym' ? 'zıt' : 'ilişkili'}</span>
+                <span class="text-xs text-slate-400 uppercase font-semibold">${rw.relation === 'synonym' ? 'eş' : rw.relation === 'antonym' ? 'zıt' : 'ilişkili'}</span>
               </button>
             `).join('')}
           </div>
@@ -768,7 +768,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 6. Footer Provider Badge & In-App Flag Button (Google Play Compliance - STR-01)
     html += `
-      <div class="flex items-center justify-between text-[11px] text-slate-400 pt-2 px-1">
+      <div class="flex items-center justify-between text-xs text-slate-400 pt-2 px-1">
         <div class="flex items-center gap-1.5">
           ${data._isCached ? `
             <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-medium border border-emerald-100">
@@ -782,7 +782,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ${data._latency ? ` · <span>${data._latency}ms</span>` : ''}
           `}
         </div>
-        <button class="flag-response-btn flex items-center gap-1 text-[11px] text-slate-400 hover:text-rose-600 transition-colors px-2 py-1 rounded-md hover:bg-rose-50" title="Hatalı veya uygunsuz AI yanıtını bildir" aria-label="Hatalı veya uygunsuz yanıtı bildir" data-query="${escapeHtml(data.input)}" data-provider="${escapeHtml(data._provider || '')}">
+        <button class="flag-response-btn flex items-center gap-1 text-xs text-slate-400 hover:text-rose-600 transition-colors px-2.5 py-1.5 rounded-lg hover:bg-rose-50" title="Hatalı veya uygunsuz AI yanıtını bildir" aria-label="Hatalı veya uygunsuz yanıtı bildir" data-query="${escapeHtml(data.input)}" data-provider="${escapeHtml(data._provider || '')}">
           <i class="ph-bold ph-flag text-xs text-rose-500"></i>
           <span>Yanıtı Bildir</span>
         </button>
@@ -797,12 +797,12 @@ document.addEventListener('DOMContentLoaded', () => {
             <i class="ph-bold ph-info text-amber-600 text-sm"></i>
             <span>Akıllı Hibrit Yedek Devrede: ${escapeHtml(data._provider)}</span>
           </div>
-          <p class="text-amber-800 text-[11px] leading-relaxed mb-2">
+          <p class="text-amber-800 text-xs md:text-sm leading-relaxed mb-2">
             Yerel Ollama servisi o sırada yanıt vermediği için sorgunuz otomatik olarak bulut / hızlı yedek motorla çözümlendi.
           </p>
-          <details class="text-[11px] text-slate-600 mt-1 cursor-pointer">
+          <details class="text-xs text-slate-600 mt-1 cursor-pointer">
             <summary class="font-semibold text-amber-900 hover:underline">Geliştirici / Termux Ayarları (İsteğe Bağlı)</summary>
-            <div class="font-mono bg-white text-slate-800 border border-amber-200 p-2 rounded-lg my-1.5 text-[10px] select-all break-all leading-normal">
+            <div class="font-mono bg-white text-slate-800 border border-amber-200 p-2 rounded-lg my-1.5 text-xs select-all break-all leading-normal">
               killall ollama 2>/dev/null; export OLLAMA_ORIGINS="*"; export OLLAMA_HOST="0.0.0.0:11434"; ollama serve &
             </div>
           </details>
