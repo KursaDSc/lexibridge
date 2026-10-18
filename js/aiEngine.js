@@ -124,7 +124,7 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
       "relation": "synonym | antonym | related"
     }
   ]
-};
+}`;
 
   const LOCAL_SYSTEM_PROMPT = `Sen Felemenkçe ve Türkçe dillerinde uzman, hızlı bir mobil sözlük asistanısın.
 Sana verilen kelime veya cümleyi analiz et ve YALNIZCA geçerli bir JSON objesi olarak döndür. Markdown (\`\`\`json) veya açıklama KULLANMA.
@@ -274,7 +274,7 @@ JSON Şablonu:
       googleKey: googleKey || "",
       nvidiaKey: localStorage.getItem("nvidia_api_key") || SM_STUDIO_KEYS.nvidia,
       localUrl: savedLocalUrl,
-      localModel: localStorage.getItem("local_llm_model") || (isMobile ? "qwen2.5:3b" : PROVIDERS.local.default_model)
+      localModel: localStorage.getItem("local_llm_model") || (isMobile ? "qwen2.5:1.5b" : PROVIDERS.local.default_model)
     };
   }
 
