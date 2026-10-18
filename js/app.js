@@ -257,12 +257,31 @@ document.addEventListener('DOMContentLoaded', () => {
     skeletonLoader.classList.add('hidden');
   }
 
-  // ── Pronunciation Audio (SpeechSynthesis) ───────────────────────────────
+  // ── Pronunciation Audio (Google TTS Native Audio + SpeechSynthesis Fallback) ──
   function speak(text, lang) {
+    if (!text) return;
+    const cleanLang = (lang === 'nl' || lang === 'nl-NL') ? 'nl' : 'tr';
+
+    // 1. Try Google High-Quality Native TTS first
+    try {
+      const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&client=gtx&tl=${cleanLang}&q=${encodeURIComponent(text.slice(0, 100))}`;
+      const audio = new Audio(ttsUrl);
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {
+          fallbackSpeech(text, cleanLang);
+        });
+      }
+    } catch {
+      fallbackSpeech(text, cleanLang);
+    }
+  }
+
+  function fallbackSpeech(text, cleanLang) {
     if (!('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = lang === 'nl' ? 'nl-NL' : 'tr-TR';
+    utterance.lang = cleanLang === 'nl' ? 'nl-NL' : 'tr-TR';
     utterance.rate = 0.9;
     window.speechSynthesis.speak(utterance);
   }
@@ -351,10 +370,24 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderResult(data) {
     resultsContainer.innerHTML = '';
     const isSourceNl = data.sourceLanguage === 'nl';
-    const mainTrans = data.translations?.[0]?.text || '';
+    // 0. Did You Mean Banner (Spell Check)
+    let html = '';
+    if (data.didYouMean) {
+      html += `
+        <div class="p-3 bg-amber-50/90 border border-amber-200/80 rounded-2xl flex items-center justify-between gap-3 text-xs text-amber-900 shadow-sm animate-slide-up mb-3">
+          <div class="flex items-center gap-2">
+            <i class="ph-bold ph-lightbulb text-amber-600 text-base"></i>
+            <span>Bunu mu demek istediniz: <button class="font-bold underline text-amber-950 did-you-mean-btn hover:text-primary-600" data-word="${escapeHtml(data.didYouMean)}">${escapeHtml(data.didYouMean)}</button>?</span>
+          </div>
+          <button class="did-you-mean-btn px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[11px] font-semibold transition-all active:scale-95 shadow-xs" data-word="${escapeHtml(data.didYouMean)}">
+            Ara
+          </button>
+        </div>
+      `;
+    }
 
     // 1. Primary Word / Header Card
-    let html = `
+    html += `
       <div class="bg-white rounded-2xl p-4 md:p-5 border border-slate-100 shadow-sm animate-slide-up">
         <div class="flex items-start justify-between gap-3">
           <div>
@@ -562,6 +595,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Attach related word click to search
     resultsContainer.querySelectorAll('.related-chip').forEach((b) => {
+      b.addEventListener('click', () => {
+        searchInput.value = b.dataset.word;
+        handleSearch();
+      });
+    });
+
+    // Attach did-you-mean click to search
+    resultsContainer.querySelectorAll('.did-you-mean-btn').forEach((b) => {
       b.addEventListener('click', () => {
         searchInput.value = b.dataset.word;
         handleSearch();

@@ -308,31 +308,188 @@ JSON Şablonu:
     return JSON.parse(clean);
   }
 
-  // Quick Google Translate REST call (0 API key fallback)
+  // Quick Google Translate REST call (0 API key enriched engine)
   async function quickTranslateRest(query, sourceLang, targetLang) {
     const sl = sourceLang === "nl" ? "nl" : "tr";
     const tl = targetLang === "nl" ? "nl" : "tr";
-    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl}&tl=${tl}&dt=t&q=${encodeURIComponent(query)}`;
-    
-    const resp = await fetch(url);
-    if (!resp.ok) throw new Error(`REST Çeviri hatası: ${resp.status}`);
-    const data = await resp.json();
-    
+    const encoded = encodeURIComponent(query);
+
+    // Request rich metadata: translation (t), alternatives (at), bilingual dict (bd),
+    // romanization (rm), spell-check (qc), examples (ex), definitions (md), synsets (ss)
+    const primaryUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl}&tl=${tl}&hl=tr&dt=t&dt=at&dt=bd&dt=rm&dt=qc&dt=ex&dt=md&dt=ss&dt=rw&q=${encoded}`;
+
+    const isSingleWord = !query.trim().includes(" ");
+
+    // 1. Primary Request
+    const primaryPromise = fetch(primaryUrl).then((r) => {
+      if (!r.ok) throw new Error(`REST Çeviri hatası: ${r.status}`);
+      return r.json();
+    });
+
+    // 2. Parallel Secondary POS lookup (for single words to cleanly map noun/verb/adjective/adverb)
+    let posPromise = Promise.resolve(null);
+    if (isSingleWord) {
+      const posUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl}&tl=en&hl=en&dt=bd&q=${encoded}`;
+      posPromise = fetch(posUrl)
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null);
+    }
+
+    const [data, posData] = await Promise.all([primaryPromise, posPromise]);
+
+    // 1. Primary Translation & Transliteration
     let translated = "";
-    if (data && Array.isArray(data) && data[0] && Array.isArray(data[0])) {
-      translated = data[0].map(item => item[0]).filter(Boolean).join("").trim();
+    let transliteration = "";
+    if (data && Array.isArray(data[0])) {
+      translated = data[0]
+        .map((item) => (item && item[0] ? item[0] : ""))
+        .filter(Boolean)
+        .join("")
+        .trim();
+      const lastItem = data[0][data[0].length - 1];
+      if (Array.isArray(lastItem) && typeof lastItem[3] === "string") {
+        transliteration = lastItem[3];
+      }
+    }
+    if (!translated) translated = query;
+
+    // 2. Alternative Translations (Index 5)
+    const alternativeList = [];
+    if (data && Array.isArray(data[5])) {
+      for (const entry of data[5]) {
+        if (Array.isArray(entry) && Array.isArray(entry[2])) {
+          for (const sub of entry[2]) {
+            if (Array.isArray(sub) && sub[0] && typeof sub[0] === "string") {
+              const altText = sub[0].trim();
+              if (
+                altText &&
+                !alternativeList.includes(altText) &&
+                altText.toLowerCase() !== translated.toLowerCase()
+              ) {
+                alternativeList.push(altText);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // 3. Plural & Inflected Forms (Index 14)
+    let pluralForm = "";
+    if (data && Array.isArray(data[14])) {
+      for (const formEntry of data[14]) {
+        if (Array.isArray(formEntry) && formEntry[0] && typeof formEntry[0] === "string") {
+          pluralForm = formEntry[0].trim();
+          break;
+        }
+      }
+    }
+
+    // 4. "Did You Mean?" Spell Correction (Index 7)
+    let didYouMean = "";
+    if (data && Array.isArray(data[7]) && data[7][1]) {
+      const candidate = String(data[7][1]).replace(/<[^>]*>/g, "").trim();
+      if (candidate && candidate.toLowerCase() !== query.toLowerCase()) {
+        didYouMean = candidate;
+      }
+    }
+
+    // 5. Part of Speech (POS) Detection
+    const POS_MAP = {
+      noun: "İsim",
+      verb: "Fiil",
+      adjective: "Sıfat",
+      adverb: "Zarf",
+      pronoun: "Zamir",
+      preposition: "Edat",
+      conjunction: "Bağlaç",
+      interjection: "Ünlem"
+    };
+    let detectedPos = "";
+    const extraSynonyms = [];
+
+    // Check posData from parallel lookup
+    if (posData && Array.isArray(posData[1])) {
+      for (const pGroup of posData[1]) {
+        const pTag = pGroup[0];
+        if (!detectedPos && pTag && POS_MAP[pTag]) {
+          detectedPos = POS_MAP[pTag];
+        }
+        if (Array.isArray(pGroup[1])) {
+          for (const word of pGroup[1]) {
+            if (typeof word === "string" && !extraSynonyms.includes(word)) {
+              extraSynonyms.push(word);
+            }
+          }
+        }
+      }
+    }
+
+    // Fallback POS check from direct dict (Index 1)
+    if (!detectedPos && data && Array.isArray(data[1])) {
+      for (const pGroup of data[1]) {
+        const pTag = pGroup[0];
+        if (pTag) {
+          detectedPos = POS_MAP[pTag] || pTag.charAt(0).toUpperCase() + pTag.slice(1);
+          break;
+        }
+      }
+    }
+
+    if (!detectedPos) {
+      detectedPos = isSingleWord ? "kelime" : "cümle / ifade";
+    }
+
+    // 6. Build Consolidated Translations Array
+    const translations = [
+      { text: translated, frequency: "very_common" }
+    ];
+    const seen = new Set([translated.toLowerCase()]);
+    for (const alt of alternativeList) {
+      const lower = alt.toLowerCase();
+      if (!seen.has(lower)) {
+        seen.add(lower);
+        translations.push({
+          text: alt,
+          frequency: "common"
+        });
+      }
+      if (translations.length >= 8) break;
+    }
+
+    // 7. Structured Meanings List
+    const meanings = translations.slice(0, 4).map((t, idx) => ({
+      meaning: t.text,
+      explanation: idx === 0 ? "Temel ve en yaygın karşılık" : "Alternatif kullanım / eşanlam",
+      context: detectedPos
+    }));
+
+    // 8. Grammar info
+    const grammar = {};
+    if (pluralForm) {
+      grammar.plural = pluralForm;
+    }
+    if (detectedPos === "Fiil") {
+      grammar.infinitive = (sl === "nl" ? query : translated);
     }
 
     return {
       input: query,
       sourceLanguage: sl,
       targetLanguage: tl,
-      translations: [{ text: translated || query, frequency: "common" }],
-      meanings: [{ meaning: translated }],
-      partOfSpeech: "expression",
+      pronunciation: {
+        ipa: transliteration || "",
+        simplified: ""
+      },
+      partOfSpeech: detectedPos,
+      translations: translations,
+      meanings: meanings,
+      grammar: grammar,
       examples: [],
-      relatedWords: [],
-      _isQuickRest: true
+      relatedWords: translations.slice(1, 6).map((t) => t.text),
+      didYouMean: didYouMean,
+      _isQuickRest: true,
+      _provider: "Hızlı REST (Zenginleştirilmiş Sözlük)"
     };
   }
 
