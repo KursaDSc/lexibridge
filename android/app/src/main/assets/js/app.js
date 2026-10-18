@@ -113,6 +113,51 @@ document.addEventListener('DOMContentLoaded', () => {
     return POS_MAP_TR[clean] || pos;
   }
 
+  function renderArticleBadge(article) {
+    if (!article) return '';
+    const clean = String(article).trim().toLowerCase();
+    if (clean === 'de') {
+      return `
+        <span class="text-xs px-2.5 py-0.5 rounded-lg bg-sky-100 text-sky-800 font-bold border border-sky-300 shadow-2xs inline-flex items-center gap-1" title="De Artikeli">
+          <span class="w-1.5 h-1.5 rounded-full bg-sky-600"></span>
+          <span>de</span>
+        </span>
+      `;
+    } else if (clean === 'het') {
+      return `
+        <span class="text-xs px-2.5 py-0.5 rounded-lg bg-emerald-100 text-emerald-800 font-bold border border-emerald-300 shadow-2xs inline-flex items-center gap-1" title="Het Artikeli">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+          <span>het</span>
+        </span>
+      `;
+    } else {
+      return `
+        <span class="text-xs px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 font-bold border border-slate-200 inline-flex items-center">
+          ${escapeHtml(article)}
+        </span>
+      `;
+    }
+  }
+
+  function highlightKeyword(sentence, keyword) {
+    if (!sentence) return '';
+    const escapedText = escapeHtml(sentence);
+    if (!keyword || !keyword.trim()) return escapedText;
+
+    try {
+      const trimmed = keyword.trim();
+      if (trimmed.length < 2) return escapedText;
+      const regex = new RegExp(`(${escapeRegExp(trimmed)})`, 'gi');
+      return escapedText.replace(regex, '<mark class="bg-primary-100 text-primary-900 font-semibold px-1 py-0.5 rounded">$1</mark>');
+    } catch {
+      return escapedText;
+    }
+  }
+
+  function escapeRegExp(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
   // ── Dynamic Seed Chips (UX-02) ──────────────────────────────────────────
   const SEED_EXAMPLES = {
     nl: [
@@ -187,6 +232,18 @@ document.addEventListener('DOMContentLoaded', () => {
     updateProviderModalUI();
     renderHistory();
     renderSeedChips();
+
+    // Attach click events to situational practice topic chips in empty state
+    document.querySelectorAll('.topic-chip').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        if (sourceLang !== 'nl') toggleLanguage();
+        const word = chip.dataset.word || chip.textContent.trim();
+        searchInput.value = word;
+        searchBtn.disabled = false;
+        clearBtn.classList.remove('hidden');
+        handleSearch();
+      });
+    });
 
     // Check query params if any
     const urlParams = new URLSearchParams(window.location.search);
@@ -540,19 +597,27 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
 
             <div class="flex flex-wrap items-center gap-2 mt-2">
-              ${data.pronunciation?.ipa ? `
-                <span class="font-mono text-xs px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200/50">
-                  ${escapeHtml(data.pronunciation.ipa)}
-                </span>
-              ` : ''}
+              ${data.grammar?.article ? renderArticleBadge(data.grammar.article) : ''}
               ${data.partOfSpeech ? `
                 <span class="text-xs px-2.5 py-1 rounded-lg bg-sky-50 text-sky-700 font-semibold border border-sky-100/60">
                   ${escapeHtml(localizePos(data.partOfSpeech))}
                 </span>
               ` : ''}
-              ${data.grammar?.article ? `
-                <span class="text-xs px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 font-bold border border-emerald-100/80">
-                  ${escapeHtml(data.grammar.article)}
+              ${data.pronunciation?.ipa ? `
+                <span class="font-mono text-xs px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200/50">
+                  ${escapeHtml(data.pronunciation.ipa)}
+                </span>
+              ` : ''}
+              ${data.grammar?.plural ? `
+                <span class="text-xs px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 font-medium border border-indigo-100/70 inline-flex items-center gap-1" title="Çoğul Hali">
+                  <span class="text-[10px] text-indigo-400 font-bold uppercase">çoğul:</span>
+                  <span class="font-semibold text-slate-800">${escapeHtml(data.grammar.plural)}</span>
+                </span>
+              ` : ''}
+              ${data.grammar?.infinitive && data.grammar.infinitive !== data.input ? `
+                <span class="text-xs px-2.5 py-1 rounded-lg bg-purple-50 text-purple-700 font-medium border border-purple-100/70 inline-flex items-center gap-1" title="Fiil Mastar Hali">
+                  <span class="text-[10px] text-purple-400 font-bold uppercase">mastar:</span>
+                  <span class="font-semibold text-slate-800">${escapeHtml(data.grammar.infinitive)}</span>
                 </span>
               ` : ''}
             </div>
@@ -621,7 +686,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ${data.examples.map(ex => `
               <div class="p-3 bg-slate-50 rounded-xl border border-slate-100/80">
                 <div class="flex items-center justify-between gap-2">
-                  <div class="font-medium text-xs text-slate-800">${escapeHtml(ex.source)}</div>
+                  <div class="font-medium text-xs text-slate-800 leading-relaxed">${highlightKeyword(ex.source, data.input)}</div>
                   <button class="speak-btn text-slate-500 hover:text-primary-600 p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors" aria-label="Örnek cümleyi sesli oku" data-text="${escapeHtml(ex.source)}" data-lang="${data.sourceLanguage}">
                     <i class="ph ph-speaker-simple-high text-base"></i>
                   </button>
@@ -650,7 +715,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <span>Gramer & Çekim</span>
             </div>
             <div class="space-y-1.5">
-              ${g.article ? `<div class="flex justify-between py-1.5 border-b border-slate-50"><span class="text-slate-500 font-medium">Belirteç (Artikel)</span><span class="font-bold text-slate-900">${escapeHtml(g.article)}</span></div>` : ''}
+              ${g.article ? `<div class="flex justify-between items-center py-1.5 border-b border-slate-50"><span class="text-slate-500 font-medium">Belirteç (Artikel)</span><div>${renderArticleBadge(g.article)}</div></div>` : ''}
               ${g.plural ? `<div class="flex justify-between py-1.5 border-b border-slate-50"><span class="text-slate-500 font-medium">Çoğul</span><span class="font-semibold text-slate-800">${escapeHtml(g.plural)}</span></div>` : ''}
               ${g.infinitive ? `<div class="flex justify-between py-1.5 border-b border-slate-50"><span class="text-slate-500 font-medium">Mastar</span><span class="font-semibold text-slate-800">${escapeHtml(g.infinitive)}</span></div>` : ''}
               ${g.register ? `<div class="flex justify-between py-1.5 border-b border-slate-50"><span class="text-slate-500 font-medium">Kullanım Düzeyi</span><span class="font-semibold text-slate-800">${escapeHtml(localizeRegister(g.register))}</span></div>` : ''}

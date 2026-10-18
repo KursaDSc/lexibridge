@@ -95,9 +95,7 @@
       
       <!-- Brand & Active Engine Badge -->
       <div class="flex items-center gap-2.5">
-        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary-600 to-sky-400 flex items-center justify-center text-white shadow-sm shadow-primary-500/20">
-          <i class="ph-bold ph-book-open-text text-xl"></i>
-        </div>
+        <img src="icon-192.png" alt="LexiBridge App Icon" class="w-9 h-9 rounded-xl shadow-sm shadow-primary-500/20 object-cover border border-slate-100">
         <div>
           <div class="flex items-center gap-1.5">
             <h1 class="text-lg font-bold tracking-tight text-slate-800 leading-tight">LexiBridge</h1>
@@ -226,15 +224,93 @@
       </div>
     </div>
 
-    <!-- Empty Welcome State -->
-    <div id="emptyState" class="w-full text-center text-slate-400 my-auto py-12 flex flex-col items-center">
+    <!-- Empty Welcome & Situational Practice Hub -->
+    <div id="emptyState" class="w-full my-auto py-3 md:py-5 flex flex-col items-center">
       <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-50 to-sky-100 border border-primary-100 flex items-center justify-center text-primary-600 mb-3 shadow-inner">
-        <i class="ph ph-translate text-3xl"></i>
+        <i class="ph-bold ph-translate text-3xl"></i>
       </div>
-      <h3 class="font-bold text-slate-800 text-base">Felemenkçe ↔ Türkçe Akıllı Sözlük</h3>
-      <p class="text-xs text-slate-600 max-w-xs mt-1.5 leading-relaxed">
-        Derin dilbilimsel analiz, artikeller (de/het), deyim çözümlemeleri ve doğal sesli telaffuz.
+      <h3 class="font-bold text-slate-800 text-base md:text-lg">Felemenkçe ↔ Türkçe Akıllı Sözlük</h3>
+      <p class="text-xs text-slate-500 max-w-sm text-center mt-1 leading-relaxed">
+        Doğru artikeller (de/het), bağlamsal anlamlar, deyimler ve doğal telaffuz rehberi.
       </p>
+
+      <!-- Situational Practice Categories (Customer-Centric Learning Hub) -->
+      <div class="w-full mt-5 space-y-3">
+        <div class="flex items-center justify-between text-xs font-bold text-slate-700 px-1">
+          <span class="flex items-center gap-1.5">
+            <i class="ph-bold ph-lightbulb text-amber-500"></i>
+            <span>Günlük Hayattan Sık Kullanılanlar</span>
+          </span>
+          <span class="text-[11px] font-normal text-slate-400">Öğrenmek için dokunun</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <!-- Kafe & Restoran -->
+          <div class="bg-white p-3 rounded-2xl border border-slate-100 shadow-2xs hover:border-primary-200 transition-all">
+            <div class="flex items-center gap-1.5 font-bold text-slate-700 text-xs mb-2">
+              <span>☕</span>
+              <span>Kafe & Restoran</span>
+            </div>
+            <div class="flex flex-wrap gap-1.5">
+              <button class="topic-chip px-2.5 py-1 min-h-[36px] bg-slate-50 hover:bg-primary-50 hover:text-primary-700 rounded-lg text-xs text-slate-700 font-medium transition-colors" data-word="bestellen">bestellen</button>
+              <button class="topic-chip px-2.5 py-1 min-h-[36px] bg-slate-50 hover:bg-primary-50 hover:text-primary-700 rounded-lg text-xs text-slate-700 font-medium transition-colors" data-word="rekening">rekening</button>
+              <button class="topic-chip px-2.5 py-1 min-h-[36px] bg-slate-50 hover:bg-primary-50 hover:text-primary-700 rounded-lg text-xs text-slate-700 font-medium transition-colors" data-word="alstublieft">alstublieft</button>
+              <button class="topic-chip px-2.5 py-1 min-h-[36px] bg-slate-50 hover:bg-primary-50 hover:text-primary-700 rounded-lg text-xs text-slate-700 font-medium transition-colors" data-word="lekker">lekker</button>
+            </div>
+          </div>
+
+          <!-- Gemeente & Resmi Daireler -->
+          <div class="bg-white p-3 rounded-2xl border border-slate-100 shadow-2xs hover:border-primary-200 transition-all">
+            <div class="flex items-center gap-1.5 font-bold text-slate-700 text-xs mb-2">
+              <span>🏛️</span>
+              <span>Gemeente & İşlemler</span>
+            </div>
+            <div class="flex flex-wrap gap-1.5">
+              <button class="topic-chip px-2.5 py-1 min-h-[36px] bg-slate-50 hover:bg-primary-50 hover:text-primary-700 rounded-lg text-xs text-slate-700 font-medium transition-colors" data-word="afspraak">afspraak</button>
+              <button class="topic-chip px-2.5 py-1 min-h-[36px] bg-slate-50 hover:bg-primary-50 hover:text-primary-700 rounded-lg text-xs text-slate-700 font-medium transition-colors" data-word="vergunning">vergunning</button>
+              <button class="topic-chip px-2.5 py-1 min-h-[36px] bg-slate-50 hover:bg-primary-50 hover:text-primary-700 rounded-lg text-xs text-slate-700 font-medium transition-colors" data-word="inschrijven">inschrijven</button>
+              <button class="topic-chip px-2.5 py-1 min-h-[36px] bg-slate-50 hover:bg-primary-50 hover:text-primary-700 rounded-lg text-xs text-slate-700 font-medium transition-colors" data-word="paspoort">paspoort</button>
+            </div>
+          </div>
+
+          <!-- Market & Alışveriş -->
+          <div class="bg-white p-3 rounded-2xl border border-slate-100 shadow-2xs hover:border-primary-200 transition-all">
+            <div class="flex items-center gap-1.5 font-bold text-slate-700 text-xs mb-2">
+              <span>🛒</span>
+              <span>Market & Alışveriş</span>
+            </div>
+            <div class="flex flex-wrap gap-1.5">
+              <button class="topic-chip px-2.5 py-1 min-h-[36px] bg-slate-50 hover:bg-primary-50 hover:text-primary-700 rounded-lg text-xs text-slate-700 font-medium transition-colors" data-word="korting">korting</button>
+              <button class="topic-chip px-2.5 py-1 min-h-[36px] bg-slate-50 hover:bg-primary-50 hover:text-primary-700 rounded-lg text-xs text-slate-700 font-medium transition-colors" data-word="aanbieding">aanbieding</button>
+              <button class="topic-chip px-2.5 py-1 min-h-[36px] bg-slate-50 hover:bg-primary-50 hover:text-primary-700 rounded-lg text-xs text-slate-700 font-medium transition-colors" data-word="pinnen">pinnen</button>
+              <button class="topic-chip px-2.5 py-1 min-h-[36px] bg-slate-50 hover:bg-primary-50 hover:text-primary-700 rounded-lg text-xs text-slate-700 font-medium transition-colors" data-word="kassabon">kassabon</button>
+            </div>
+          </div>
+
+          <!-- Ulaşım & Seyahat -->
+          <div class="bg-white p-3 rounded-2xl border border-slate-100 shadow-2xs hover:border-primary-200 transition-all">
+            <div class="flex items-center gap-1.5 font-bold text-slate-700 text-xs mb-2">
+              <span>🚆</span>
+              <span>Ulaşım & Seyahat</span>
+            </div>
+            <div class="flex flex-wrap gap-1.5">
+              <button class="topic-chip px-2.5 py-1 min-h-[36px] bg-slate-50 hover:bg-primary-50 hover:text-primary-700 rounded-lg text-xs text-slate-700 font-medium transition-colors" data-word="trein">trein</button>
+              <button class="topic-chip px-2.5 py-1 min-h-[36px] bg-slate-50 hover:bg-primary-50 hover:text-primary-700 rounded-lg text-xs text-slate-700 font-medium transition-colors" data-word="vertraging">vertraging</button>
+              <button class="topic-chip px-2.5 py-1 min-h-[36px] bg-slate-50 hover:bg-primary-50 hover:text-primary-700 rounded-lg text-xs text-slate-700 font-medium transition-colors" data-word="overstappen">overstappen</button>
+              <button class="topic-chip px-2.5 py-1 min-h-[36px] bg-slate-50 hover:bg-primary-50 hover:text-primary-700 rounded-lg text-xs text-slate-700 font-medium transition-colors" data-word="fiets">fiets</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pro-tip card -->
+        <div class="p-3 bg-gradient-to-r from-primary-50/80 to-sky-50/80 border border-primary-100/70 rounded-2xl flex items-start gap-2.5 text-xs text-slate-700 shadow-2xs">
+          <i class="ph-bold ph-sparkle text-primary-600 text-base mt-0.5 flex-shrink-0"></i>
+          <div class="leading-relaxed text-[11px]">
+            <span class="font-bold text-slate-800">Altın Dilbilgisi Kuralı:</span>
+            Felemenkçede isimlerin yaklaşık %75'i <span class="font-bold text-sky-700">"de"</span>, %25'i <span class="font-bold text-emerald-700">"het"</span> artikelini alır. Bütün çoğul isimler istisnasız <span class="font-bold text-sky-700">"de"</span> artikeliyle kullanılır.
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Skeleton Loading UI -->
