@@ -71,7 +71,7 @@ echo "   Yerel Adres: http://127.0.0.1:$PORT"
 echo ""
 echo "📱 Tarayicinizda acildiginda 'Ana Ekrana Ekle' diyerek"
 echo "   tam ekran mobil PWA seklinde de kullanabilirsiniz."
-echo "💡 Tarayici sekmesini kapattiginizda Ollama ve sunucu otomatik sonlanacaktir."
+echo "🛑 Durdurmak icin Termux'ta CTRL + C tuslarina basabilirsiniz."
 echo "========================================================"
 
 # Tarayıcıyı otomatik açma denemesi (Termux api veya intent)

@@ -24,10 +24,6 @@ if hasattr(sys.stdout, 'reconfigure'):
         pass
 
 PORT = 8080
-TIMEOUT_SECONDS = 8
-
-last_heartbeat = time.time()
-client_ever_connected = False
 shutdown_triggered = False
 
 def terminate_ollama():
@@ -47,23 +43,10 @@ def perform_shutdown():
     if shutdown_triggered:
         return
     shutdown_triggered = True
-    print("\n[BILGI] Tarayici sekmesi kapatildi.")
-    print("[BILGI] Ollama servisi durduruluyor...")
+    print("\n[BILGI] LexiBridge sunucusu durduruluyor...")
     terminate_ollama()
     print("[OK] Ollama ve sunucu guvenle kapatildi.")
-    # Exit process cleanly
     os._exit(0)
-
-def watchdog():
-    """Monitors heartbeat; if tab was opened and then closed (no ping for TIMEOUT_SECONDS), shuts down."""
-    while not shutdown_triggered:
-        time.sleep(2)
-        if client_ever_connected:
-            elapsed = time.time() - last_heartbeat
-            if elapsed > TIMEOUT_SECONDS:
-                print(f"[Watchdog] Son sinyalden bu yana {elapsed:.1f} sn gecti. Kapatiliyor...")
-                perform_shutdown()
-                break
 
 class LexiHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
@@ -113,15 +96,11 @@ def main():
         except ValueError:
             pass
 
-    # Start watchdog thread
-    w_thread = threading.Thread(target=watchdog, daemon=True)
-    w_thread.start()
-
     # Allow port reuse immediately
     socketserver.TCPServer.allow_reuse_address = True
     with socketserver.TCPServer(("127.0.0.1", port), LexiHandler) as httpd:
         print(f"[OK] LexiBridge Sunucu aktif: http://127.0.0.1:{port}")
-        print("[BILGI] Tarayici sekmesi kapatildiginda Ollama ve sunucu otomatik olarak durdurulacaktir.")
+        print("[BILGI] Durdurmak icin Termux'ta CTRL + C tuslarina basabilirsiniz.")
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:
