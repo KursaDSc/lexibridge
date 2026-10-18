@@ -46,9 +46,7 @@ def perform_shutdown():
     if shutdown_triggered:
         return
     shutdown_triggered = True
-    print("\n[BILGI] LexiBridge sunucusu durduruluyor...")
-    terminate_ollama()
-    print("[OK] Ollama ve sunucu guvenle kapatildi.")
+    print("\n[OK] LexiBridge sunucusu guvenle kapatildi (Ollama arka planda calismaya devam ediyor).")
     os._exit(0)
 
 class LexiHandler(http.server.SimpleHTTPRequestHandler):

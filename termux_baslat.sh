@@ -82,17 +82,32 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-echo "🚀 LexiBridge Mobil Sunucu baslatiliyor..."
-echo "   Yerel Adres: http://127.0.0.1:$PORT"
-echo ""
-echo "📱 Tarayicinizda acildiginda 'Ana Ekrana Ekle' diyerek"
-echo "   tam ekran mobil PWA seklinde de kullanabilirsiniz."
-echo "🛑 Durdurmak icin Termux'ta CTRL + C tuslarina basabilirsiniz."
-echo "========================================================"
+# Termux uyku kilidi (Android arka planda durdurmasın)
+if command -v termux-wake-lock >/dev/null 2>&1; then
+  termux-wake-lock 2>/dev/null || true
+fi
+
+# Sunucu zaten çalışıyor mu kontrol et
+if curl -s http://127.0.0.1:$PORT/api/heartbeat >/dev/null 2>&1; then
+  echo "✓ LexiBridge Web Sunucusu zaten calisiyor (http://127.0.0.1:$PORT)."
+else
+  echo "🚀 LexiBridge Mobil Sunucu arka planda baslatiliyor..."
+  if command -v python3 >/dev/null 2>&1; then
+    python3 "$SCRIPT_DIR/server.py" $PORT >/dev/null 2>&1 &
+  elif command -v python >/dev/null 2>&1; then
+    python "$SCRIPT_DIR/server.py" $PORT >/dev/null 2>&1 &
+  else
+    echo "❌ Hata: Python bulunamadi."
+    echo "   Termux'ta su komutla kurabilirsiniz: pkg install python"
+    exit 1
+  fi
+  sleep 0.8
+  echo "✓ LexiBridge Web Sunucusu ve Ters Proxy aktif: http://127.0.0.1:$PORT"
+fi
 
 # Tarayıcıyı otomatik açma denemesi (Termux api veya intent)
 (
-  sleep 1.2
+  sleep 1.0
   if command -v termux-open-url >/dev/null 2>&1; then
     termux-open-url "http://127.0.0.1:$PORT"
   elif command -v termux-open >/dev/null 2>&1; then
@@ -104,16 +119,12 @@ echo "========================================================"
   fi
 ) &
 
-# Sunucuyu baslat (server.py: heartbeat ve sekme kapandığında otomatik kapatma)
-if command -v python3 >/dev/null 2>&1; then
-  python3 "$SCRIPT_DIR/server.py" $PORT
-elif command -v python >/dev/null 2>&1; then
-  python "$SCRIPT_DIR/server.py" $PORT
-else
-  echo "❌ Hata: Python bulunamadi."
-  echo "   Termux'ta su komutla kurabilirsiniz: pkg install python"
-  exit 1
-fi
-
-# Termux oturumunu kapat
-exit 0
+echo ""
+echo "🎉 HER SEY HAZIR & ARKA PLANDA AKTIF!"
+echo "   📱 Tarayiciniz acilmistir: http://127.0.0.1:$PORT"
+echo "   🤖 Yerel Model: qwen2.5:3b (Ollama)"
+echo ""
+echo "💡 Termux ekrani serbesttir; istediginiz gibi komut yazabilir"
+echo "   veya Termux'u simge durumuna kucultebilirsiniz."
+echo "🛑 Durdurmak istediginizde: killall ollama python3"
+echo "========================================================"

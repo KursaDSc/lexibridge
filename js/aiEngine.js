@@ -194,7 +194,15 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
 
   // Determine optimal base URL for local LLM
   function getLocalLLMBaseUrl() {
+    const isLocalServer = typeof window !== "undefined" && window.location.hostname === "127.0.0.1" && window.location.port === "8080";
     const custom = localStorage.getItem("local_llm_url");
+
+    if (isLocalServer) {
+      if (!custom || custom.includes("11434") || custom.includes("localhost")) {
+        return window.location.origin + "/ollama/v1";
+      }
+    }
+
     if (custom && custom.trim()) {
       let clean = custom.trim().replace(/\/+$/, "");
       if (clean.includes("localhost")) {
@@ -202,10 +210,7 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
       }
       return clean;
     }
-    // When running on local python server (port 8080), route through internal proxy
-    if (typeof window !== "undefined" && window.location.hostname === "127.0.0.1" && window.location.port === "8080") {
-      return window.location.origin + "/ollama/v1";
-    }
+
     return "http://127.0.0.1:11434/v1";
   }
 
@@ -441,15 +446,29 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
     let targetBase = cleanBase;
     let probe = await probeServer(cleanBase);
 
-    // cleanBase başarısızsa localhost <-> 127.0.0.1 alternatifi dene
+    // cleanBase başarısızsa localhost, 127.0.0.1 ve ters proxy alternatiflerini dene
     if (!probe.ok) {
-      const altBase = cleanBase.includes("127.0.0.1")
-        ? cleanBase.replace("127.0.0.1", "localhost")
-        : cleanBase.replace("localhost", "127.0.0.1");
-      const probeAlt = await probeServer(altBase);
-      if (probeAlt.ok) {
-        probe = probeAlt;
-        targetBase = altBase;
+      const candidates = [];
+      if (cleanBase.includes("127.0.0.1:11434")) {
+        candidates.push(cleanBase.replace("127.0.0.1:11434", "localhost:11434"));
+      } else if (cleanBase.includes("localhost:11434")) {
+        candidates.push(cleanBase.replace("localhost:11434", "127.0.0.1:11434"));
+      }
+      
+      if (typeof window !== "undefined" && window.location.port === "8080") {
+        candidates.push(window.location.origin + "/ollama/v1");
+      } else {
+        candidates.push("http://127.0.0.1:8080/ollama/v1");
+      }
+
+      for (const alt of candidates) {
+        if (alt === cleanBase) continue;
+        const probeAlt = await probeServer(alt);
+        if (probeAlt.ok) {
+          probe = probeAlt;
+          targetBase = alt;
+          break;
+        }
       }
     }
 
