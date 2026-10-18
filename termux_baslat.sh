@@ -12,6 +12,11 @@
 
 set -e
 
+# Android'in Termux'u uyutmasını engellemek için wake-lock al
+if command -v termux-wake-lock >/dev/null 2>&1; then
+  termux-wake-lock 2>/dev/null || true
+fi
+
 PORT=8080
 export OLLAMA_ORIGINS="*"
 export OLLAMA_HOST="0.0.0.0:11434"
@@ -71,6 +76,12 @@ if command -v ollama >/dev/null 2>&1; then
       echo "   • $m"
     done
     echo ""
+    # Hafif modeli telefon belleğine ön-yükle (Cold start gecikmesini sıfırlar)
+    PREF_MODEL=$(echo "$MODELS" | grep -E "1\.5b|1b" | head -n1 || echo "$MODELS" | head -n1)
+    if [ -n "$PREF_MODEL" ]; then
+      echo "⚡ '$PREF_MODEL' modeli telefon RAM'ine ön-yükleniyor..."
+      (curl -s http://127.0.0.1:11434/api/generate -d "{\"model\": \"$PREF_MODEL\", \"prompt\": \"hi\", \"stream\": false}" >/dev/null 2>&1 &)
+    fi
   fi
 else
   echo "⚠️  'ollama' komutu bulunamadi. Ollama telefonunuzda baska bir yolla calisiyorsa"
