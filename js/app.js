@@ -530,8 +530,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (data._fallbackFrom === 'local') {
       html += `
-        <div class="text-center text-[11px] text-amber-700 bg-amber-50/80 border border-amber-200/60 rounded-xl py-1.5 px-3 max-w-sm mx-auto mt-2 animate-slide-up">
-          <span>ℹ️ Ollama çevrimdışı olduğu için akıllı yedek motor (<strong>${escapeHtml(data._provider)}</strong>) devreye girdi.</span>
+        <div class="text-left text-[11px] text-amber-800 bg-amber-50/90 border border-amber-200/80 rounded-xl p-3 max-w-md mx-auto mt-2.5 animate-slide-up shadow-2xs">
+          <div class="font-bold flex items-center gap-1.5 text-amber-900 mb-1">
+            <i class="ph-bold ph-info text-amber-600 text-sm"></i>
+            <span>Akıllı Yedek Devrede: ${escapeHtml(data._provider)}</span>
+          </div>
+          <p class="text-amber-700 leading-relaxed text-[11px]">
+            Telefonunuzdaki Ollama'ya ulaşılamadı (CORS veya kapalı). Termux'ta tarayıcı izniyle başlatmak için:
+          </p>
+          <div class="font-mono bg-amber-100/80 text-amber-950 px-2 py-1 rounded my-1 text-[10px] select-all break-all">
+            killall ollama 2>/dev/null; export OLLAMA_ORIGINS="*"; ollama serve &
+          </div>
         </div>
       `;
     }

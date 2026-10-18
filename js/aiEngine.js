@@ -206,13 +206,18 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
       googleKey = SM_STUDIO_KEYS.google;
       if (googleKey) localStorage.setItem("gemini_api_key", googleKey);
     }
+    let savedLocalUrl = localStorage.getItem("local_llm_url");
+    if (!savedLocalUrl || savedLocalUrl.includes("localhost")) {
+      savedLocalUrl = PROVIDERS.local.default_url; // "http://127.0.0.1:11434/v1"
+      localStorage.setItem("local_llm_url", savedLocalUrl);
+    }
     return {
       isMobile,
       provider: activeProvider,
       model: savedModel,
       googleKey: googleKey || "",
       nvidiaKey: localStorage.getItem("nvidia_api_key") || SM_STUDIO_KEYS.nvidia,
-      localUrl: localStorage.getItem("local_llm_url") || PROVIDERS.local.default_url,
+      localUrl: savedLocalUrl,
       localModel: localStorage.getItem("local_llm_model") || (isMobile ? "llama3.2:1b" : PROVIDERS.local.default_model)
     };
   }
@@ -386,8 +391,10 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
     const userPrompt = `Lütfen şu girdiyi analiz et. Girdi dili: ${sourceLang.toUpperCase()}, Hedef dil: ${targetLang.toUpperCase()}. Girdi: "${query}"`;
     
     const activeModel = model || (isMobileDevice() ? "llama3.2:1b" : PROVIDERS.local.default_model);
-    const cleanBase = (baseUrl || PROVIDERS.local.default_url).replace(/\/+$/, "");
-    const url = `${cleanBase}/chat/completions`;
+    let cleanBase = (baseUrl || PROVIDERS.local.default_url).trim().replace(/\/+$/, "");
+    if (!cleanBase.endsWith("/v1")) {
+      cleanBase = cleanBase + "/v1";
+    }
 
     const payload = {
       model: activeModel,
@@ -424,17 +431,13 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
     try {
       resp = await attemptFetch(targetBase);
     } catch (e1) {
-      // If localhost failed (common IPv6 issue on Android), try 127.0.0.1
-      if (targetBase.includes("localhost")) {
-        try {
-          targetBase = targetBase.replace("localhost", "127.0.0.1");
-          resp = await attemptFetch(targetBase);
-        } catch (e2) {
-          throw new Error(
-            `Yerel LLM bağlantı hatası (${cleanBase}). Termux'ta Ollama'nın çalıştığından ve OLLAMA_ORIGINS="*" ayarlı olduğundan emin olun. Detay: ${e1.message}`
-          );
-        }
-      } else {
+      // If 127.0.0.1 failed, try localhost (or vice versa)
+      const altBase = targetBase.includes("127.0.0.1")
+        ? targetBase.replace("127.0.0.1", "localhost")
+        : targetBase.replace("localhost", "127.0.0.1");
+      try {
+        resp = await attemptFetch(altBase);
+      } catch (e2) {
         throw new Error(
           `Yerel LLM bağlantı hatası (${cleanBase}). Termux'ta Ollama'nın çalıştığından ve OLLAMA_ORIGINS="*" ayarlı olduğundan emin olun. Detay: ${e1.message}`
         );
@@ -488,6 +491,7 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
             const geminiResult = await callGoogleGemini(cleanQuery, sourceLang, "gemini-3.5-flash-lite", settings.googleKey);
             geminiResult._provider = "Google Gemini (Ollama Çevrimdışı)";
             geminiResult._fallbackFrom = "local";
+            geminiResult._localError = localErr.message;
             return geminiResult;
           } catch (geminiErr) {
             console.warn("Google Gemini de yanıt vermedi, Hızlı REST yedeğe geçiliyor:", geminiErr.message);
@@ -495,6 +499,7 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
             const restResult = await quickTranslateRest(cleanQuery, sourceLang, targetLang);
             restResult._provider = "Hızlı REST (Ollama & Gemini Çevrimdışı)";
             restResult._fallbackFrom = "local";
+            restResult._localError = localErr.message;
             return restResult;
           }
         }
