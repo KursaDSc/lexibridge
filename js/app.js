@@ -520,13 +520,21 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     }
 
-    // 6. Footer Provider Badge
+    // 6. Footer Provider Badge & Smart Hybrid Notice
     html += `
       <div class="text-center text-[11px] text-slate-400 pt-1">
         <span>⚡ ${escapeHtml(data._provider || 'SM Studio Engine')}</span>
         ${data._latency ? ` · <span>${data._latency}ms</span>` : ''}
       </div>
     `;
+
+    if (data._fallbackFrom === 'local') {
+      html += `
+        <div class="text-center text-[11px] text-amber-700 bg-amber-50/80 border border-amber-200/60 rounded-xl py-1.5 px-3 max-w-sm mx-auto mt-2 animate-slide-up">
+          <span>ℹ️ Ollama çevrimdışı olduğu için akıllı yedek motor (<strong>${escapeHtml(data._provider)}</strong>) devreye girdi.</span>
+        </div>
+      `;
+    }
 
     resultsContainer.innerHTML = html;
     resultsContainer.classList.remove('hidden');

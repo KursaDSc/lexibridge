@@ -401,15 +401,21 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
     };
 
     let resp;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3500);
+
     try {
       resp = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
     } catch (e) {
+      clearTimeout(timeoutId);
       throw new Error(
-        `Yerel LLM bağlantı hatası (${cleanBase}). Termux'ta Ollama'nın çalıştığından emin olun (Termux'ta: bash termux_baslat.sh). Detay: ${e.message}`
+        `Yerel LLM bağlantı hatası (${cleanBase}). Termux'ta Ollama'nın çalıştığından emin olun. Detay: ${e.message}`
       );
     }
 
@@ -433,7 +439,7 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
     return parsed;
   }
 
-  // Main analyze dispatcher
+  // Main analyze dispatcher with Smart Hybrid Fallback (Ollama -> Google Gemini -> Quick REST)
   async function analyze(query, sourceLang) {
     const cleanQuery = (query || "").trim();
     if (!cleanQuery) throw new Error("Lütfen bir kelime veya cümle girin.");
@@ -450,7 +456,26 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
       if (provider === "nvidia") {
         return await callNvidiaNIM(cleanQuery, sourceLang, settings.model, settings.nvidiaKey);
       } else if (provider === "local") {
-        return await callLocalLLM(cleanQuery, sourceLang, settings.localModel, settings.localUrl);
+        // Smart Hybrid: Try local Ollama first; if unreachable/offline, fallback seamlessly to cloud
+        try {
+          return await callLocalLLM(cleanQuery, sourceLang, settings.localModel, settings.localUrl);
+        } catch (localErr) {
+          console.warn("Yerel Ollama'ya ulaşılamadı. Akıllı hibrit yedek devreye giriyor:", localErr.message);
+          // Fallback 1: Google Gemini (High-speed linguistic AI)
+          try {
+            const geminiResult = await callGoogleGemini(cleanQuery, sourceLang, "gemini-3.5-flash-lite", settings.googleKey);
+            geminiResult._provider = "Google Gemini (Ollama Çevrimdışı)";
+            geminiResult._fallbackFrom = "local";
+            return geminiResult;
+          } catch (geminiErr) {
+            console.warn("Google Gemini de yanıt vermedi, Hızlı REST yedeğe geçiliyor:", geminiErr.message);
+            // Fallback 2: Quick REST (0 API Key, reliable fallback)
+            const restResult = await quickTranslateRest(cleanQuery, sourceLang, targetLang);
+            restResult._provider = "Hızlı REST (Ollama & Gemini Çevrimdışı)";
+            restResult._fallbackFrom = "local";
+            return restResult;
+          }
+        }
       } else {
         // default google
         return await callGoogleGemini(cleanQuery, sourceLang, settings.model, settings.googleKey);

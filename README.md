@@ -6,9 +6,10 @@
 
 ## ✨ Temel Özellikler
 
-- 📱 **Akıllı Cihaz Tespiti:**
+- 📱 **Akıllı Cihaz Tespiti & Hibrit Motor:**
   - **Android / Termux Telefonlar:** Varsayılan olarak yerel, internetsiz ve %100 gizli **Yerel LLM (Ollama)** motorunu kullanır.
   - **Bilgisayar (PC / Masaüstü):** Varsayılan olarak ultra hızlı **Google Gemini** (`gemini-3.5-flash-lite`) motorunu kullanır.
+- 🔄 **Akıllı Hibrit Yedekleme (Sıfır Kesinti):** Telefonunuzda Ollama aktifse yerel model yanıt verir; Ollama kapalıysa kullanıcıyı bekletmeden veya hata vermeden otomatik olarak Google Gemini veya Hızlı REST yedeğe geçer.
 - 🏠 **Yerel LLM (Ollama) & Otomatik Model Algılama:**
   - Android telefonunuzda Termux altındaki Ollama'yı tek tıkla kullanır.
   - Cihazınızda yüklü olan Ollama modellerini otomatik olarak tarar ve seçtirir.
