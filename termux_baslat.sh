@@ -98,23 +98,22 @@ if command -v termux-wake-lock >/dev/null 2>&1; then
   termux-wake-lock 2>/dev/null || true
 fi
 
-# Sunucu zaten çalışıyor mu kontrol et
-if curl -s http://127.0.0.1:$PORT/api/heartbeat >/dev/null 2>&1; then
-  echo "✓ LexiBridge Web Sunucusu zaten calisiyor (http://127.0.0.1:$PORT)."
+# Web Sunucusunu guncel kodla baslat (varsa eskiyi yenile)
+pkill -f "server.py" 2>/dev/null || true
+sleep 0.3
+
+echo "🚀 LexiBridge Mobil Sunucu arka planda baslatiliyor..."
+if command -v python3 >/dev/null 2>&1; then
+  python3 "$SCRIPT_DIR/server.py" $PORT >/dev/null 2>&1 &
+elif command -v python >/dev/null 2>&1; then
+  python "$SCRIPT_DIR/server.py" $PORT >/dev/null 2>&1 &
 else
-  echo "🚀 LexiBridge Mobil Sunucu arka planda baslatiliyor..."
-  if command -v python3 >/dev/null 2>&1; then
-    python3 "$SCRIPT_DIR/server.py" $PORT >/dev/null 2>&1 &
-  elif command -v python >/dev/null 2>&1; then
-    python "$SCRIPT_DIR/server.py" $PORT >/dev/null 2>&1 &
-  else
-    echo "❌ Hata: Python bulunamadi."
-    echo "   Termux'ta su komutla kurabilirsiniz: pkg install python"
-    exit 1
-  fi
-  sleep 0.8
-  echo "✓ LexiBridge Web Sunucusu ve Ters Proxy aktif: http://127.0.0.1:$PORT"
+  echo "❌ Hata: Python bulunamadi."
+  echo "   Termux'ta su komutla kurabilirsiniz: pkg install python"
+  exit 1
 fi
+sleep 0.8
+echo "✓ LexiBridge Web Sunucusu ve Ters Proxy aktif: http://127.0.0.1:$PORT"
 
 # Tarayıcıyı otomatik açma denemesi (Termux api veya intent)
 (

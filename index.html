@@ -49,6 +49,28 @@
   
   <!-- Custom CSS -->
   <link rel="stylesheet" href="css/styles.css">
+
+  <!-- Immediate Modal Handlers (Fail-Safe) -->
+  <script>
+    window.openSettingsModal = function() {
+      var m = document.getElementById('settingsModal');
+      if (m) m.classList.remove('hidden');
+      if (typeof window.syncSettingsModalUI === 'function') window.syncSettingsModalUI();
+    };
+    window.closeSettingsModal = function() {
+      var m = document.getElementById('settingsModal');
+      if (m) m.classList.add('hidden');
+    };
+    window.openHistoryModal = function() {
+      var m = document.getElementById('historyModal');
+      if (m) m.classList.remove('hidden');
+      if (typeof window.syncHistoryUI === 'function') window.syncHistoryUI();
+    };
+    window.closeHistoryModal = function() {
+      var m = document.getElementById('historyModal');
+      if (m) m.classList.add('hidden');
+    };
+  </script>
 </head>
 <body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col selection:bg-primary-500 selection:text-white">
 
@@ -66,20 +88,38 @@
             <h1 class="text-lg font-bold tracking-tight text-slate-800 leading-tight">LexiBridge</h1>
             <span class="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-primary-50 text-primary-600 border border-primary-100/80">AI</span>
           </div>
-          <button id="headerProviderBadge" class="flex items-center gap-1 text-[11px] text-slate-500 hover:text-primary-600 transition-colors font-medium">
-            <span id="headerProviderIcon">🔵</span>
-            <span id="headerProviderName" class="truncate max-w-[120px]">Google Gemini</span>
+          <button id="headerProviderBadge" onclick="window.openSettingsModal()" class="flex items-center gap-1 text-[11px] text-slate-500 hover:text-primary-600 transition-colors font-medium">
+            <span id="headerProviderIcon">🏠</span>
+            <span id="headerProviderName" class="truncate max-w-[120px]">Yerel LLM (Ollama)</span>
             <i class="ph ph-caret-down text-[10px]"></i>
           </button>
+          <script>
+            (function() {
+              try {
+                var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+                var saved = localStorage.getItem('lexi_provider');
+                var chosen = localStorage.getItem('lexi_provider_user_chosen') === 'true';
+                var prov = (chosen && saved) ? saved : (isMobile ? 'local' : 'google');
+                var icon = document.getElementById('headerProviderIcon');
+                var name = document.getElementById('headerProviderName');
+                if (icon && name) {
+                  if (prov === 'local') { icon.textContent = '🏠'; name.textContent = 'Yerel LLM (Ollama)'; }
+                  else if (prov === 'nvidia') { icon.textContent = '🟢'; name.textContent = 'NVIDIA NIM'; }
+                  else if (prov === 'quick_rest') { icon.textContent = '⚡'; name.textContent = 'Hızlı REST'; }
+                  else { icon.textContent = '🔵'; name.textContent = 'Google Gemini'; }
+                }
+              } catch(e) {}
+            })();
+          </script>
         </div>
       </div>
 
       <!-- Action Buttons -->
       <div class="flex items-center gap-1.5">
-        <button id="historyBtn" title="Geçmiş Aramalar" class="w-9 h-9 flex items-center justify-center text-slate-600 hover:bg-slate-100 active:scale-95 rounded-full transition-all">
+        <button id="historyBtn" onclick="window.openHistoryModal()" title="Geçmiş Aramalar" class="w-9 h-9 flex items-center justify-center text-slate-600 hover:bg-slate-100 active:scale-95 rounded-full transition-all">
           <i class="ph ph-clock-counter-clockwise text-xl"></i>
         </button>
-        <button id="settingsBtn" title="Ayarlar & API Sağlayıcı" class="w-9 h-9 flex items-center justify-center text-slate-600 hover:bg-slate-100 active:scale-95 rounded-full transition-all">
+        <button id="settingsBtn" onclick="window.openSettingsModal()" title="Ayarlar & API Sağlayıcı" class="w-9 h-9 flex items-center justify-center text-slate-600 hover:bg-slate-100 active:scale-95 rounded-full transition-all">
           <i class="ph ph-gear text-xl"></i>
         </button>
       </div>
@@ -218,7 +258,7 @@
         </div>
         <div class="flex items-center gap-2">
           <button id="clearHistoryBtn" class="text-xs text-red-500 hover:text-red-700 font-medium px-2 py-1">Temizle</button>
-          <button id="closeHistoryBtn" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-full">
+          <button id="closeHistoryBtn" onclick="window.closeHistoryModal()" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-full">
             <i class="ph-bold ph-x text-lg"></i>
           </button>
         </div>
@@ -239,7 +279,7 @@
           <i class="ph ph-sliders text-xl text-primary-600"></i>
           <h3 class="font-bold text-slate-800 text-base">SM Studio AI Ayarları</h3>
         </div>
-        <button id="closeSettingsBtn" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-full">
+        <button id="closeSettingsBtn" onclick="window.closeSettingsModal()" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-full">
           <i class="ph-bold ph-x text-lg"></i>
         </button>
       </div>
@@ -332,8 +372,11 @@
 
       <!-- Modal Footer -->
       <div class="p-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-        <span id="saveStatusText" class="text-xs text-emerald-600 font-semibold opacity-0 transition-opacity">Kaydedildi ✓</span>
-        <div class="flex gap-2">
+        <button id="resetAppBtn" type="button" onclick="if(confirm('Tüm ayarlar ve önbellek sıfırlansın mı?')) { localStorage.clear(); if('caches' in window) caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).then(() => location.reload(true)); else location.reload(true); }" class="text-[11px] text-red-500 hover:text-red-700 font-medium">
+          Önbelleği & Ayarları Sıfırla
+        </button>
+        <div class="flex items-center gap-2">
+          <span id="saveStatusText" class="text-xs text-emerald-600 font-semibold opacity-0 transition-opacity">Kaydedildi ✓</span>
           <button id="saveSettingsBtn" class="px-5 py-2 bg-primary-600 text-white rounded-xl text-xs font-semibold hover:bg-primary-700 active:scale-95 transition-all shadow-sm">
             Ayarları Kaydet
           </button>
@@ -343,14 +386,14 @@
     </div>
   </div>
 
-  <!-- PWA Service Worker Registration & AI Engine Scripts (Cache-Busted v2.8) -->
-  <script src="js/config.local.js?v=2.8" onerror="this.remove()"></script>
-  <script src="js/aiEngine.js?v=2.8"></script>
-  <script src="js/app.js?v=2.8"></script>
+  <!-- PWA Service Worker Registration & AI Engine Scripts (Cache-Busted v3.1) -->
+  <script src="js/config.local.js?v=3.1" onerror="this.remove()"></script>
+  <script src="js/aiEngine.js?v=3.1"></script>
+  <script src="js/app.js?v=3.1"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').then(reg => {
+        navigator.serviceWorker.register('./sw.js?v=3.1').then(reg => {
           reg.update();
         }).catch(err => {
           console.log('SW registration note:', err);

@@ -102,6 +102,14 @@ class LexiHandler(http.server.SimpleHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Private-Network", "true")
         self.end_headers()
 
+    def end_headers(self):
+        # Prevent aggressive mobile browser caching for local scripts & HTML
+        if self.path.endswith((".html", ".js", ".css")) or self.path == "/" or self.path.startswith("/?"):
+            self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+            self.send_header("Pragma", "no-cache")
+            self.send_header("Expires", "0")
+        super().end_headers()
+
     def do_GET(self):
         if self.path.startswith("/ollama/"):
             self.proxy_to_ollama("GET")
@@ -118,14 +126,6 @@ class LexiHandler(http.server.SimpleHTTPRequestHandler):
     def do_POST(self):
         if self.path.startswith("/ollama/"):
             self.proxy_to_ollama("POST")
-            return
-        if self.path == "/api/shutdown":
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.end_headers()
-            self.wfile.write(b'{"status":"shutting_down"}')
-            threading.Thread(target=lambda: (time.sleep(0.3), perform_shutdown())).start()
             return
         self.send_response(404)
         self.end_headers()
