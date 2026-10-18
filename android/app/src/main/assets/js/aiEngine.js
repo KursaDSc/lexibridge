@@ -291,8 +291,11 @@ JSON Şablonu:
   }
 
   // Robust JSON cleaner & parser
+  // Multi-tier Robust JSON cleaner, auto-repairer & heuristic parser
   function parseJSONResponse(rawText) {
     let clean = (rawText || "").trim();
+    if (!clean) throw new Error("Yapay zeka modelinden boş yanıt alındı.");
+
     // 1. Try markdown code block extraction
     const match = clean.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
     if (match) {
@@ -305,7 +308,96 @@ JSON Şablonu:
         clean = clean.substring(first, last + 1);
       }
     }
-    return JSON.parse(clean);
+
+    // Attempt 1: Direct standard JSON.parse
+    try {
+      return JSON.parse(clean);
+    } catch (e1) {
+      // Proceed to Tier 2 syntax auto-repair
+    }
+
+    // Attempt 2: Advanced JSON Syntax Auto-Repair
+    try {
+      let repaired = clean
+        // Strip single-line comments // ... and multiline comments /* ... */
+        .replace(/\/\/[^\n\r]*/g, "")
+        .replace(/\/\*[\s\S]*?\*\//g, "")
+        // Fix trailing commas before } or ]
+        .replace(/,\s*([}\]])/g, "$1")
+        // Fix missing commas between properties: "val"\n"key": or }\n"key":
+        .replace(/([}\]"\d])\s*\n\s*(")/g, "$1,\n$2")
+        // Fix unquoted property keys: { word: "..." } -> { "word": "..." }
+        .replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":');
+
+      return JSON.parse(repaired);
+    } catch (e2) {
+      // Proceed to Tier 3 heuristic field extraction
+    }
+
+    // Attempt 3: Heuristic Regex Field Extractor (Fault-Tolerant Fallback)
+    try {
+      const extracted = {
+        input: (clean.match(/"input"\s*:\s*"([^"]+)"/i) || [])[1] || "",
+        sourceLanguage: (clean.match(/"sourceLanguage"\s*:\s*"([^"]+)"/i) || [])[1] || "nl",
+        targetLanguage: (clean.match(/"targetLanguage"\s*:\s*"([^"]+)"/i) || [])[1] || "tr",
+        partOfSpeech: (clean.match(/"partOfSpeech"\s*:\s*"([^"]+)"/i) || [])[1] || "",
+        pronunciation: {
+          ipa: (clean.match(/"ipa"\s*:\s*"([^"]+)"/i) || [])[1] || ""
+        },
+        grammar: {
+          article: (clean.match(/"article"\s*:\s*"([^"]+)"/i) || [])[1] || "",
+          plural: (clean.match(/"plural"\s*:\s*"([^"]+)"/i) || [])[1] || "",
+          infinitive: (clean.match(/"infinitive"\s*:\s*"([^"]+)"/i) || [])[1] || "",
+          register: (clean.match(/"register"\s*:\s*"([^"]+)"/i) || [])[1] || ""
+        },
+        translations: [],
+        meanings: [],
+        examples: [],
+        relatedWords: []
+      };
+
+      // Extract translations
+      const transMatches = clean.matchAll(/"text"\s*:\s*"([^"]+)"(?:[^{}]*?"context"\s*:\s*"([^"]*)")?(?:[^{}]*?"frequency"\s*:\s*"([^"]*)")?/gi);
+      for (const m of transMatches) {
+        if (m[1]) {
+          extracted.translations.push({
+            text: m[1],
+            context: m[2] || "",
+            frequency: m[3] || "common"
+          });
+        }
+      }
+
+      // Extract meanings
+      const meaningMatches = clean.matchAll(/"meaning"\s*:\s*"([^"]+)"(?:[^{}]*?"explanation"\s*:\s*"([^"]*)")?/gi);
+      for (const m of meaningMatches) {
+        if (m[1]) {
+          extracted.meanings.push({
+            meaning: m[1],
+            explanation: m[2] || ""
+          });
+        }
+      }
+
+      // Extract examples
+      const exampleMatches = clean.matchAll(/"source"\s*:\s*"([^"]+)"(?:[^{}]*?"translation"\s*:\s*"([^"]*)")?/gi);
+      for (const m of exampleMatches) {
+        if (m[1]) {
+          extracted.examples.push({
+            source: m[1],
+            translation: m[2] || ""
+          });
+        }
+      }
+
+      if (extracted.translations.length > 0 || extracted.input) {
+        return extracted;
+      }
+    } catch (e3) {
+      // Extraction failed
+    }
+
+    throw new Error("Yapay zeka model çıktısı JSON olarak çözümlenemedi.");
   }
 
   // Prompt Sanitization & XML Boundary Isolation (SEC-02 Protection)
@@ -640,7 +732,7 @@ ${sanitized}
       contents: [{ role: "user", parts: [{ text: userPrompt }] }],
       generationConfig: {
         temperature: 0.1,
-        maxOutputTokens: 1024,
+        maxOutputTokens: 2048,
         responseMimeType: "application/json"
       }
     };
@@ -874,7 +966,16 @@ ${sanitized}
 
     try {
       if (provider === "nvidia") {
-        return await callNvidiaNIM(cleanQuery, sourceLang, settings.model, settings.nvidiaKey);
+        try {
+          return await callNvidiaNIM(cleanQuery, sourceLang, settings.model, settings.nvidiaKey);
+        } catch (nvidiaErr) {
+          console.warn("NVIDIA NIM çağrısı başarısız oldu, Hızlı REST yedeğe geçiliyor:", nvidiaErr.message);
+          const restResult = await quickTranslateRest(cleanQuery, sourceLang, targetLang);
+          restResult._provider = "Hızlı REST (NVIDIA Yedeği)";
+          restResult._fallbackFrom = "nvidia";
+          restResult._localError = nvidiaErr.message;
+          return restResult;
+        }
       } else if (provider === "local") {
         // Smart Hybrid: Try local Ollama first; if unreachable/offline, fallback seamlessly to cloud
         try {
@@ -900,11 +1001,28 @@ ${sanitized}
         }
       } else {
         // default google
-        return await callGoogleGemini(cleanQuery, sourceLang, settings.model, settings.googleKey);
+        try {
+          return await callGoogleGemini(cleanQuery, sourceLang, settings.model, settings.googleKey);
+        } catch (googleErr) {
+          console.warn("Google Gemini çağrısı başarısız oldu, Hızlı REST yedeğe geçiliyor:", googleErr.message);
+          const restResult = await quickTranslateRest(cleanQuery, sourceLang, targetLang);
+          restResult._provider = "Hızlı REST (Gemini Yedeği)";
+          restResult._fallbackFrom = "google";
+          restResult._localError = googleErr.message;
+          return restResult;
+        }
       }
     } catch (err) {
       console.warn("AI Sağlayıcı hatası:", err);
-      throw err;
+      try {
+        const finalRest = await quickTranslateRest(cleanQuery, sourceLang, targetLang);
+        finalRest._provider = "Hızlı REST (Yedek Çeviri)";
+        finalRest._fallbackFrom = provider;
+        finalRest._localError = err.message;
+        return finalRest;
+      } catch {
+        throw err;
+      }
     }
   }
 
