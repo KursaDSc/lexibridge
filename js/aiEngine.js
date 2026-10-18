@@ -253,7 +253,7 @@ JSON Şablonu:
     let savedModel = localStorage.getItem("lexi_model");
     if (!savedModel || savedModel.includes("latest") || savedModel.includes("pro") || savedModel.includes("3.8") || savedModel.includes("3.6") || savedModel.includes("2.5")) {
       savedModel = activeProvider === "local"
-        ? (localStorage.getItem("local_llm_model") || (isMobile ? "qwen2.5:3b" : PROVIDERS.local.default_model))
+        ? (localStorage.getItem("local_llm_model") || (isMobile ? "qwen2.5:1.5b" : PROVIDERS.local.default_model))
         : "gemini-3.5-flash-lite";
       localStorage.setItem("lexi_model", savedModel);
     }
@@ -451,7 +451,7 @@ JSON Şablonu:
       cleanBase = cleanBase + "/v1";
     }
 
-    let activeModel = model || localStorage.getItem("local_llm_model") || (isMobileDevice() ? "qwen2.5:3b" : PROVIDERS.local.default_model);
+    let activeModel = model || localStorage.getItem("local_llm_model") || (isMobileDevice() ? "qwen2.5:1.5b" : PROVIDERS.local.default_model);
 
     // 1. Hızlı erişim ve model doğrulama kontrolü (2.5 saniye timeout)
     async function probeServer(base) {
@@ -506,13 +506,15 @@ JSON Şablonu:
       );
     }
 
-    // Yüklü modeller varsa, istenen modeli doğrula ya da otomatik olarak telefondaki yüklü modeli seç
+    // Yüklü modeller varsa, istenen modeli doğrula ya da hafif modeli otomatik seç
     if (probe.models && probe.models.length > 0) {
       const modelNames = probe.models.map(m => m.name || m.model || "");
       const exists = modelNames.some(n => n === activeModel || n.startsWith(activeModel.split(":")[0]));
-      if (!exists && modelNames[0]) {
-        console.log(`'${activeModel}' bulunamadı, yüklü model '${modelNames[0]}' otomatik seçiliyor.`);
-        activeModel = modelNames[0];
+      if (!exists) {
+        // Telefondaysa öncelikle hafif 1.5b veya 1b modelleri tercih et
+        const lightModel = modelNames.find(n => n.includes("1.5b") || n.includes("1b"));
+        activeModel = lightModel || modelNames[0];
+        console.log(`'${activeModel}' modeli otomatik seçildi.`);
         localStorage.setItem("local_llm_model", activeModel);
       }
     }
