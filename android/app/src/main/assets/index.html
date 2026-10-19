@@ -130,20 +130,20 @@
 
   <!-- Top App Bar (Mobile Optimized with Safe Areas) -->
   <header class="w-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-100 dark:border-slate-800 shadow-sm sticky top-0 z-30 transition-all">
-    <div class="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
+    <div class="max-w-2xl mx-auto px-2.5 sm:px-4 py-2 sm:py-3 flex items-center justify-between gap-1 sm:gap-2 flex-nowrap">
       
       <!-- Brand & Active Engine Badge -->
-      <div class="flex items-center gap-2.5">
-        <img src="icon-192.png?v=3.7" alt="LexiBridge App Icon" class="w-9 h-9 rounded-xl shadow-sm shadow-primary-500/20 object-cover border border-slate-100 dark:border-slate-800">
-        <div>
-          <div class="flex items-center gap-1.5">
-            <h1 class="text-lg font-bold tracking-tight text-slate-800 dark:text-slate-100 leading-tight">LexiBridge</h1>
-            <span class="text-xs uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-primary-50 text-primary-600 border border-primary-100/80">AI</span>
+      <div class="flex items-center gap-1.5 sm:gap-2.5 min-w-0 shrink">
+        <img src="icon-192.png?v=3.7" alt="LexiBridge App Icon" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl shadow-sm shadow-primary-500/20 object-cover border border-slate-100 dark:border-slate-800 shrink-0">
+        <div class="min-w-0">
+          <div class="flex items-center gap-1 sm:gap-1.5">
+            <h1 class="text-base sm:text-lg font-bold tracking-tight text-slate-800 dark:text-slate-100 leading-tight truncate">LexiBridge</h1>
+            <span class="text-xs uppercase font-bold tracking-wider px-1.5 py-0.2 rounded bg-primary-50 text-primary-600 border border-primary-100/80 shrink-0">AI</span>
           </div>
-          <button id="headerProviderBadge" onclick="window.openSettingsModal()" class="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium">
+          <button id="headerProviderBadge" onclick="window.openSettingsModal()" class="flex items-center gap-1 text-xs text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium">
             <span id="headerProviderIcon">🔵</span>
             <span id="headerProviderName" class="truncate max-w-[140px]">Google Gemini</span>
-            <i class="ph ph-caret-down text-xs"></i>
+            <i class="ph ph-caret-down text-xs shrink-0"></i>
           </button>
           <script>
             (function() {
@@ -173,23 +173,23 @@
       </div>
 
       <!-- Action Buttons (WCAG AA >= 44x44px Touch Targets) -->
-      <div class="flex items-center gap-1.5 sm:gap-2">
+      <div class="flex items-center gap-0.5 sm:gap-1.5 shrink-0">
         <!-- Iconic Mode Toggle (Derin AI vs Hızlı API) -->
-        <button id="modeToggleBtn" title="Aktif Mod: Derin AI (Hızlı REST için dokunun)" aria-label="Derin AI ve Hızlı REST Arasında Geçiş Yap" class="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/40 active:scale-95 rounded-full transition-all border border-amber-200/80 dark:border-amber-800/80 bg-amber-50/40 dark:bg-amber-950/20 shadow-2xs">
-          <i id="modeToggleIcon" class="ph-bold ph-sparkle text-xl text-amber-500"></i>
+        <button id="modeToggleBtn" title="Aktif Mod: Derin AI (Hızlı REST için dokunun)" aria-label="Derin AI ve Hızlı REST Arasında Geçiş Yap" class="w-8 h-8 sm:w-10 sm:h-10 min-w-[34px] sm:min-w-[40px] min-h-[44px] flex items-center justify-center text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/40 active:scale-95 rounded-full transition-all border border-amber-200/80 dark:border-amber-800/80 bg-amber-50/40 dark:bg-amber-950/20 shadow-2xs">
+          <i id="modeToggleIcon" class="ph-bold ph-sparkle text-lg sm:text-xl text-amber-500"></i>
           <span id="modeToggleText" class="sr-only">Derin AI</span>
         </button>
-        <button id="historyBtn" onclick="window.openHistoryModal()" title="Geçmiş Aramalar" aria-label="Arama Geçmişini Aç" class="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 rounded-full transition-all">
-          <i class="ph ph-clock-counter-clockwise text-xl"></i>
+        <button id="historyBtn" onclick="window.openHistoryModal()" title="Geçmiş Aramalar" aria-label="Arama Geçmişini Aç" class="w-8 h-8 sm:w-10 sm:h-10 min-w-[34px] sm:min-w-[40px] min-h-[44px] flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 rounded-full transition-all">
+          <i class="ph ph-clock-counter-clockwise text-lg sm:text-xl"></i>
         </button>
-        <button id="favoritesBtn" onclick="window.openFavoritesModal()" title="Favori Kelimelerim" aria-label="Favori Kelimeleri Aç" class="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 rounded-full transition-all">
-          <i class="ph-bold ph-star text-xl text-amber-500"></i>
+        <button id="favoritesBtn" onclick="window.openFavoritesModal()" title="Favori Kelimelerim" aria-label="Favori Kelimeleri Aç" class="w-8 h-8 sm:w-10 sm:h-10 min-w-[34px] sm:min-w-[40px] min-h-[44px] flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 rounded-full transition-all">
+          <i class="ph-bold ph-star text-lg sm:text-xl text-amber-500"></i>
         </button>
-        <button id="themeToggleBtn" onclick="window.toggleTheme()" title="Karanlık / Aydınlık Mod" aria-label="Temayı Değiştir" class="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 rounded-full transition-all">
-          <i id="themeToggleIcon" class="ph-bold ph-moon text-xl"></i>
+        <button id="themeToggleBtn" onclick="window.toggleTheme()" title="Karanlık / Aydınlık Mod" aria-label="Temayı Değiştir" class="w-8 h-8 sm:w-10 sm:h-10 min-w-[34px] sm:min-w-[40px] min-h-[44px] flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 rounded-full transition-all">
+          <i id="themeToggleIcon" class="ph-bold ph-moon text-lg sm:text-xl"></i>
         </button>
-        <button id="settingsBtn" onclick="window.openSettingsModal()" title="Ayarlar & API Sağlayıcı" aria-label="Ayarlar Menüsünü Aç" class="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 rounded-full transition-all">
-          <i class="ph ph-gear text-xl"></i>
+        <button id="settingsBtn" onclick="window.openSettingsModal()" title="Ayarlar & API Sağlayıcı" aria-label="Ayarlar Menüsünü Aç" class="w-8 h-8 sm:w-10 sm:h-10 min-w-[34px] sm:min-w-[40px] min-h-[44px] flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 rounded-full transition-all">
+          <i class="ph ph-gear text-lg sm:text-xl"></i>
         </button>
       </div>
 
@@ -490,45 +490,45 @@
       </div>
 
       <!-- Modal Body (Scrollable) -->
-      <div class="flex-1 overflow-y-auto p-4 space-y-5 text-sm">
+      <div class="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-5 text-sm max-w-full">
         
         <!-- Active Provider Picker -->
         <div>
           <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Yapay Zeka Sağlayıcısı</label>
-          <div class="grid grid-cols-2 gap-2" id="providerButtonGroup">
-            <button data-provider="google" class="provider-tab flex items-center gap-2 p-2.5 rounded-xl border border-primary-500 bg-primary-50/60 dark:bg-primary-950/40 text-primary-900 dark:text-primary-100 font-semibold text-left transition-all">
-              <span class="text-xl">🔵</span>
-              <div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2" id="providerButtonGroup">
+            <button data-provider="google" class="provider-tab flex items-center gap-2 p-2.5 rounded-xl border border-primary-500 bg-primary-50/60 dark:bg-primary-950/40 text-primary-900 dark:text-primary-100 font-semibold text-left transition-all min-w-0">
+              <span class="text-xl shrink-0">🔵</span>
+              <div class="min-w-0 flex-1">
                 <div class="text-sm font-semibold text-slate-800">Google Gemini</div>
-                <div class="text-xs text-slate-500 dark:text-slate-400 font-normal">Flash / Pro REST</div>
+                <div class="text-xs text-slate-500 dark:text-slate-400 font-normal truncate">Flash / Pro REST</div>
               </div>
             </button>
-            <button data-provider="nvidia" class="provider-tab flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-left transition-all">
-              <span class="text-xl">🟢</span>
-              <div>
+            <button data-provider="nvidia" class="provider-tab flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-left transition-all min-w-0">
+              <span class="text-xl shrink-0">🟢</span>
+              <div class="min-w-0 flex-1">
                 <div class="text-sm font-semibold text-slate-800">NVIDIA NIM</div>
-                <div class="text-xs text-slate-500 dark:text-slate-400 font-normal">Nemotron / Mistral</div>
+                <div class="text-xs text-slate-500 dark:text-slate-400 font-normal truncate">Nemotron / Mistral</div>
               </div>
             </button>
-            <button data-provider="local" class="provider-tab flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-left transition-all">
-              <span class="text-xl">🏠</span>
-              <div>
+            <button data-provider="local" class="provider-tab flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-left transition-all min-w-0">
+              <span class="text-xl shrink-0">🏠</span>
+              <div class="min-w-0 flex-1">
                 <div class="text-sm font-semibold text-slate-800">Yerel LLM (Ollama)</div>
-                <div class="text-xs text-slate-500 dark:text-slate-400 font-normal">Termux / Localhost</div>
+                <div class="text-xs text-slate-500 dark:text-slate-400 font-normal truncate">Termux / Localhost</div>
               </div>
             </button>
-            <button data-provider="quick_rest" class="provider-tab flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-left transition-all">
-              <span class="text-xl">⚡</span>
-              <div>
+            <button data-provider="quick_rest" class="provider-tab flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-left transition-all min-w-0">
+              <span class="text-xl shrink-0">⚡</span>
+              <div class="min-w-0 flex-1">
                 <div class="text-sm font-semibold text-slate-800">Hızlı REST</div>
-                <div class="text-xs text-slate-500 dark:text-slate-400 font-normal">0 Key - Anında</div>
+                <div class="text-xs text-slate-500 dark:text-slate-400 font-normal truncate">0 Key - Anında</div>
               </div>
             </button>
           </div>
         </div>
 
         <!-- Model Selection Dropdown -->
-        <div>
+        <div class="min-w-0 max-w-full">
           <div class="flex items-center justify-between mb-1.5">
             <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Model Seçimi</label>
             <button id="refreshModelsBtn" type="button" class="hidden text-xs text-primary-600 dark:text-primary-400 hover:text-primary-800 flex items-center gap-1 font-semibold px-2 py-0.5 rounded hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors" title="Ollama'daki Modelleri Algıla">
@@ -536,7 +536,7 @@
               <span id="refreshModelsBtnText">Modelleri Algıla</span>
             </button>
           </div>
-          <select id="modelSelect" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary-500/20 text-sm">
+          <select id="modelSelect" class="w-full max-w-full truncate px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary-500/20 text-sm">
             <!-- Dynamically populated based on provider -->
           </select>
           <div id="modelDetectionStatus" class="hidden text-xs mt-1.5 font-medium"></div>

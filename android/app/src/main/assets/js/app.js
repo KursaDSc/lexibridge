@@ -1366,15 +1366,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 1. Primary Word / Header Card
     html += `
-      <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 md:p-5 border border-slate-100 dark:border-slate-800 shadow-sm animate-slide-up ${cardAccentClass}">
-        <div class="flex items-start justify-between gap-3">
-          <div>
-            <div class="flex items-center flex-wrap gap-2">
-              <h2 class="text-2xl md:text-3xl font-bold text-slate-800 dark:text-slate-100 tracking-tight">${escapeHtml(data.input)}</h2>
-              <button class="speak-btn w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950/50 hover:bg-primary-100 dark:hover:bg-primary-900 active:scale-95 rounded-full transition-all" aria-label="Kelimeyi sesli telaffuz et" data-text="${escapeHtml(data.input)}" data-lang="${data.sourceLanguage}" data-rate="1.0" title="Sesli Telaffuz (1.0x)">
-                <i class="ph-bold ph-speaker-high text-xl"></i>
+      <div class="bg-white dark:bg-slate-900 rounded-2xl p-3.5 sm:p-4 md:p-5 border border-slate-100 dark:border-slate-800 shadow-sm animate-slide-up ${cardAccentClass} overflow-hidden max-w-full">
+        <div class="flex items-start justify-between gap-2 sm:gap-3 flex-wrap sm:flex-nowrap">
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center flex-wrap gap-1.5 sm:gap-2">
+              <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-slate-800 dark:text-slate-100 tracking-tight break-words">${escapeHtml(data.input)}</h2>
+              <button class="speak-btn w-9 h-9 sm:w-11 sm:h-11 min-w-[36px] sm:min-w-[44px] min-h-[44px] flex items-center justify-center text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950/50 hover:bg-primary-100 dark:hover:bg-primary-900 active:scale-95 rounded-full transition-all" aria-label="Kelimeyi sesli telaffuz et" data-text="${escapeHtml(data.input)}" data-lang="${data.sourceLanguage}" data-rate="1.0" title="Sesli Telaffuz (1.0x)">
+                <i class="ph-bold ph-speaker-high text-lg sm:text-xl"></i>
               </button>
-              <button class="speak-btn px-2.5 py-1 min-h-[44px] flex items-center justify-center text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-amber-600 bg-slate-100 dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-amber-950/40 rounded-xl transition-all" aria-label="0.75x Yavaş Dinle" data-text="${escapeHtml(data.input)}" data-lang="${data.sourceLanguage}" data-rate="0.75" title="0.75x Yavaş Dinle">
+              <button class="speak-btn px-2 sm:px-2.5 py-1 min-h-[44px] flex items-center justify-center text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-amber-600 bg-slate-100 dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-amber-950/40 rounded-xl transition-all" aria-label="0.75x Yavaş Dinle" data-text="${escapeHtml(data.input)}" data-lang="${data.sourceLanguage}" data-rate="0.75" title="0.75x Yavaş Dinle">
                 0.75x
               </button>
             </div>
@@ -1417,14 +1417,14 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
 
           <!-- Quick Actions: Favorite, Share & Compact/Detailed Mode -->
-          <div class="flex items-center gap-1 shrink-0">
-            <button class="fav-toggle-btn w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full ${isFavorite(data.input) ? 'text-amber-500 bg-amber-50 dark:bg-amber-950/40' : 'text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/40'} active:scale-95 transition-all" data-word="${escapeHtml(data.input)}" title="Favorilere Ekle / Çıkar" aria-label="Favorilere Ekle / Çıkar">
-              <i class="ph-bold ph-star text-xl ${isFavorite(data.input) ? 'text-amber-500' : 'text-slate-400'}"></i>
+          <div class="flex items-center gap-1 shrink-0 self-start mt-0.5">
+            <button class="fav-toggle-btn w-9 h-9 sm:w-11 sm:h-11 min-w-[36px] sm:min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full ${isFavorite(data.input) ? 'text-amber-500 bg-amber-50 dark:bg-amber-950/40' : 'text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/40'} active:scale-95 transition-all" data-word="${escapeHtml(data.input)}" title="Favorilere Ekle / Çıkar" aria-label="Favorilere Ekle / Çıkar">
+              <i class="ph-bold ph-star text-lg sm:text-xl ${isFavorite(data.input) ? 'text-amber-500' : 'text-slate-400'}"></i>
             </button>
-            <button id="shareResultBtn" class="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors" title="Kelime Kartını Paylaş" aria-label="Kelime Kartını Paylaş">
-              <i class="ph-bold ph-share-network text-lg"></i>
+            <button id="shareResultBtn" class="w-9 h-9 sm:w-11 sm:h-11 min-w-[36px] sm:min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors" title="Kelime Kartını Paylaş" aria-label="Kelime Kartını Paylaş">
+              <i class="ph-bold ph-share-network text-base sm:text-lg"></i>
             </button>
-            <button id="toggleDenseBtn" class="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 px-2.5 py-1.5 min-h-[44px] rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors font-semibold" title="Kompakt / Detaylı Modu Değiştir" aria-label="Kompakt / Detaylı Modu Değiştir">
+            <button id="toggleDenseBtn" class="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 px-2 sm:px-2.5 py-1.5 min-h-[44px] rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors font-semibold shrink-0" title="Kompakt / Detaylı Modu Değiştir" aria-label="Kompakt / Detaylı Modu Değiştir">
               <i class="ph-bold ${isCompactView ? 'ph-caret-down' : 'ph-caret-up'} text-xs"></i>
               <span>${isCompactView ? 'Kompakt' : 'Detaylı'}</span>
             </button>
@@ -1434,7 +1434,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <!-- Primary Target Translation -->
         <div class="mt-4 pt-4 border-t border-slate-50 dark:border-slate-800 flex items-start gap-2.5">
           <span class="text-xl">${data.targetLanguage === 'tr' ? '🇹🇷' : '🇳🇱'}</span>
-          <div class="flex-1">
+          <div class="flex-1 min-w-0">
             <div class="flex flex-wrap items-baseline gap-2">
               <span class="text-xl md:text-2xl font-bold text-slate-900 dark:text-slate-100">${escapeHtml(mainTrans)}</span>
               ${data.translations?.[0]?.frequency && data.translations[0].frequency !== 'rare' ? `
@@ -1463,22 +1463,22 @@ document.addEventListener('DOMContentLoaded', () => {
     // 1.2 Segmented Result Tabs Bar (NNGroup Cognitive Chunking Pattern)
     const hasConjugation = !!(data.conjugation && data.conjugation.isVerb);
     html += `
-      <div class="result-tabs-bar flex items-center gap-1.5 p-1 bg-slate-100/90 dark:bg-slate-800/80 rounded-2xl border border-slate-200/70 dark:border-slate-700/70 my-3 overflow-x-auto">
-        <button class="result-tab-btn flex-1 min-h-[40px] px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${activeResultTab === 'all' ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-300 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}" data-tab="all">
+      <div class="result-tabs-bar flex items-center gap-1.5 p-1 bg-slate-100/90 dark:bg-slate-800/80 rounded-2xl border border-slate-200/70 dark:border-slate-700/70 my-3 overflow-x-auto scrollbar-none max-w-full">
+        <button class="result-tab-btn flex-1 min-w-[65px] shrink-0 sm:shrink min-h-[40px] px-2 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 sm:gap-1.5 whitespace-nowrap ${activeResultTab === 'all' ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-300 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}" data-tab="all">
           <i class="ph-bold ph-squares-four text-sm"></i>
           <span>Tümü</span>
         </button>
-        <button class="result-tab-btn flex-1 min-h-[40px] px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${activeResultTab === 'examples' ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-300 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}" data-tab="examples">
+        <button class="result-tab-btn flex-1 min-w-[75px] shrink-0 sm:shrink min-h-[40px] px-2 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 sm:gap-1.5 whitespace-nowrap ${activeResultTab === 'examples' ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-300 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}" data-tab="examples">
           <i class="ph-bold ph-chat-circle-text text-sm"></i>
           <span>Örnekler</span>
         </button>
         ${hasConjugation ? `
-          <button class="result-tab-btn flex-1 min-h-[40px] px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${activeResultTab === 'conjugation' ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-300 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}" data-tab="conjugation">
+          <button class="result-tab-btn flex-1 min-w-[80px] shrink-0 sm:shrink min-h-[40px] px-2 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 sm:gap-1.5 whitespace-nowrap ${activeResultTab === 'conjugation' ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-300 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}" data-tab="conjugation">
             <i class="ph-bold ph-arrows-clockwise text-sm"></i>
             <span>Fiil Çekimi</span>
           </button>
         ` : ''}
-        <button class="result-tab-btn flex-1 min-h-[40px] px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${activeResultTab === 'details' ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-300 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}" data-tab="details">
+        <button class="result-tab-btn flex-1 min-w-[70px] shrink-0 sm:shrink min-h-[40px] px-2 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 sm:gap-1.5 whitespace-nowrap ${activeResultTab === 'details' ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-300 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}" data-tab="details">
           <i class="ph-bold ph-book-open text-sm"></i>
           <span>Detaylar</span>
         </button>

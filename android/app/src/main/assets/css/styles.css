@@ -16,9 +16,22 @@ html, body {
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
 }
 
-/* Ensure mobile form controls never auto-zoom on focus (iOS HIG Best Practice) */
+/* Ensure mobile form controls never auto-zoom on focus (iOS HIG Best Practice) and fit viewport */
 input, textarea, select {
   font-size: 16px !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+}
+
+select {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+html, body {
+  max-width: 100vw;
+  overflow-x: hidden;
 }
 
 body {
@@ -345,6 +358,13 @@ html.dark .is-listening {
 
 .flashcard-back {
   transform: rotateY(180deg);
+}
+
+/* Mobile responsive constraints */
+@media (max-width: 640px) {
+  #headerProviderName {
+    max-width: 80px !important;
+  }
 }
 
 
