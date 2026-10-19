@@ -191,3 +191,62 @@ html.dark #stickySearchBar {
   border-color: #1e293b !important;
 }
 
+/* Animated Soundwave on TTS Speak */
+.soundwave-bars {
+  display: inline-flex;
+  align-items: center;
+  gap: 2.5px;
+  height: 14px;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
+.soundwave-bar {
+  width: 2.5px;
+  height: 100%;
+  background-color: currentColor;
+  border-radius: 9999px;
+  animation: soundwave-jump 0.75s ease-in-out infinite alternate;
+}
+
+.soundwave-bar:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.soundwave-bar:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes soundwave-jump {
+  0% { transform: scaleY(0.25); opacity: 0.45; }
+  100% { transform: scaleY(1); opacity: 1; }
+}
+
+/* Accordion Collapsible Sections */
+.accordion-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.32s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s ease;
+  opacity: 0;
+}
+
+.accordion-content.expanded {
+  max-height: 2500px;
+  opacity: 1;
+}
+
+.accordion-chevron {
+  transition: transform 0.25s ease;
+}
+
+.accordion-chevron.rotated {
+  transform: rotate(180deg);
+}
+
+/* Diacritics and Filter Chips */
+.diacritic-chip {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+

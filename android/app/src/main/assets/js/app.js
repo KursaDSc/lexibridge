@@ -339,7 +339,10 @@ document.addEventListener('DOMContentLoaded', () => {
     updateHeaderBadge();
     updateProviderModalUI();
     renderHistory();
+    renderFavorites();
     renderSeedChips();
+    renderDiacriticsBar();
+    renderWordOfTheDay();
     updateThemeIcon();
 
     // Autocomplete on search input
@@ -367,6 +370,18 @@ document.addEventListener('DOMContentLoaded', () => {
         handleSearch();
       });
     });
+
+    // Clear favorites button
+    const clearFavoritesBtn = document.getElementById('clearFavoritesBtn');
+    if (clearFavoritesBtn) {
+      clearFavoritesBtn.addEventListener('click', () => {
+        if (confirm('Tüm favori kelimeler silinsin mi?')) {
+          localStorage.removeItem('lexi_favorites');
+          renderFavorites();
+          showToast('Favoriler temizlendi.');
+        }
+      });
+    }
 
     // Check query params if any
     const urlParams = new URLSearchParams(window.location.search);
@@ -495,6 +510,7 @@ document.addEventListener('DOMContentLoaded', () => {
       searchInput.placeholder = 'Türkçe bir kelime, deyim veya cümle yazın...';
     }
     renderSeedChips();
+    renderDiacriticsBar();
   }
 
   function toggleQuickMode() {
@@ -552,11 +568,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnElement) {
       btnElement.classList.add('is-speaking');
+      if (!btnElement.querySelector('.soundwave-bars')) {
+        const sw = document.createElement('span');
+        sw.className = 'soundwave-bars';
+        sw.innerHTML = '<span class="soundwave-bar"></span><span class="soundwave-bar"></span><span class="soundwave-bar"></span>';
+        btnElement.appendChild(sw);
+      }
     }
 
     const removeSpeaking = () => {
       if (btnElement) {
         btnElement.classList.remove('is-speaking');
+        const sw = btnElement.querySelector('.soundwave-bars');
+        if (sw) sw.remove();
       }
     };
 
@@ -648,6 +672,254 @@ document.addEventListener('DOMContentLoaded', () => {
         handleSearch();
       });
     });
+  }
+
+  // ── Favorites Management ────────────────────────────────────────────────
+  function getFavorites() {
+    try {
+      return JSON.parse(localStorage.getItem('lexi_favorites') || '[]');
+    } catch {
+      return [];
+    }
+  }
+
+  function toggleFavorite(word, translation, article, cefr) {
+    if (!word) return false;
+    let favs = getFavorites();
+    const existingIndex = favs.findIndex((f) => f.word.toLowerCase() === word.toLowerCase());
+    let isAdded = false;
+    if (existingIndex >= 0) {
+      favs.splice(existingIndex, 1);
+      showToast('Favorilerden Kaldırıldı', 'ph-bold ph-star text-slate-400');
+      isAdded = false;
+    } else {
+      favs.unshift({
+        word,
+        translation: translation || '',
+        article: article || '',
+        cefr: cefr || '',
+        source: sourceLang,
+        time: Date.now()
+      });
+      if (favs.length > 100) favs.pop();
+      showToast('Favorilere Eklendi', 'ph-bold ph-star text-amber-500');
+      isAdded = true;
+    }
+    localStorage.setItem('lexi_favorites', JSON.stringify(favs));
+    renderFavorites();
+    return isAdded;
+  }
+
+  function isFavorite(word) {
+    if (!word) return false;
+    const favs = getFavorites();
+    return favs.some((f) => f.word.toLowerCase() === word.toLowerCase());
+  }
+
+  function renderFavorites() {
+    const favoritesList = document.getElementById('favoritesList');
+    if (!favoritesList) return;
+    const favs = getFavorites();
+    if (favs.length === 0) {
+      favoritesList.innerHTML = `<div class="p-6 text-center text-sm text-slate-400">Henüz favorilere eklenmiş kelime yok. Kelime kartındaki yıldız ikonuna dokunarak kaydedebilirsiniz.</div>`;
+      return;
+    }
+    favoritesList.innerHTML = favs
+      .map(
+        (f) => `
+      <div class="fav-item flex items-center justify-between p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 rounded-xl transition-colors group" data-word="${escapeHtml(f.word)}" data-source="${f.source || 'nl'}">
+        <div class="flex-1 cursor-pointer fav-search-trigger">
+          <div class="flex items-center gap-1.5">
+            ${f.article ? `<span class="text-xs font-bold ${f.article === 'de' ? 'text-sky-600' : 'text-emerald-600'} uppercase">${escapeHtml(f.article)}</span>` : ''}
+            <span class="font-semibold text-sm text-slate-800 dark:text-slate-100">${escapeHtml(f.word)}</span>
+            ${f.cefr ? `<span class="text-xs px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-bold border border-slate-200/50 dark:border-slate-700/50">${escapeHtml(f.cefr)}</span>` : ''}
+          </div>
+          <div class="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[240px]">${escapeHtml(f.translation || '')}</div>
+        </div>
+        <div class="flex items-center gap-1">
+          <button class="fav-remove-btn w-9 h-9 min-w-[36px] min-h-[36px] flex items-center justify-center text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors" data-word="${escapeHtml(f.word)}" title="Favorilerden Çıkar">
+            <i class="ph-bold ph-trash text-base"></i>
+          </button>
+        </div>
+      </div>
+    `
+      )
+      .join('');
+
+    favoritesList.querySelectorAll('.fav-search-trigger').forEach((el) => {
+      el.addEventListener('click', () => {
+        const parent = el.closest('.fav-item');
+        const w = parent.dataset.word;
+        const s = parent.dataset.source;
+        if (s && s !== sourceLang) toggleLanguage();
+        searchInput.value = w;
+        const favModal = document.getElementById('favoritesModal');
+        if (favModal) favModal.classList.add('hidden');
+        handleSearch();
+      });
+    });
+
+    favoritesList.querySelectorAll('.fav-remove-btn').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const w = btn.dataset.word;
+        toggleFavorite(w);
+      });
+    });
+  }
+  window.renderFavorites = renderFavorites;
+
+  // ── Diacritics Toolbar (NL / TR) ─────────────────────────────────────────
+  const NL_DIACRITICS = ['ë', 'é', 'è', 'ij', 'ï'];
+  const TR_DIACRITICS = ['ç', 'ğ', 'ı', 'ö', 'ş', 'ü'];
+
+  function renderDiacriticsBar() {
+    const container = document.getElementById('diacriticsBar');
+    if (!container) return;
+    const chars = sourceLang === 'nl' ? NL_DIACRITICS : TR_DIACRITICS;
+    container.innerHTML = chars
+      .map(
+        (c) => `
+      <button type="button" class="diacritic-chip px-2.5 py-1 min-h-[36px] min-w-[32px] text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-primary-50 dark:hover:bg-primary-950/40 hover:text-primary-600 dark:hover:text-primary-400 rounded-lg active:scale-95 transition-all" data-char="${c}" title="'${c}' ekle">
+        ${c}
+      </button>
+    `
+      )
+      .join('');
+
+    container.querySelectorAll('.diacritic-chip').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const char = btn.dataset.char;
+        insertCharIntoSearch(char);
+      });
+    });
+  }
+
+  function insertCharIntoSearch(char) {
+    const input = searchInput;
+    const start = input.selectionStart ?? input.value.length;
+    const end = input.selectionEnd ?? input.value.length;
+    const val = input.value;
+    input.value = val.substring(0, start) + char + val.substring(end);
+    input.selectionStart = input.selectionEnd = start + char.length;
+    input.focus();
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  // ── Word of the Day (Günün Kelimesi) ────────────────────────────────────
+  const WORDS_OF_THE_DAY = [
+    {
+      nl: 'gezellig',
+      article: '',
+      pos: 'Sıfat',
+      cefr: 'A2',
+      tr: 'Sıcak, samimi, keyifli ve içten atmosfer',
+      tip: 'Hollanda kültürünün ruhudur. Arkadaş ortamı, loş ışıklar, kahve sohbeti ya da ev sıcaklığı "gezellig"dir.'
+    },
+    {
+      nl: 'uitwaaien',
+      article: '',
+      pos: 'Fiil',
+      cefr: 'B1',
+      tr: 'Rüzgarlı havada dışarı çıkıp kafayı boşaltmak',
+      tip: 'Kıyıya, sahile ya da fırtınalı bir günde parka çıkıp rüzgarın zihninizi temizlemesine izin verme geleneği.'
+    },
+    {
+      nl: 'borrelen',
+      article: '',
+      pos: 'Fiil',
+      cefr: 'A2',
+      tr: 'Dostlarla atıştırmalık ve içecek eşliğinde keyif yapmak',
+      tip: 'Hollandalıların iş çıkışı veya Cuma öğleden sonraları sosyalleşme ritüelidir ("vrijmibo").'
+    },
+    {
+      nl: 'overmorgen',
+      article: '',
+      pos: 'Zarf',
+      cefr: 'A1',
+      tr: 'Yarından sonraki gün',
+      tip: 'Felemenkçede gün planlamasında en sık kullanılan zaman zarflarından biridir.'
+    },
+    {
+      nl: 'bespreekbaar',
+      article: '',
+      pos: 'Sıfat',
+      cefr: 'B2',
+      tr: 'Konuşulabilir, müzakere edilebilir, açıkça tartışılabilir',
+      tip: 'Hollanda konsensüs (poldermodel) kültürünün kilit kelimesidir: Her konu açıkça masaya yatırılabilir.'
+    },
+    {
+      nl: 'lentekriebels',
+      article: 'de',
+      pos: 'İsim',
+      cefr: 'B1',
+      tr: 'Bahar sevinci, bahar kıpırtısı ve canlanma',
+      tip: 'Kışın ardından açan ilk güneşle birlikte hissedilen neşe, kıpırtı ve hafiflik hali.'
+    },
+    {
+      nl: 'pindakaas',
+      article: 'de',
+      pos: 'İsim',
+      cefr: 'A1',
+      tr: 'Fıstık ezmesi',
+      tip: 'Hollandalıların milli lezzeti. Meşhur deyim: "Helaas pindakaas!" (Ne yazık ki / Elden ne gelir!).'
+    }
+  ];
+
+  function renderWordOfTheDay() {
+    const container = document.getElementById('wordOfTheDayCard');
+    if (!container) return;
+    const now = new Date();
+    const startOfYear = new Date(now.getFullYear(), 0, 0);
+    const diff = now - startOfYear;
+    const oneDay = 1000 * 60 * 60 * 24;
+    const dayOfYear = Math.floor(diff / oneDay);
+    const item = WORDS_OF_THE_DAY[dayOfYear % WORDS_OF_THE_DAY.length];
+
+    container.innerHTML = `
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center gap-1.5 text-xs font-bold text-amber-600 dark:text-amber-400">
+          <i class="ph-bold ph-calendar-check text-sm"></i>
+          <span>Günün Felemenkçe Kelimesi</span>
+        </div>
+        <span class="text-xs px-2 py-0.5 rounded-md font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/80">${item.cefr}</span>
+      </div>
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <div class="flex items-center gap-2">
+            ${item.article ? `<span class="text-xs font-bold text-sky-600 dark:text-sky-400 uppercase">${item.article}</span>` : ''}
+            <h4 class="text-xl font-bold text-slate-800 dark:text-slate-100">${escapeHtml(item.nl)}</h4>
+            <button class="speak-btn w-9 h-9 min-w-[36px] min-h-[36px] flex items-center justify-center text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 rounded-full transition-all" aria-label="Dinle" data-text="${escapeHtml(item.nl)}" data-lang="nl" title="Dinle">
+              <i class="ph-bold ph-speaker-high text-base"></i>
+            </button>
+          </div>
+          <p class="text-sm font-semibold text-slate-700 dark:text-slate-200 mt-1">${escapeHtml(item.tr)}</p>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed"><span class="font-bold text-slate-700 dark:text-slate-300">Kültürel İpucu:</span> ${escapeHtml(item.tip)}</p>
+        </div>
+        <button class="wotd-explore-btn shrink-0 px-3 py-2 min-h-[44px] flex items-center gap-1.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-xs font-bold active:scale-95 transition-all shadow-2xs" data-word="${escapeHtml(item.nl)}">
+          <span>İncele</span>
+          <i class="ph-bold ph-arrow-right text-xs"></i>
+        </button>
+      </div>
+    `;
+
+    const exploreBtn = container.querySelector('.wotd-explore-btn');
+    if (exploreBtn) {
+      exploreBtn.addEventListener('click', () => {
+        if (sourceLang !== 'nl') toggleLanguage();
+        searchInput.value = item.nl;
+        handleSearch();
+      });
+    }
+
+    const speakBtn = container.querySelector('.speak-btn');
+    if (speakBtn) {
+      speakBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        speak(item.nl, 'nl', 1.0, speakBtn);
+      });
+    }
   }
 
   // ── Search Execution ────────────────────────────────────────────────────
@@ -824,8 +1096,11 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
           </div>
 
-          <!-- Quick Actions: Share & Compact/Detailed Mode -->
+          <!-- Quick Actions: Favorite, Share & Compact/Detailed Mode -->
           <div class="flex items-center gap-1 shrink-0">
+            <button class="fav-toggle-btn w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full ${isFavorite(data.input) ? 'text-amber-500 bg-amber-50 dark:bg-amber-950/40' : 'text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/40'} active:scale-95 transition-all" data-word="${escapeHtml(data.input)}" title="Favorilere Ekle / Çıkar" aria-label="Favorilere Ekle / Çıkar">
+              <i class="ph-bold ph-star text-xl ${isFavorite(data.input) ? 'text-amber-500' : 'text-slate-400'}"></i>
+            </button>
             <button id="shareResultBtn" class="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors" title="Kelime Kartını Paylaş" aria-label="Kelime Kartını Paylaş">
               <i class="ph-bold ph-share-network text-lg"></i>
             </button>
@@ -896,33 +1171,38 @@ document.addEventListener('DOMContentLoaded', () => {
       const isConjugationVisible = activeResultTab === 'all' || activeResultTab === 'conjugation';
       html += `
         <div class="result-section-card ${isConjugationVisible ? '' : 'hidden'} bg-white dark:bg-slate-900 rounded-2xl p-4 md:p-5 border border-slate-100 dark:border-slate-800 shadow-sm animate-slide-up mb-4" data-section="conjugation" style="animation-delay: 0.05s">
-          <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center justify-between mb-3 cursor-pointer accordion-trigger select-none" title="Fiil çekim tablosunu aç / kapat">
             <div class="flex items-center gap-2 text-slate-700 dark:text-slate-300">
               <i class="ph-bold ph-arrows-clockwise text-indigo-500 text-lg"></i>
               <h3 class="font-bold text-base text-slate-800 dark:text-slate-100">Fiil Çekim Tablosu (Vervoeging)</h3>
             </div>
-            <span class="text-xs font-semibold px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800">Gramer</span>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-semibold px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800">Gramer</span>
+              <i class="ph-bold ph-caret-down text-slate-400 accordion-chevron rotated text-sm"></i>
+            </div>
           </div>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
-            <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/60">
-              <div class="font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-1.5">Şimdiki Zaman (O.T.T.)</div>
-              <div class="space-y-1 text-slate-700 dark:text-slate-300">
-                <div><span class="text-slate-400 font-mono">ik:</span> <span class="font-semibold text-slate-800 dark:text-slate-100">${escapeHtml(conj.present?.ik || '-')}</span></div>
-                <div><span class="text-slate-400 font-mono">jij/hij:</span> <span class="font-semibold text-slate-800 dark:text-slate-100">${escapeHtml(conj.present?.jij || '-')}</span></div>
-                <div><span class="text-slate-400 font-mono">wij/zij:</span> <span class="font-semibold text-slate-800 dark:text-slate-100">${escapeHtml(conj.present?.wij || '-')}</span></div>
+          <div class="accordion-content expanded">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+              <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/60">
+                <div class="font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-1.5">Şimdiki Zaman (O.T.T.)</div>
+                <div class="space-y-1 text-slate-700 dark:text-slate-300">
+                  <div><span class="text-slate-400 font-mono">ik:</span> <span class="font-semibold text-slate-800 dark:text-slate-100">${escapeHtml(conj.present?.ik || '-')}</span></div>
+                  <div><span class="text-slate-400 font-mono">jij/hij:</span> <span class="font-semibold text-slate-800 dark:text-slate-100">${escapeHtml(conj.present?.jij || '-')}</span></div>
+                  <div><span class="text-slate-400 font-mono">wij/zij:</span> <span class="font-semibold text-slate-800 dark:text-slate-100">${escapeHtml(conj.present?.wij || '-')}</span></div>
+                </div>
               </div>
-            </div>
-            <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/60">
-              <div class="font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-1.5">Geçmiş Zaman (O.V.T.)</div>
-              <div class="space-y-1 text-slate-700 dark:text-slate-300">
-                <div><span class="text-slate-400 font-mono">tekil:</span> <span class="font-semibold text-slate-800 dark:text-slate-100">${escapeHtml(conj.past?.singular || '-')}</span></div>
-                <div><span class="text-slate-400 font-mono">çoğul:</span> <span class="font-semibold text-slate-800 dark:text-slate-100">${escapeHtml(conj.past?.plural || '-')}</span></div>
+              <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/60">
+                <div class="font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-1.5">Geçmiş Zaman (O.V.T.)</div>
+                <div class="space-y-1 text-slate-700 dark:text-slate-300">
+                  <div><span class="text-slate-400 font-mono">tekil:</span> <span class="font-semibold text-slate-800 dark:text-slate-100">${escapeHtml(conj.past?.singular || '-')}</span></div>
+                  <div><span class="text-slate-400 font-mono">çoğul:</span> <span class="font-semibold text-slate-800 dark:text-slate-100">${escapeHtml(conj.past?.plural || '-')}</span></div>
+                </div>
               </div>
-            </div>
-            <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/60">
-              <div class="font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-1.5">Tamamlanmış (V.D.)</div>
-              <div class="space-y-1 text-slate-700 dark:text-slate-300">
-                <div><span class="text-slate-400 font-mono">deelwoord:</span> <span class="font-semibold text-slate-800 dark:text-slate-100">${escapeHtml(conj.perfect || '-')}</span></div>
+              <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/60">
+                <div class="font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-1.5">Tamamlanmış (V.D.)</div>
+                <div class="space-y-1 text-slate-700 dark:text-slate-300">
+                  <div><span class="text-slate-400 font-mono">deelwoord:</span> <span class="font-semibold text-slate-800 dark:text-slate-100">${escapeHtml(conj.perfect || '-')}</span></div>
+                </div>
               </div>
             </div>
           </div>
@@ -1254,6 +1534,36 @@ document.addEventListener('DOMContentLoaded', () => {
         renderResult(data);
       });
     }
+
+    // Attach favorite toggle button
+    resultsContainer.querySelectorAll('.fav-toggle-btn').forEach((b) => {
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const word = b.dataset.word;
+        const isAdded = toggleFavorite(word, mainTrans, data.grammar?.article, data.cefr);
+        const icon = b.querySelector('i');
+        if (icon) {
+          icon.className = `ph-bold ph-star text-xl ${isAdded ? 'text-amber-500' : 'text-slate-400'}`;
+        }
+        b.classList.toggle('text-amber-500', isAdded);
+        b.classList.toggle('bg-amber-50', isAdded);
+        b.classList.toggle('dark:bg-amber-950/40', isAdded);
+        b.classList.toggle('text-slate-400', !isAdded);
+      });
+    });
+
+    // Attach accordion triggers (Progressive Disclosure)
+    resultsContainer.querySelectorAll('.accordion-trigger').forEach((trig) => {
+      trig.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const card = trig.closest('.result-section-card');
+        if (!card) return;
+        const content = card.querySelector('.accordion-content');
+        const chevron = card.querySelector('.accordion-chevron');
+        if (content) content.classList.toggle('expanded');
+        if (chevron) chevron.classList.toggle('rotated');
+      });
+    });
 
     // Attach related word click to search
     resultsContainer.querySelectorAll('.related-chip').forEach((b) => {

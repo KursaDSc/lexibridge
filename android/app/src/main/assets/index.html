@@ -102,6 +102,17 @@
       var icon = document.getElementById('themeToggleIcon');
       if (icon) icon.className = isDark ? 'ph-bold ph-sun text-xl text-amber-400' : 'ph-bold ph-moon text-xl';
     };
+    window.openFavoritesModal = function() {
+      var m = document.getElementById('favoritesModal');
+      if (m) {
+        m.classList.remove('hidden');
+        if (window.renderFavorites) window.renderFavorites();
+      }
+    };
+    window.closeFavoritesModal = function() {
+      var m = document.getElementById('favoritesModal');
+      if (m) m.classList.add('hidden');
+    };
   </script>
 </head>
 <body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 antialiased min-h-screen flex flex-col selection:bg-primary-500 selection:text-white">
@@ -159,6 +170,9 @@
         </button>
         <button id="historyBtn" onclick="window.openHistoryModal()" title="Geçmiş Aramalar" aria-label="Arama Geçmişini Aç" class="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 rounded-full transition-all">
           <i class="ph ph-clock-counter-clockwise text-xl"></i>
+        </button>
+        <button id="favoritesBtn" onclick="window.openFavoritesModal()" title="Favori Kelimelerim" aria-label="Favori Kelimeleri Aç" class="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 rounded-full transition-all">
+          <i class="ph-bold ph-star text-xl text-amber-500"></i>
         </button>
         <button id="themeToggleBtn" onclick="window.toggleTheme()" title="Karanlık / Aydınlık Mod" aria-label="Temayı Değiştir" class="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 rounded-full transition-all">
           <i id="themeToggleIcon" class="ph-bold ph-moon text-xl"></i>
@@ -222,12 +236,13 @@
         <div id="autocompleteDropdown" class="hidden absolute left-3.5 right-3.5 top-full mt-1 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-700 rounded-2xl shadow-xl z-30 max-h-60 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800"></div>
         
         <!-- Controls & Search Button -->
-        <div class="flex items-center justify-between pt-2 border-t border-slate-50 mt-1">
-          <div class="flex items-center gap-1">
-            <button id="pasteBtn" aria-label="Panodan Yapıştır" class="flex items-center gap-1.5 text-xs text-slate-600 hover:text-slate-800 hover:bg-slate-100 px-3 py-2 min-h-[44px] rounded-xl transition-colors font-medium">
+        <div class="flex items-center justify-between pt-2 border-t border-slate-50 dark:border-slate-800/60 mt-1 flex-wrap gap-2">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <button id="pasteBtn" aria-label="Panodan Yapıştır" class="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 px-3 py-2 min-h-[44px] rounded-xl transition-colors font-medium">
               <i class="ph ph-clipboard-text text-base"></i>
               <span>Yapıştır</span>
             </button>
+            <div id="diacriticsBar" class="flex items-center gap-1 pl-1 border-l border-slate-200/80 dark:border-slate-700/80 overflow-x-auto scrollbar-none py-0.5"></div>
           </div>
 
           <button id="searchBtn" disabled aria-label="Sözlükte Ara"
@@ -272,6 +287,11 @@
       <p class="text-xs text-slate-500 max-w-sm text-center mt-1 leading-relaxed">
         Doğru artikeller (de/het), bağlamsal anlamlar, deyimler ve doğal telaffuz rehberi.
       </p>
+
+      <!-- Word of the Day (Günün Kelimesi) Card -->
+      <div id="wordOfTheDayCard" class="w-full mt-4 p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm transition-all hover:border-primary-300 dark:hover:border-primary-700">
+        <!-- Rendered dynamically via JS -->
+      </div>
 
       <!-- Situational Practice Categories (Customer-Centric Learning Hub) -->
       <div class="w-full mt-5 space-y-3">
@@ -391,8 +411,29 @@
           </button>
         </div>
       </div>
-      <div id="historyList" class="flex-1 overflow-y-auto p-3 space-y-1.5 divide-y divide-slate-50">
+      <div id="historyList" class="flex-1 overflow-y-auto p-3 space-y-1.5 divide-y divide-slate-50 dark:divide-slate-800/60">
         <!-- History items dynamically inserted -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Favorites Drawer Modal -->
+  <div id="favoritesModal" class="hidden fixed inset-0 z-50 flex flex-col justify-end md:justify-center items-center bg-slate-900/40 backdrop-blur-xs p-0 md:p-4" role="dialog" aria-modal="true" aria-labelledby="favoritesModalTitle">
+    <div class="bg-white dark:bg-slate-900 rounded-t-3xl md:rounded-2xl w-full max-w-md max-h-[80vh] flex flex-col shadow-2xl overflow-hidden animate-slide-up border border-slate-100 dark:border-slate-800">
+      <div class="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
+        <div class="flex items-center gap-2">
+          <i class="ph-bold ph-star text-xl text-amber-500"></i>
+          <h3 id="favoritesModalTitle" class="font-bold text-slate-800 dark:text-slate-100 text-base">Favori Kelimelerim</h3>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="clearFavoritesBtn" class="text-xs text-red-500 hover:text-red-700 font-semibold px-3 py-2 min-h-[44px] rounded-lg">Temizle</button>
+          <button id="closeFavoritesBtn" onclick="window.closeFavoritesModal()" aria-label="Kapat" class="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-full">
+            <i class="ph-bold ph-x text-lg"></i>
+          </button>
+        </div>
+      </div>
+      <div id="favoritesList" class="flex-1 overflow-y-auto p-3 space-y-1.5 divide-y divide-slate-50 dark:divide-slate-800/60">
+        <!-- Favorites items dynamically inserted -->
       </div>
     </div>
   </div>
