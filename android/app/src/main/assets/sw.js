@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lexibridge-cache-v17';
+const CACHE_NAME = 'lexibridge-cache-v18';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -8,6 +8,7 @@ const ASSETS_TO_CACHE = [
   './vendor/phosphor/Phosphor-Bold.woff2',
   './js/cache.js',
   './js/aiEngine.js',
+  './js/dictionary_seeds.js',
   './js/app.js',
   './manifest.json',
   './app_icon.ico',

@@ -23,7 +23,18 @@
   <script src="https://unpkg.com/@phosphor-icons/web" onerror="this.remove()"></script>
   
   <script>
+    (function() {
+      try {
+        var theme = localStorage.getItem('lexi_theme');
+        if (theme === 'dark' || (!theme && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      } catch(e) {}
+    })();
     tailwind.config = {
+      darkMode: 'class',
       theme: {
         extend: {
           fontFamily: {
@@ -136,14 +147,17 @@
       <!-- Action Buttons (WCAG AA >= 44x44px Touch Targets) -->
       <div class="flex items-center gap-1.5 sm:gap-2">
         <!-- Iconic Mode Toggle (Derin AI vs Hızlı API) -->
-        <button id="modeToggleBtn" title="Aktif Mod: Derin AI (Hızlı REST için dokunun)" aria-label="Derin AI ve Hızlı REST Arasında Geçiş Yap" class="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-amber-500 hover:bg-amber-50 active:scale-95 rounded-full transition-all border border-amber-200/80 bg-amber-50/40 shadow-2xs">
+        <button id="modeToggleBtn" title="Aktif Mod: Derin AI (Hızlı REST için dokunun)" aria-label="Derin AI ve Hızlı REST Arasında Geçiş Yap" class="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/40 active:scale-95 rounded-full transition-all border border-amber-200/80 dark:border-amber-800/80 bg-amber-50/40 dark:bg-amber-950/20 shadow-2xs">
           <i id="modeToggleIcon" class="ph-bold ph-sparkle text-xl text-amber-500"></i>
           <span id="modeToggleText" class="sr-only">Derin AI</span>
         </button>
-        <button id="historyBtn" onclick="window.openHistoryModal()" title="Geçmiş Aramalar" aria-label="Arama Geçmişini Aç" class="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-600 hover:bg-slate-100 active:scale-95 rounded-full transition-all">
+        <button id="historyBtn" onclick="window.openHistoryModal()" title="Geçmiş Aramalar" aria-label="Arama Geçmişini Aç" class="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 rounded-full transition-all">
           <i class="ph ph-clock-counter-clockwise text-xl"></i>
         </button>
-        <button id="settingsBtn" onclick="window.openSettingsModal()" title="Ayarlar & API Sağlayıcı" aria-label="Ayarlar Menüsünü Aç" class="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-600 hover:bg-slate-100 active:scale-95 rounded-full transition-all">
+        <button id="themeToggleBtn" onclick="window.toggleTheme()" title="Karanlık / Aydınlık Mod" aria-label="Temayı Değiştir" class="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 rounded-full transition-all">
+          <i id="themeToggleIcon" class="ph-bold ph-moon text-xl"></i>
+        </button>
+        <button id="settingsBtn" onclick="window.openSettingsModal()" title="Ayarlar & API Sağlayıcı" aria-label="Ayarlar Menüsünü Aç" class="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 rounded-full transition-all">
           <i class="ph ph-gear text-xl"></i>
         </button>
       </div>
@@ -155,35 +169,38 @@
   <main class="flex-1 w-full max-w-2xl mx-auto px-4 py-4 md:py-6 flex flex-col">
     
     <!-- Search & Language Card -->
-    <div class="w-full bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 overflow-hidden mb-4 transition-all">
+    <div class="w-full bg-white dark:bg-slate-900 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 dark:border-slate-800 overflow-hidden mb-4 transition-all">
       
       <!-- Language Switcher Bar -->
-      <div class="flex items-center justify-center gap-2 px-3 py-2.5 border-b border-slate-50 bg-slate-50/70">
-        <button id="sourceLangBtn" class="flex-1 max-w-[170px] flex items-center justify-center gap-1.5 text-sm font-semibold px-3 py-2 min-h-[44px] rounded-xl bg-white border border-slate-200 shadow-xs text-primary-700">
+      <div class="flex items-center justify-center gap-2 px-3 py-2.5 border-b border-slate-50 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40">
+        <button id="sourceLangBtn" class="flex-1 max-w-[170px] flex items-center justify-center gap-1.5 text-sm font-semibold px-3 py-2 min-h-[44px] rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs text-primary-700 dark:text-primary-400">
           <span class="text-base">🇳🇱</span>
           <span id="sourceLangText">Nederlands</span>
         </button>
         
-        <button id="swapLangBtn" aria-label="Dilleri Değiştir" class="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-500 hover:text-primary-600 hover:bg-white active:rotate-180 rounded-full transition-all border border-transparent hover:border-slate-200 shrink-0">
+        <button id="swapLangBtn" aria-label="Dilleri Değiştir" class="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-500 hover:text-primary-600 hover:bg-white dark:hover:bg-slate-700 active:rotate-180 rounded-full transition-all border border-transparent hover:border-slate-200 dark:hover:border-slate-700 shrink-0">
           <i class="ph-bold ph-arrows-left-right text-base"></i>
         </button>
 
-        <button id="targetLangBtn" class="flex-1 max-w-[170px] flex items-center justify-center gap-1.5 text-sm font-semibold px-3 py-2 min-h-[44px] rounded-xl bg-white border border-slate-200 shadow-xs text-slate-700">
+        <button id="targetLangBtn" class="flex-1 max-w-[170px] flex items-center justify-center gap-1.5 text-sm font-semibold px-3 py-2 min-h-[44px] rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs text-slate-700 dark:text-slate-200">
           <span class="text-base">🇹🇷</span>
           <span id="targetLangText">Türkçe</span>
         </button>
       </div>
 
       <!-- Input Area -->
-      <div class="p-3.5 md:p-4">
+      <div class="p-3.5 md:p-4 relative">
         <div class="relative">
           <textarea id="searchInput" rows="2" placeholder="Hollandaca bir kelime, deyim veya cümle yazın..." 
-            class="w-full text-base md:text-lg bg-transparent border-none focus:ring-0 resize-none outline-none placeholder:text-slate-400 text-slate-800 leading-relaxed pr-10"></textarea>
+            class="w-full text-base md:text-lg bg-transparent border-none focus:ring-0 resize-none outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 text-slate-800 dark:text-slate-100 leading-relaxed pr-10"></textarea>
           
-          <button id="clearBtn" aria-label="Arama Metnini Temizle" class="hidden absolute right-0 top-0 w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors">
+          <button id="clearBtn" aria-label="Arama Metnini Temizle" class="hidden absolute right-0 top-0 w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
             <i class="ph-bold ph-x text-base"></i>
           </button>
         </div>
+
+        <!-- Autocomplete Suggestions Dropdown -->
+        <div id="autocompleteDropdown" class="hidden absolute left-3.5 right-3.5 top-full mt-1 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-700 rounded-2xl shadow-xl z-30 max-h-60 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800"></div>
         
         <!-- Controls & Search Button -->
         <div class="flex items-center justify-between pt-2 border-t border-slate-50 mt-1">
@@ -553,11 +570,18 @@
     </div>
   </div>
 
-  <!-- PWA Service Worker Registration & AI Engine Scripts (Cache-Busted v3.5) -->
-  <script src="js/config.local.js?v=3.5" onerror="this.remove()"></script>
-  <script src="js/cache.js?v=3.5"></script>
-  <script src="js/aiEngine.js?v=3.5"></script>
-  <script src="js/app.js?v=3.5"></script>
+  <!-- Micro Toast Notification -->
+  <div id="toast" class="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-900/95 dark:bg-white/95 text-white dark:text-slate-900 text-xs font-semibold shadow-2xl backdrop-blur-md border border-slate-700/60 dark:border-slate-200/60">
+    <i id="toastIcon" class="ph-bold ph-check-circle text-emerald-400 dark:text-emerald-600 text-base"></i>
+    <span id="toastMessage">Kopyalandı</span>
+  </div>
+
+  <!-- PWA Service Worker Registration & AI Engine Scripts (Cache-Busted v3.6) -->
+  <script src="js/config.local.js?v=3.6" onerror="this.remove()"></script>
+  <script src="js/cache.js?v=3.6"></script>
+  <script src="js/aiEngine.js?v=3.6"></script>
+  <script src="js/dictionary_seeds.js?v=3.6"></script>
+  <script src="js/app.js?v=3.6"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {

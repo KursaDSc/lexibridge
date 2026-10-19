@@ -98,7 +98,14 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
     "ipa": "/.../",
     "simplified": "..."
   },
+  "cefr": "A1 | A2 | B1 | B2 | C1 | C2",
   "partOfSpeech": "noun, verb, adjective, adverb, idiom, expression, sentence vb.",
+  "conjugation": {
+    "isVerb": true,
+    "present": { "ik": "...", "jij": "...", "wij": "..." },
+    "past": { "singular": "...", "plural": "..." },
+    "perfect": "heeft/is + ..."
+  },
   "translations": [
     {
       "text": "ana çeviri (deyim ise mecazi asıl karşılığı)",
@@ -136,7 +143,7 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
       "relation": "synonym | antonym | related"
     }
   ]
-}`;
+};
 
   const LOCAL_SYSTEM_PROMPT = `Sen Felemenkçe ve Türkçe dillerinde uzman, hızlı bir mobil sözlük asistanısın.
 Sana verilen kelime veya cümleyi analiz et ve YALNIZCA geçerli bir JSON objesi olarak döndür. Markdown (\`\`\`json) veya açıklama KULLANMA.
@@ -150,7 +157,9 @@ JSON Şablonu:
   "input": "girdi",
   "sourceLanguage": "nl veya tr",
   "targetLanguage": "nl veya tr",
+  "cefr": "A1 | A2 | B1 | B2",
   "partOfSpeech": "noun, verb, adjective, adverb, idiom, expression vb.",
+  "conjugation": { "isVerb": false, "present": { "ik": "", "jij": "", "wij": "" }, "past": { "singular": "", "plural": "" }, "perfect": "" },
   "translations": [
     { "text": "ana çeviri (deyim ise mecazi anlam)", "context": "kullanım", "frequency": "very_common" }
   ],
@@ -540,11 +549,40 @@ ${sanitized}
         .filter((r) => r.word.length > 0);
     }
 
+    // CEFR Level Normalization (A1, A2, B1, B2, C1, C2)
+    const validCefr = ["A1", "A2", "B1", "B2", "C1", "C2"];
+    let rawCefr = String(raw.cefr || "").toUpperCase().trim();
+    let cefr = validCefr.includes(rawCefr) ? rawCefr : "A2";
+
+    // Verb Conjugation Normalization
+    let conjugation = null;
+    const isVerb = String(raw.partOfSpeech || "").toLowerCase().includes("verb") ||
+                   String(raw.partOfSpeech || "").toLowerCase().includes("fiil") ||
+                   (raw.conjugation && raw.conjugation.isVerb);
+
+    if (isVerb && raw.conjugation) {
+      conjugation = {
+        isVerb: true,
+        present: {
+          ik: String(raw.conjugation.present?.ik || "").trim(),
+          jij: String(raw.conjugation.present?.jij || "").trim(),
+          wij: String(raw.conjugation.present?.wij || "").trim()
+        },
+        past: {
+          singular: String(raw.conjugation.past?.singular || "").trim(),
+          plural: String(raw.conjugation.past?.plural || "").trim()
+        },
+        perfect: String(raw.conjugation.perfect || "").trim()
+      };
+    }
+
     return {
       input: String(raw.input || fallbackQuery || "").trim(),
       sourceLanguage: sl,
       targetLanguage: tl,
+      cefr: cefr,
       partOfSpeech: String(raw.partOfSpeech || "").trim(),
+      conjugation: conjugation,
       pronunciation: pronunciation,
       translations: translations,
       meanings: meanings,

@@ -206,6 +206,101 @@ document.addEventListener('DOMContentLoaded', () => {
   let activeProvider = 'google';
   let activeModel = 'gemini-flash-latest';
   let isQuickMode = false;
+  let isCompactView = localStorage.getItem('lexi_view_mode') === 'compact';
+
+  // ── UI Enhancements Elements ─────────────────────────────────────────────
+  const themeToggleBtn = document.getElementById('themeToggleBtn');
+  const themeToggleIcon = document.getElementById('themeToggleIcon');
+  const autocompleteDropdown = document.getElementById('autocompleteDropdown');
+  const toastEl = document.getElementById('toast');
+  const toastMessage = document.getElementById('toastMessage');
+  const toastIcon = document.getElementById('toastIcon');
+  let toastTimeout = null;
+
+  function showToast(msg, iconClass = 'ph-bold ph-check-circle text-emerald-400') {
+    if (!toastEl || !toastMessage) return;
+    if (toastTimeout) clearTimeout(toastTimeout);
+    toastMessage.textContent = msg;
+    if (toastIcon) toastIcon.className = iconClass;
+    toastEl.classList.add('show');
+    toastTimeout = setTimeout(() => {
+      toastEl.classList.remove('show');
+    }, 2000);
+  }
+
+  window.toggleTheme = function() {
+    const isDark = document.documentElement.classList.toggle('dark');
+    localStorage.setItem('lexi_theme', isDark ? 'dark' : 'light');
+    updateThemeIcon();
+    showToast(isDark ? 'Karanlık Mod Açık' : 'Aydınlık Mod Açık', isDark ? 'ph-bold ph-moon text-indigo-400' : 'ph-bold ph-sun text-amber-500');
+  };
+
+  function updateThemeIcon() {
+    if (!themeToggleIcon) return;
+    const isDark = document.documentElement.classList.contains('dark');
+    themeToggleIcon.className = isDark ? 'ph-bold ph-sun text-xl text-amber-400' : 'ph-bold ph-moon text-xl';
+  }
+
+  function renderInteractiveSentence(sentence, lang, keyword = '') {
+    if (!sentence) return '';
+    if (lang !== 'nl') {
+      return highlightKeyword(sentence, keyword);
+    }
+    const tokens = sentence.split(/(\s+|[.,!?:;"'()\[\]]+)/);
+    return tokens.map(token => {
+      const clean = token.replace(/[.,!?:;"'()\[\]]/g, '').trim();
+      const isWord = /^[a-zA-ZÀ-ÿ-]+$/.test(clean) && clean.length > 1;
+      const isKey = keyword && clean.toLowerCase() === keyword.toLowerCase();
+
+      if (isWord) {
+        const keyClass = isKey ? 'text-primary-600 dark:text-primary-400 font-bold bg-primary-50 dark:bg-primary-950/60 px-1 rounded' : '';
+        return `<span class="lookup-word ${keyClass}" data-word="${escapeHtml(clean)}" title="'${escapeHtml(clean)}' kelimesini ara">${escapeHtml(token)}</span>`;
+      }
+      return escapeHtml(token);
+    }).join('');
+  }
+
+  function renderAutocomplete(query) {
+    if (!autocompleteDropdown) return;
+    if (!query || query.length < 2 || typeof window.LEXI_DICTIONARY_SEEDS === 'undefined') {
+      autocompleteDropdown.classList.add('hidden');
+      return;
+    }
+
+    const q = query.toLowerCase();
+    const matches = window.LEXI_DICTIONARY_SEEDS.filter(s =>
+      s.nl.toLowerCase().startsWith(q) || s.tr.toLowerCase().includes(q)
+    ).slice(0, 5);
+
+    if (matches.length === 0) {
+      autocompleteDropdown.classList.add('hidden');
+      return;
+    }
+
+    autocompleteDropdown.innerHTML = matches.map(s => `
+      <div class="autocomplete-item p-3 hover:bg-slate-50 dark:hover:bg-slate-800/80 cursor-pointer flex items-center justify-between text-xs transition-colors" data-word="${escapeHtml(s.nl)}">
+        <div class="flex items-center gap-2">
+          <span class="font-bold text-slate-800 dark:text-slate-100 text-sm">${escapeHtml(s.nl)}</span>
+          ${s.article ? `<span class="px-2 py-0.5 rounded text-xs font-bold uppercase ${s.article === 'de' ? 'bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800' : 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'}">${escapeHtml(s.article)}</span>` : ''}
+          <span class="text-slate-400">➔</span>
+          <span class="text-slate-600 dark:text-slate-300 font-medium">${escapeHtml(s.tr)}</span>
+        </div>
+        <span class="text-xs font-bold text-slate-400 px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded">${escapeHtml(s.cefr || 'A1')}</span>
+      </div>
+    `).join('');
+
+    autocompleteDropdown.querySelectorAll('.autocomplete-item').forEach(el => {
+      el.addEventListener('click', () => {
+        searchInput.value = el.dataset.word;
+        clearBtn.classList.remove('hidden');
+        searchBtn.disabled = false;
+        autocompleteDropdown.classList.add('hidden');
+        handleSearch();
+      });
+    });
+
+    autocompleteDropdown.classList.remove('hidden');
+  }
 
   // ── Init Settings ───────────────────────────────────────────────────────
   function init() {
@@ -232,6 +327,21 @@ document.addEventListener('DOMContentLoaded', () => {
     updateProviderModalUI();
     renderHistory();
     renderSeedChips();
+    updateThemeIcon();
+
+    // Autocomplete on search input
+    if (searchInput) {
+      searchInput.addEventListener('input', () => {
+        renderAutocomplete(searchInput.value.trim());
+      });
+    }
+
+    // Close autocomplete on click outside
+    document.addEventListener('click', (e) => {
+      if (autocompleteDropdown && !autocompleteDropdown.contains(e.target) && e.target !== searchInput) {
+        autocompleteDropdown.classList.add('hidden');
+      }
+    });
 
     // Attach click events to situational practice topic chips in empty state
     document.querySelectorAll('.topic-chip').forEach((chip) => {
@@ -422,31 +532,33 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ── Pronunciation Audio (Google TTS Native Audio + SpeechSynthesis Fallback) ──
-  function speak(text, lang) {
+  function speak(text, lang, rate = 1.0) {
     if (!text) return;
     const cleanLang = (lang === 'nl' || lang === 'nl-NL') ? 'nl' : 'tr';
+    const playbackRate = typeof rate === 'number' && rate > 0 ? rate : 1.0;
 
     // 1. Try Google High-Quality Native TTS first
     try {
       const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&client=gtx&tl=${cleanLang}&q=${encodeURIComponent(text.slice(0, 100))}`;
       const audio = new Audio(ttsUrl);
+      audio.playbackRate = playbackRate;
       const playPromise = audio.play();
       if (playPromise !== undefined) {
         playPromise.catch(() => {
-          fallbackSpeech(text, cleanLang);
+          fallbackSpeech(text, cleanLang, playbackRate);
         });
       }
     } catch {
-      fallbackSpeech(text, cleanLang);
+      fallbackSpeech(text, cleanLang, playbackRate);
     }
   }
 
-  function fallbackSpeech(text, cleanLang) {
+  function fallbackSpeech(text, cleanLang, playbackRate = 1.0) {
     if (!('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = cleanLang === 'nl' ? 'nl-NL' : 'tr-TR';
-    utterance.rate = 0.9;
+    utterance.rate = playbackRate === 0.75 ? 0.75 : 0.9;
     window.speechSynthesis.speak(utterance);
   }
 
@@ -526,8 +638,38 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // 2. If user is offline and word not found in cache, display informative offline state
+    // 2. If user is offline, check pre-bundled offline seeds first
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      if (typeof window.LEXI_DICTIONARY_SEEDS !== 'undefined') {
+        const qLow = query.toLowerCase().trim();
+        const seedMatch = window.LEXI_DICTIONARY_SEEDS.find(
+          (s) => s.nl.toLowerCase() === qLow || s.tr.toLowerCase().includes(qLow)
+        );
+        if (seedMatch) {
+          const offlineResult = {
+            input: seedMatch.nl,
+            sourceLanguage: 'nl',
+            targetLanguage: 'tr',
+            cefr: seedMatch.cefr || 'A1',
+            partOfSpeech: seedMatch.pos || 'İsim',
+            grammar: {
+              article: seedMatch.article || '',
+              plural: seedMatch.plural || ''
+            },
+            conjugation: seedMatch.conjugation || null,
+            translations: [{ text: seedMatch.tr, frequency: 'very_common' }],
+            meanings: [{ meaning: seedMatch.tr }],
+            examples: seedMatch.example ? [seedMatch.example] : [],
+            relatedWords: [],
+            _provider: 'LexiBridge Çevrimdışı Sözlük (0ms)',
+            _latency: 0,
+            _isCached: true
+          };
+          renderResult(offlineResult);
+          saveToHistory(query, sourceLang, seedMatch.tr);
+          return;
+        }
+      }
       showError('Çevrimdışı Mod: Bu kelime henüz cihazınıza kaydedilmemiş. Lütfen internete bağlanın veya daha önce aradığınız kelimeleri Geçmiş sekmesinden inceleyin.');
       return;
     }
@@ -571,15 +713,19 @@ document.addEventListener('DOMContentLoaded', () => {
     resultsContainer.innerHTML = '';
     const isSourceNl = data.sourceLanguage === 'nl';
     const mainTrans = data.translations?.[0]?.text || '';
+    const article = (data.grammar?.article || '').toLowerCase().trim();
+    const isDe = isSourceNl && (article === 'de');
+    const isHet = isSourceNl && (article === 'het');
+    const cardAccentClass = isDe ? 'article-de-card' : isHet ? 'article-het-card' : '';
 
     // 0. Did You Mean Banner (Spell Check)
     let html = '';
     if (data.didYouMean) {
       html += `
-        <div class="p-3 bg-amber-50/90 border border-amber-200/80 rounded-2xl flex items-center justify-between gap-3 text-xs md:text-sm text-amber-900 shadow-sm animate-slide-up mb-3">
+        <div class="p-3 bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/80 rounded-2xl flex items-center justify-between gap-3 text-xs md:text-sm text-amber-900 dark:text-amber-200 shadow-sm animate-slide-up mb-3">
           <div class="flex items-center gap-2">
             <i class="ph-bold ph-lightbulb text-amber-600 text-base"></i>
-            <span>Bunu mu demek istediniz: <button class="font-bold underline text-amber-950 did-you-mean-btn hover:text-primary-600" data-word="${escapeHtml(data.didYouMean)}">${escapeHtml(data.didYouMean)}</button>?</span>
+            <span>Bunu mu demek istediniz: <button class="font-bold underline text-amber-950 dark:text-amber-100 did-you-mean-btn hover:text-primary-600" data-word="${escapeHtml(data.didYouMean)}">${escapeHtml(data.didYouMean)}</button>?</span>
           </div>
           <button class="did-you-mean-btn px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold transition-all active:scale-95 shadow-xs" data-word="${escapeHtml(data.didYouMean)}">
             Ara
@@ -590,61 +736,87 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 1. Primary Word / Header Card
     html += `
-      <div class="bg-white rounded-2xl p-4 md:p-5 border border-slate-100 shadow-sm animate-slide-up">
+      <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 md:p-5 border border-slate-100 dark:border-slate-800 shadow-sm animate-slide-up ${cardAccentClass}">
         <div class="flex items-start justify-between gap-3">
           <div>
-            <div class="flex items-center gap-2">
-              <h2 class="text-2xl md:text-3xl font-bold text-slate-800 tracking-tight">${escapeHtml(data.input)}</h2>
-              <button class="speak-btn w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-primary-600 bg-primary-50 hover:bg-primary-100 active:scale-95 rounded-full transition-all" aria-label="Kelimeyi sesli telaffuz et" data-text="${escapeHtml(data.input)}" data-lang="${data.sourceLanguage}">
+            <div class="flex items-center flex-wrap gap-2">
+              <h2 class="text-2xl md:text-3xl font-bold text-slate-800 dark:text-slate-100 tracking-tight">${escapeHtml(data.input)}</h2>
+              <button class="speak-btn w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950/50 hover:bg-primary-100 dark:hover:bg-primary-900 active:scale-95 rounded-full transition-all" aria-label="Kelimeyi sesli telaffuz et" data-text="${escapeHtml(data.input)}" data-lang="${data.sourceLanguage}" data-rate="1.0" title="Sesli Telaffuz (1.0x)">
                 <i class="ph-bold ph-speaker-high text-xl"></i>
+              </button>
+              <button class="speak-btn px-2.5 py-1 min-h-[44px] flex items-center justify-center text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-amber-600 bg-slate-100 dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-amber-950/40 rounded-xl transition-all" aria-label="0.75x Yavaş Dinle" data-text="${escapeHtml(data.input)}" data-lang="${data.sourceLanguage}" data-rate="0.75" title="0.75x Yavaş Dinle">
+                0.75x
               </button>
             </div>
 
             <div class="flex flex-wrap items-center gap-2 mt-2">
-              ${data.grammar?.article ? renderArticleBadge(data.grammar.article) : ''}
+              ${isDe ? `<span class="text-xs px-2.5 py-1 rounded-lg font-bold uppercase tracking-wider bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800" title="De Belirteci">de</span>` : isHet ? `<span class="text-xs px-2.5 py-1 rounded-lg font-bold uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800" title="Het Belirteci">het</span>` : (data.grammar?.article ? renderArticleBadge(data.grammar.article) : '')}
+              ${data.cefr ? `
+                <span class="text-xs px-2.5 py-1 rounded-lg font-bold uppercase ${
+                  (data.cefr === 'A1' || data.cefr === 'A2')
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                    : (data.cefr === 'B1' || data.cefr === 'B2')
+                    ? 'bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800'
+                    : 'bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800'
+                } border" title="Avrupa Dil Seviyesi (CEFR)">${escapeHtml(data.cefr)}</span>
+              ` : ''}
               ${data.partOfSpeech ? `
-                <span class="text-xs px-2.5 py-1 rounded-lg ${/idiom|expression|deyim/i.test(data.partOfSpeech) ? 'bg-amber-100 text-amber-900 border-amber-300 font-bold inline-flex items-center gap-1 shadow-2xs' : 'bg-sky-50 text-sky-700 font-semibold border-sky-100/60'} border">
+                <span class="text-xs px-2.5 py-1 rounded-lg ${/idiom|expression|deyim/i.test(data.partOfSpeech) ? 'bg-amber-100 dark:bg-amber-950/50 text-amber-900 dark:text-amber-200 border-amber-300 dark:border-amber-700 font-bold inline-flex items-center gap-1 shadow-2xs' : 'bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border-sky-100/60 dark:border-sky-800'} border">
                   ${/idiom|expression|deyim/i.test(data.partOfSpeech) ? '<i class="ph-bold ph-lightbulb text-amber-600"></i>' : ''}
                   <span>${escapeHtml(localizePos(data.partOfSpeech))}</span>
                 </span>
               ` : ''}
               ${data.pronunciation?.ipa ? `
-                <span class="font-mono text-xs px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200/50">
+                <span class="font-mono text-xs px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/50 dark:border-slate-700/50">
                   ${escapeHtml(data.pronunciation.ipa)}
                 </span>
               ` : ''}
               ${data.grammar?.plural ? `
-                <span class="text-xs px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 font-medium border border-indigo-100/70 inline-flex items-center gap-1" title="Çoğul Hali">
+                <span class="text-xs px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 font-medium border border-indigo-100/70 dark:border-indigo-800 inline-flex items-center gap-1" title="Çoğul Hali">
                   <span class="text-xs text-indigo-500 font-bold uppercase">çoğul:</span>
-                  <span class="font-semibold text-slate-800">${escapeHtml(data.grammar.plural)}</span>
+                  <span class="font-semibold text-slate-800 dark:text-slate-100">${escapeHtml(data.grammar.plural)}</span>
                 </span>
               ` : ''}
               ${data.grammar?.infinitive && data.grammar.infinitive !== data.input ? `
-                <span class="text-xs px-2.5 py-1 rounded-lg bg-purple-50 text-purple-700 font-medium border border-purple-100/70 inline-flex items-center gap-1" title="Fiil Mastar Hali">
+                <span class="text-xs px-2.5 py-1 rounded-lg bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 font-medium border border-purple-100/70 dark:border-purple-800 inline-flex items-center gap-1" title="Fiil Mastar Hali">
                   <span class="text-xs text-purple-500 font-bold uppercase">mastar:</span>
-                  <span class="font-semibold text-slate-800">${escapeHtml(data.grammar.infinitive)}</span>
+                  <span class="font-semibold text-slate-800 dark:text-slate-100">${escapeHtml(data.grammar.infinitive)}</span>
                 </span>
               ` : ''}
             </div>
           </div>
+
+          <!-- Quick Actions: Share & Compact/Detailed Mode -->
+          <div class="flex items-center gap-1 shrink-0">
+            <button id="shareResultBtn" class="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors" title="Kelime Kartını Paylaş" aria-label="Kelime Kartını Paylaş">
+              <i class="ph-bold ph-share-network text-lg"></i>
+            </button>
+            <button id="toggleDenseBtn" class="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 px-2.5 py-1.5 min-h-[44px] rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors font-semibold" title="Kompakt / Detaylı Modu Değiştir" aria-label="Kompakt / Detaylı Modu Değiştir">
+              <i class="ph-bold ${isCompactView ? 'ph-caret-down' : 'ph-caret-up'} text-xs"></i>
+              <span>${isCompactView ? 'Kompakt' : 'Detaylı'}</span>
+            </button>
+          </div>
         </div>
 
         <!-- Primary Target Translation -->
-        <div class="mt-4 pt-4 border-t border-slate-50 flex items-start gap-2.5">
+        <div class="mt-4 pt-4 border-t border-slate-50 dark:border-slate-800 flex items-start gap-2.5">
           <span class="text-xl">${data.targetLanguage === 'tr' ? '🇹🇷' : '🇳🇱'}</span>
           <div class="flex-1">
             <div class="flex flex-wrap items-baseline gap-2">
-              <span class="text-xl md:text-2xl font-bold text-slate-900">${escapeHtml(mainTrans)}</span>
+              <span class="text-xl md:text-2xl font-bold text-slate-900 dark:text-slate-100">${escapeHtml(mainTrans)}</span>
               ${data.translations?.[0]?.frequency && data.translations[0].frequency !== 'rare' ? `
-                <span class="text-xs uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100/80">
+                <span class="text-xs uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-100/80 dark:border-emerald-800">
                   ${escapeHtml(localizeFrequency(data.translations[0].frequency))}
                 </span>
               ` : ''}
+              <button class="copy-btn text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ml-auto shrink-0" data-copy="${escapeHtml(mainTrans)}" title="Çeviriyi Kopyala" aria-label="Çeviriyi Kopyala">
+                <i class="ph-bold ph-copy text-base"></i>
+              </button>
             </div>
             ${data.translations?.length > 1 ? `
               <div class="flex flex-wrap gap-1.5 mt-2">
                 ${data.translations.slice(1).map(t => `
-                  <span class="text-xs md:text-sm px-2.5 py-1 bg-slate-50 border border-slate-100 rounded-lg text-slate-700">
+                  <span class="text-xs md:text-sm px-2.5 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300">
                     ${escapeHtml(t.text)} ${t.context ? `<span class="text-slate-400 text-xs">(${escapeHtml(t.context)})</span>` : ''}
                   </span>
                 `).join('')}
@@ -655,23 +827,76 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     `;
 
-    // 2. Meanings Card
-    if (data.meanings && data.meanings.length > 0) {
+    // 1.5 Verb Conjugation Matrix Card (if verb)
+    if (data.conjugation && data.conjugation.isVerb) {
+      const conj = data.conjugation;
       html += `
-        <div class="bg-white rounded-2xl p-4 md:p-5 border border-slate-100 shadow-sm animate-slide-up" style="animation-delay: 0.05s">
-          <div class="flex items-center gap-2 mb-3 text-slate-700">
-            <i class="ph-bold ph-book-open text-primary-600 text-lg"></i>
-            <h3 class="font-bold text-base text-slate-800">Detaylı Anlamlar & Bağlam</h3>
+        <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 md:p-5 border border-slate-100 dark:border-slate-800 shadow-sm animate-slide-up" style="animation-delay: 0.05s">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+              <i class="ph-bold ph-arrows-clockwise text-indigo-500 text-lg"></i>
+              <h3 class="font-bold text-base text-slate-800 dark:text-slate-100">Fiil Çekim Tablosu (Vervoeging)</h3>
+            </div>
+            <span class="text-xs font-semibold px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800">Gramer</span>
           </div>
-          <div class="space-y-3">
-            ${data.meanings.map((m, idx) => `
-              <div class="flex items-start gap-3 leading-relaxed">
-                <span class="font-mono text-slate-400 text-xs md:text-sm font-bold mt-0.5">${String(idx + 1).padStart(2, '0')}</span>
-                <div>
-                  <div class="font-semibold text-sm md:text-base text-slate-800">${escapeHtml(m.meaning)}</div>
-                  ${m.explanation ? `<div class="text-xs md:text-sm text-slate-600 mt-1 leading-relaxed">${escapeHtml(m.explanation)}</div>` : ''}
-                  ${m.context ? `<span class="inline-block mt-1 text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-medium">${escapeHtml(m.context)}</span>` : ''}
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+            <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/60">
+              <div class="font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-1.5">Şimdiki Zaman (O.T.T.)</div>
+              <div class="space-y-1 text-slate-700 dark:text-slate-300">
+                <div><span class="text-slate-400 font-mono">ik:</span> <span class="font-semibold text-slate-800 dark:text-slate-100">${escapeHtml(conj.present?.ik || '-')}</span></div>
+                <div><span class="text-slate-400 font-mono">jij/hij:</span> <span class="font-semibold text-slate-800 dark:text-slate-100">${escapeHtml(conj.present?.jij || '-')}</span></div>
+                <div><span class="text-slate-400 font-mono">wij/zij:</span> <span class="font-semibold text-slate-800 dark:text-slate-100">${escapeHtml(conj.present?.wij || '-')}</span></div>
+              </div>
+            </div>
+            <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/60">
+              <div class="font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-1.5">Geçmiş Zaman (O.V.T.)</div>
+              <div class="space-y-1 text-slate-700 dark:text-slate-300">
+                <div><span class="text-slate-400 font-mono">tekil:</span> <span class="font-semibold text-slate-800 dark:text-slate-100">${escapeHtml(conj.past?.singular || '-')}</span></div>
+                <div><span class="text-slate-400 font-mono">çoğul:</span> <span class="font-semibold text-slate-800 dark:text-slate-100">${escapeHtml(conj.past?.plural || '-')}</span></div>
+              </div>
+            </div>
+            <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/60">
+              <div class="font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-1.5">Tamamlanmış (V.D.)</div>
+              <div class="space-y-1 text-slate-700 dark:text-slate-300">
+                <div><span class="text-slate-400 font-mono">deelwoord:</span> <span class="font-semibold text-slate-800 dark:text-slate-100">${escapeHtml(conj.perfect || '-')}</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // 2. Examples Card (with Tap-to-Lookup & Slow Audio)
+    if (data.examples && data.examples.length > 0) {
+      html += `
+        <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 md:p-5 border border-slate-100 dark:border-slate-800 shadow-sm animate-slide-up" style="animation-delay: 0.08s">
+          <div class="flex items-center justify-between mb-3 text-slate-700 dark:text-slate-300">
+            <div class="flex items-center gap-2">
+              <i class="ph-bold ph-chat-circle-text text-blue-500 text-lg"></i>
+              <h3 class="dark:text-slate-100 font-bold text-base text-slate-800">Doğal Örnek Cümleler</h3>
+            </div>
+            <span class="text-xs text-slate-400 font-medium">Kelimelere dokunarak ara</span>
+          </div>
+          <div class="space-y-2.5">
+            ${data.examples.map(ex => `
+              <div class="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100/80 dark:border-slate-700/60">
+                <div class="flex items-start justify-between gap-2">
+                  <div class="font-medium text-sm md:text-base text-slate-800 dark:text-slate-100 leading-relaxed">
+                    ${renderInteractiveSentence(ex.source, data.sourceLanguage, data.input) /* highlightKeyword(ex.source, data.input) */}
+                  </div>
+                  <div class="flex items-center gap-0.5 shrink-0">
+                    <button class="speak-btn text-slate-500 dark:text-slate-400 hover:text-primary-600 p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" aria-label="Örnek cümleyi sesli oku" data-text="${escapeHtml(ex.source)}" data-lang="${data.sourceLanguage}" data-rate="1.0" title="Sesli Oku (1.0x)">
+                      <i class="ph ph-speaker-simple-high text-base"></i>
+                    </button>
+                    <button class="speak-btn text-slate-400 hover:text-amber-600 p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-amber-50 dark:hover:bg-amber-950/40 text-xs font-bold transition-colors" aria-label="Yavaş sesli oku" data-text="${escapeHtml(ex.source)}" data-lang="${data.sourceLanguage}" data-rate="0.75" title="0.75x Yavaş Dinle">
+                      0.75x
+                    </button>
+                    <button class="copy-btn text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" data-copy="${escapeHtml(ex.source + ' — ' + ex.translation)}" title="Örneği Kopyala" aria-label="Örneği Kopyala">
+                      <i class="ph-bold ph-copy text-base"></i>
+                    </button>
+                  </div>
                 </div>
+                <div class="text-xs md:text-sm text-slate-600 dark:text-slate-300 mt-1.5 leading-relaxed">${escapeHtml(ex.translation)}</div>
               </div>
             `).join('')}
           </div>
@@ -679,24 +904,26 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     }
 
-    // 3. Examples Card
-    if (data.examples && data.examples.length > 0) {
+    // Wrap detailed sections (Meanings, Grammar & Etymology, Related Words) in a collapsible container
+    html += `<div id="detailedSections" class="${isCompactView ? 'hidden' : ''} space-y-4">`;
+
+    // 3. Meanings Card
+    if (data.meanings && data.meanings.length > 0) {
       html += `
-        <div class="bg-white rounded-2xl p-4 md:p-5 border border-slate-100 shadow-sm animate-slide-up" style="animation-delay: 0.1s">
-          <div class="flex items-center gap-2 mb-3 text-slate-700">
-            <i class="ph-bold ph-chat-circle-text text-blue-500 text-lg"></i>
-            <h3 class="font-bold text-base text-slate-800">Doğal Örnek Cümleler</h3>
+        <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 md:p-5 border border-slate-100 dark:border-slate-800 shadow-sm animate-slide-up" style="animation-delay: 0.1s">
+          <div class="flex items-center gap-2 mb-3 text-slate-700 dark:text-slate-300">
+            <i class="ph-bold ph-book-open text-primary-600 text-lg"></i>
+            <h3 class="dark:text-slate-100 font-bold text-base text-slate-800">Detaylı Anlamlar & Bağlam</h3>
           </div>
-          <div class="space-y-2.5">
-            ${data.examples.map(ex => `
-              <div class="p-3 bg-slate-50 rounded-xl border border-slate-100/80">
-                <div class="flex items-center justify-between gap-2">
-                  <div class="font-medium text-sm md:text-base text-slate-800 leading-relaxed">${highlightKeyword(ex.source, data.input)}</div>
-                  <button class="speak-btn text-slate-500 hover:text-primary-600 p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors" aria-label="Örnek cümleyi sesli oku" data-text="${escapeHtml(ex.source)}" data-lang="${data.sourceLanguage}">
-                    <i class="ph ph-speaker-simple-high text-base"></i>
-                  </button>
+          <div class="space-y-3">
+            ${data.meanings.map((m, idx) => `
+              <div class="flex items-start gap-3 leading-relaxed">
+                <span class="font-mono text-slate-400 text-xs md:text-sm font-bold mt-0.5">${String(idx + 1).padStart(2, '0')}</span>
+                <div>
+                  <div class="font-semibold text-sm md:text-base text-slate-800 dark:text-slate-100">${escapeHtml(m.meaning)}</div>
+                  ${m.explanation ? `<div class="text-xs md:text-sm text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">${escapeHtml(m.explanation)}</div>` : ''}
+                  ${m.context ? `<span class="inline-block mt-1 text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-md font-medium">${escapeHtml(m.context)}</span>` : ''}
                 </div>
-                <div class="text-xs md:text-sm text-slate-600 mt-1.5 leading-relaxed">${escapeHtml(ex.translation)}</div>
               </div>
             `).join('')}
           </div>
@@ -709,21 +936,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const hasEtymology = data.etymology?.summary;
 
     if (hasGrammar || hasEtymology) {
-      html += `<div class="grid grid-cols-1 md:grid-cols-2 gap-3 animate-slide-up" style="animation-delay: 0.15s">`;
+      html += `<div class="grid grid-cols-1 md:grid-cols-2 gap-3 animate-slide-up" style="animation-delay: 0.12s">`;
 
       if (hasGrammar) {
         const g = data.grammar;
         html += `
-          <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm text-xs md:text-sm">
-            <div class="flex items-center gap-1.5 mb-2.5 font-bold text-sm md:text-base text-slate-700">
+          <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-100 dark:border-slate-800 shadow-sm text-xs md:text-sm">
+            <div class="flex items-center gap-1.5 mb-2.5 font-bold text-sm md:text-base text-slate-700 dark:text-slate-300">
               <i class="ph-bold ph-sparkle text-amber-500 text-base"></i>
               <span>Gramer & Çekim</span>
             </div>
             <div class="space-y-1.5">
-              ${g.article ? `<div class="flex justify-between items-center py-1.5 border-b border-slate-50"><span class="text-slate-500 font-medium">Belirteç (Artikel)</span><div>${renderArticleBadge(g.article)}</div></div>` : ''}
-              ${g.plural ? `<div class="flex justify-between py-1.5 border-b border-slate-50"><span class="text-slate-500 font-medium">Çoğul</span><span class="font-semibold text-slate-800">${escapeHtml(g.plural)}</span></div>` : ''}
-              ${g.infinitive ? `<div class="flex justify-between py-1.5 border-b border-slate-50"><span class="text-slate-500 font-medium">Mastar</span><span class="font-semibold text-slate-800">${escapeHtml(g.infinitive)}</span></div>` : ''}
-              ${g.register ? `<div class="flex justify-between py-1.5 border-b border-slate-50"><span class="text-slate-500 font-medium">Kullanım Düzeyi</span><span class="font-semibold text-slate-800">${escapeHtml(localizeRegister(g.register))}</span></div>` : ''}
+              ${g.article ? `<div class="flex justify-between items-center py-1.5 border-b border-slate-50 dark:border-slate-800"><span class="text-slate-500 font-medium">Belirteç (Artikel)</span><div>${renderArticleBadge(g.article)}</div></div>` : ''}
+              ${g.plural ? `<div class="flex justify-between py-1.5 border-b border-slate-50 dark:border-slate-800"><span class="text-slate-500 font-medium">Çoğul</span><span class="font-semibold text-slate-800 dark:text-slate-100">${escapeHtml(g.plural)}</span></div>` : ''}
+              ${g.infinitive ? `<div class="flex justify-between py-1.5 border-b border-slate-50 dark:border-slate-800"><span class="text-slate-500 font-medium">Mastar</span><span class="font-semibold text-slate-800 dark:text-slate-100">${escapeHtml(g.infinitive)}</span></div>` : ''}
+              ${g.register ? `<div class="flex justify-between py-1.5 border-b border-slate-50 dark:border-slate-800"><span class="text-slate-500 font-medium">Kullanım Düzeyi</span><span class="font-semibold text-slate-800 dark:text-slate-100">${escapeHtml(localizeRegister(g.register))}</span></div>` : ''}
             </div>
           </div>
         `;
@@ -731,19 +958,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (hasEtymology) {
         html += `
-          <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm text-xs md:text-sm">
+          <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-100 dark:border-slate-800 shadow-sm text-xs md:text-sm">
             <div class="flex items-center justify-between mb-2.5">
-              <div class="flex items-center gap-1.5 font-bold text-sm md:text-base text-slate-700">
+              <div class="flex items-center gap-1.5 font-bold text-sm md:text-base text-slate-700 dark:text-slate-300">
                 <i class="ph-bold ph-info text-indigo-500 text-base"></i>
                 <span>Etimoloji</span>
               </div>
               ${data.etymology?.certainty && data.etymology.certainty !== 'unknown' ? `
-                <span class="text-xs uppercase font-semibold px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100/80">
+                <span class="text-xs uppercase font-semibold px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-100/80 dark:border-indigo-800">
                   ${data.etymology.certainty === 'high' ? 'Doğrulanmış Kaynak' : 'Muhtemel Köken'}
                 </span>
               ` : ''}
             </div>
-            <p class="text-slate-600 text-xs md:text-sm leading-relaxed">${escapeHtml(data.etymology.summary)}</p>
+            <p class="text-slate-600 dark:text-slate-300 text-xs md:text-sm leading-relaxed">${escapeHtml(data.etymology.summary)}</p>
           </div>
         `;
       }
@@ -754,14 +981,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // 5. Related Words Chips
     if (data.relatedWords && data.relatedWords.length > 0) {
       html += `
-        <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm animate-slide-up" style="animation-delay: 0.2s">
-          <div class="flex items-center gap-1.5 mb-2.5 font-bold text-sm md:text-base text-slate-700">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-100 dark:border-slate-800 shadow-sm animate-slide-up" style="animation-delay: 0.15s">
+          <div class="flex items-center gap-1.5 mb-2.5 font-bold text-sm md:text-base text-slate-700 dark:text-slate-300">
             <i class="ph-bold ph-git-fork text-rose-500 text-base"></i>
             <span>İlişkili Kelimeler & Eş Anlamlılar</span>
           </div>
           <div class="flex flex-wrap gap-1.5">
             ${data.relatedWords.map(rw => `
-              <button class="related-chip flex items-center gap-1.5 px-3 py-1.5 min-h-[40px] rounded-xl bg-slate-50 border border-slate-200/70 hover:border-primary-400 hover:text-primary-700 text-xs md:text-sm text-slate-700 transition-colors" data-word="${escapeHtml(rw.word)}">
+              <button class="related-chip flex items-center gap-1.5 px-3 py-1.5 min-h-[40px] rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700 hover:border-primary-400 hover:text-primary-700 text-xs md:text-sm text-slate-700 dark:text-slate-200 transition-colors" data-word="${escapeHtml(rw.word)}">
                 <span class="font-medium">${escapeHtml(rw.word)}</span>
                 <span class="text-xs text-slate-400 uppercase font-semibold">${rw.relation === 'synonym' ? 'eş' : rw.relation === 'antonym' ? 'zıt' : 'ilişkili'}</span>
               </button>
@@ -770,6 +997,9 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       `;
     }
+
+    // Close detailedSections wrapper
+    html += `</div>`;
 
     // 6. Footer Provider Badge & In-App Flag Button (Google Play Compliance - STR-01)
     html += `
@@ -818,13 +1048,106 @@ document.addEventListener('DOMContentLoaded', () => {
     resultsContainer.innerHTML = html;
     resultsContainer.classList.remove('hidden');
 
-    // Attach speech events
+    // Attach speech events (supports 1.0x and 0.75x slow audio)
     resultsContainer.querySelectorAll('.speak-btn').forEach((b) => {
       b.addEventListener('click', (e) => {
         e.stopPropagation();
-        speak(b.dataset.text, b.dataset.lang);
+        const rate = parseFloat(b.dataset.rate || '1.0');
+        speak(b.dataset.text, b.dataset.lang, rate);
       });
     });
+
+    // Attach tap-to-lookup on sentence words
+    resultsContainer.querySelectorAll('.lookup-word').forEach((w) => {
+      w.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const word = (w.dataset.word || w.textContent || '').trim().replace(/[.,!?;:"'()]/g, '');
+        if (word && word.length > 1) {
+          searchInput.value = word;
+          showToast(`'${word}' aranıyor...`);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          handleSearch();
+        }
+      });
+    });
+
+    // Attach copy button events
+    resultsContainer.querySelectorAll('.copy-btn').forEach((b) => {
+      b.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const textToCopy = b.dataset.copy || '';
+        if (!textToCopy) return;
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(textToCopy);
+          } else {
+            const ta = document.createElement('textarea');
+            ta.value = textToCopy;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+          }
+          showToast('Panoya kopyalandı!');
+        } catch (err) {
+          console.warn('Copy failed:', err);
+        }
+      });
+    });
+
+    // Attach quick share card button
+    const shareResultBtn = resultsContainer.querySelector('#shareResultBtn');
+    if (shareResultBtn) {
+      shareResultBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const articlePrefix = data.grammar?.article ? (data.grammar.article.toLowerCase() + ' ') : '';
+        const title = `${articlePrefix}${data.input} — ${mainTrans}`;
+        const exText = (data.examples && data.examples.length > 0) 
+          ? `\nÖrnek: ${data.examples[0].source} (${data.examples[0].translation})` 
+          : '';
+        const shareText = `LexiBridge: ${title}${exText}`;
+
+        if (navigator.share) {
+          try {
+            await navigator.share({
+              title: title,
+              text: shareText
+            });
+            return;
+          } catch (err) {
+            if (err.name !== 'AbortError') {
+              console.warn('Share error:', err);
+            }
+          }
+        }
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(shareText);
+          } else {
+            const ta = document.createElement('textarea');
+            ta.value = shareText;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+          }
+          showToast('Paylaşım metni panoya kopyalandı!');
+        } catch (err) {
+          console.warn('Fallback copy failed:', err);
+        }
+      });
+    }
+
+    // Attach compact/detailed toggle
+    const toggleDenseBtn = resultsContainer.querySelector('#toggleDenseBtn');
+    if (toggleDenseBtn) {
+      toggleDenseBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        isCompactView = !isCompactView;
+        localStorage.setItem('lexi_view_mode', isCompactView ? 'compact' : 'detailed');
+        renderResult(data);
+      });
+    }
 
     // Attach related word click to search
     resultsContainer.querySelectorAll('.related-chip').forEach((b) => {
@@ -906,6 +1229,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   swapLangBtn.addEventListener('click', toggleLanguage);
   modeToggleBtn.addEventListener('click', toggleQuickMode);
+  if (themeToggleBtn) {
+    themeToggleBtn.addEventListener('click', window.toggleTheme);
+  }
 
   // Provider selection tabs
   providerTabs.forEach((tab) => {
