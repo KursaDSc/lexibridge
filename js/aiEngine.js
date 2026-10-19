@@ -137,6 +137,13 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
       "translation": "hedef dilde çevirisi"
     }
   ],
+  "compound": {
+    "isCompound": true,
+    "parts": [
+      { "word": "kök sözcük", "meaning": "anlamı" }
+    ],
+    "meaning": "bileşik kelime anlamı"
+  },
   "relatedWords": [
     {
       "word": "ilişkili kelime veya eşanlamlı deyim",
@@ -590,6 +597,7 @@ ${sanitized}
       etymology: etymology,
       examples: examples,
       relatedWords: relatedWords,
+      compound: raw.compound || raw.compoundBreakdown || undefined,
       didYouMean: raw.didYouMean || "",
       _provider: providerName || raw._provider || "LexiBridge Dil Motoru",
       _latency: raw._latency || 0,

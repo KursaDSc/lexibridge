@@ -273,6 +273,324 @@ document.addEventListener('DOMContentLoaded', () => {
     }).join('');
   }
 
+  // ── Voice Search (Web Speech API STT) ────────────────────────────────────
+  const voiceSearchBtn = document.getElementById('voiceSearchBtn');
+  const voiceSearchLabel = document.getElementById('voiceSearchLabel');
+  let isListening = false;
+  let recognitionInstance = null;
+
+  function setupVoiceSearch() {
+    if (!voiceSearchBtn) return;
+    const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRec) {
+      voiceSearchBtn.addEventListener('click', () => {
+        showToast('Tarayıcınız ses tanımayı desteklemiyor.');
+      });
+      return;
+    }
+
+    voiceSearchBtn.addEventListener('click', () => {
+      if (isListening && recognitionInstance) {
+        recognitionInstance.stop();
+        return;
+      }
+
+      try {
+        recognitionInstance = new SpeechRec();
+        recognitionInstance.lang = sourceLang === 'nl' ? 'nl-NL' : 'tr-TR';
+        recognitionInstance.continuous = false;
+        recognitionInstance.interimResults = false;
+        recognitionInstance.maxAlternatives = 1;
+
+        recognitionInstance.onstart = () => {
+          isListening = true;
+          voiceSearchBtn.classList.add('is-listening');
+          if (voiceSearchLabel) voiceSearchLabel.textContent = 'Dinliyor...';
+          showToast(sourceLang === 'nl' ? 'Felemenkçe konuşun...' : 'Türkçe konuşun...', 'ph-bold ph-microphone text-primary-500');
+        };
+
+        recognitionInstance.onresult = (event) => {
+          const transcript = event.results?.[0]?.[0]?.transcript;
+          if (transcript && transcript.trim()) {
+            searchInput.value = transcript.trim();
+            if (searchBtn) searchBtn.disabled = false;
+            if (clearBtn) clearBtn.classList.remove('hidden');
+            handleSearch();
+          }
+        };
+
+        recognitionInstance.onerror = (event) => {
+          console.warn('Speech recognition error:', event.error);
+          if (event.error === 'not-allowed') {
+            showToast('Mikrofon erişim izni verilmedi.', 'ph-bold ph-warning-circle text-amber-500');
+          } else if (event.error !== 'no-speech') {
+            showToast('Ses algılanamadı, tekrar deneyin.', 'ph-bold ph-warning-circle text-amber-500');
+          }
+        };
+
+        recognitionInstance.onend = () => {
+          isListening = false;
+          voiceSearchBtn.classList.remove('is-listening');
+          if (voiceSearchLabel) voiceSearchLabel.textContent = 'Sesle Ara';
+        };
+
+        recognitionInstance.start();
+      } catch (err) {
+        console.warn('Recognition start exception:', err);
+        isListening = false;
+        voiceSearchBtn.classList.remove('is-listening');
+        if (voiceSearchLabel) voiceSearchLabel.textContent = 'Sesle Ara';
+        showToast('Mikrofon başlatılamadı.');
+      }
+    });
+  }
+
+  // ── Dutch Compound Words Dictionary & Decomposer (Samenstellingen) ────────
+  const DUTCH_COMPOUND_DICTIONARY = {
+    'ziekenhuis': { parts: [{ word: 'ziek', meaning: 'hasta' }, { word: 'huis', meaning: 'ev' }], resultMeaning: 'hastane (hasta evi)' },
+    'afwasmachine': { parts: [{ word: 'afwas', meaning: 'bulaşık' }, { word: 'machine', meaning: 'makine' }], resultMeaning: 'bulaşık makinesi' },
+    'woordenboek': { parts: [{ word: 'woorden', meaning: 'kelimeler' }, { word: 'boek', meaning: 'kitap' }], resultMeaning: 'sözlük (kelime kitabı)' },
+    'treinstation': { parts: [{ word: 'trein', meaning: 'tren' }, { word: 'station', meaning: 'istasyon' }], resultMeaning: 'tren istasyonu' },
+    'handschoen': { parts: [{ word: 'hand', meaning: 'el' }, { word: 'schoen', meaning: 'ayakkabı' }], resultMeaning: 'eldiven (el ayakkabısı)' },
+    'zonnebril': { parts: [{ word: 'zon', meaning: 'güneş' }, { word: 'bril', meaning: 'gözlük' }], resultMeaning: 'güneş gözlüğü' },
+    'slaapkamer': { parts: [{ word: 'slapen', meaning: 'uyumak' }, { word: 'kamer', meaning: 'oda' }], resultMeaning: 'yatak odası' },
+    'badkamer': { parts: [{ word: 'bad', meaning: 'banyo' }, { word: 'kamer', meaning: 'oda' }], resultMeaning: 'banyo odası' },
+    'tandpasta': { parts: [{ word: 'tand', meaning: 'diş' }, { word: 'pasta', meaning: 'macun' }], resultMeaning: 'diş macunu' },
+    'tandenborstel': { parts: [{ word: 'tanden', meaning: 'dişler' }, { word: 'borstel', meaning: 'fırça' }], resultMeaning: 'diş fırçası' },
+    'koelkast': { parts: [{ word: 'koel', meaning: 'serin / soğuk' }, { word: 'kast', meaning: 'dolap' }], resultMeaning: 'buzdolabı (serin dolap)' },
+    'stofzuiger': { parts: [{ word: 'stof', meaning: 'toz' }, { word: 'zuiger', meaning: 'emici' }], resultMeaning: 'elektrikli süpürge (toz emici)' },
+    'verjaardag': { parts: [{ word: 'verjaren', meaning: 'yıllanmak' }, { word: 'dag', meaning: 'gün' }], resultMeaning: 'doğum günü' },
+    'fietsenmaker': { parts: [{ word: 'fiets', meaning: 'bisiklet' }, { word: 'maker', meaning: 'tamirci / yapan' }], resultMeaning: 'bisiklet tamircisi' },
+    'vliegtuig': { parts: [{ word: 'vliegen', meaning: 'uçmak' }, { word: 'tuig', meaning: 'araç / alet' }], resultMeaning: 'uçak (uçuş aracı)' },
+    'aardappel': { parts: [{ word: 'aard', meaning: 'yer / toprak' }, { word: 'appel', meaning: 'elma' }], resultMeaning: 'patates (yer elması)' },
+    'stadhuis': { parts: [{ word: 'stad', meaning: 'şehir' }, { word: 'huis', meaning: 'bina / ev' }], resultMeaning: 'belediye binası (şehir evi)' },
+    'zaklamp': { parts: [{ word: 'zak', meaning: 'cep' }, { word: 'lamp', meaning: 'lamba' }], resultMeaning: 'el feneri (cep lambası)' },
+    'bloempot': { parts: [{ word: 'bloem', meaning: 'çiçek' }, { word: 'pot', meaning: 'saksı' }], resultMeaning: 'çiçek saksısı' },
+    'voetbal': { parts: [{ word: 'voet', meaning: 'ayak' }, { word: 'bal', meaning: 'top' }], resultMeaning: 'futbol (ayak topu)' },
+    'werkwoord': { parts: [{ word: 'werk', meaning: 'iş / eylem' }, { word: 'woord', meaning: 'kelime' }], resultMeaning: 'fiil (eylem kelimesi)' },
+    'regenjas': { parts: [{ word: 'regen', meaning: 'yağmur' }, { word: 'jas', meaning: 'ceket / mont' }], resultMeaning: 'yağmurluk' },
+    'vuurtoren': { parts: [{ word: 'vuur', meaning: 'ateş' }, { word: 'toren', meaning: 'kule' }], resultMeaning: 'deniz feneri (ateş kulesi)' },
+    'hoofdpijn': { parts: [{ word: 'hoofd', meaning: 'baş / kafa' }, { word: 'pijn', meaning: 'ağrı' }], resultMeaning: 'baş ağrısı' },
+    'postkantoor': { parts: [{ word: 'post', meaning: 'posta' }, { word: 'kantoor', meaning: 'ofis' }], resultMeaning: 'postane' },
+    'rijbewijs': { parts: [{ word: 'rijden', meaning: 'sürmek' }, { word: 'bewijs', meaning: 'belge / kanıt' }], resultMeaning: 'sürücü belgesi / ehliyet' },
+    'spoorwegen': { parts: [{ word: 'spoor', meaning: 'ray / iz' }, { word: 'wegen', meaning: 'yollar' }], resultMeaning: 'demiryolları' },
+    'vluchtheuvel': { parts: [{ word: 'vlucht', meaning: 'kaçış / sığınak' }, { word: 'heuvel', meaning: 'tepe' }], resultMeaning: 'yaya adacığı / refüj' },
+    'vrachtwagen': { parts: [{ word: 'vracht', meaning: 'yük' }, { word: 'wagen', meaning: 'araba' }], resultMeaning: 'kamyon / tır (yük arabası)' },
+    'vrijdag': { parts: [{ word: 'vrij', meaning: 'özgür' }, { word: 'dag', meaning: 'gün' }], resultMeaning: 'cuma (özgür gün)' }
+  };
+
+  function getCompoundInfo(query, data) {
+    if (!query) return null;
+    const clean = query.trim().toLowerCase();
+
+    // Check pre-configured compound dictionary
+    if (DUTCH_COMPOUND_DICTIONARY[clean]) {
+      return DUTCH_COMPOUND_DICTIONARY[clean];
+    }
+
+    // Check if AI payload provided compound decomposition
+    if (data && data.compound && Array.isArray(data.compound.parts) && data.compound.parts.length >= 2) {
+      return {
+        parts: data.compound.parts.map(p => ({ word: p.word || p.part, meaning: p.meaning || '' })),
+        resultMeaning: data.compound.meaning || (data.translations && data.translations[0]?.text) || clean
+      };
+    }
+    if (data && data.compoundBreakdown && Array.isArray(data.compoundBreakdown) && data.compoundBreakdown.length >= 2) {
+      return {
+        parts: data.compoundBreakdown.map(p => ({ word: p.word || p.part, meaning: p.meaning || '' })),
+        resultMeaning: (data.translations && data.translations[0]?.text) || clean
+      };
+    }
+
+    return null;
+  }
+
+  // ── Interactive Flashcard / Quiz System ──────────────────────────────────
+  const DEFAULT_FLASHCARDS = [
+    { word: 'ziekenhuis', article: 'het', cefr: 'A1', translation: 'hastane', pronunciation: '/ˈzi.kə(n)ˌɦœy̯s/', example: 'Hij ligt in het ziekenhuis.', exampleTr: 'O hastanede yatıyor.' },
+    { word: 'station', article: 'het', cefr: 'A1', translation: 'istasyon / gar', pronunciation: '/staːˈʃɔn/', example: 'We ontmoeten elkaar op het station.', exampleTr: 'İstasyonda buluşuyoruz.' },
+    { word: 'afspraak', article: 'de', cefr: 'A1', translation: 'randevu / anlaşma', pronunciation: '/ˈɑf.spraːk/', example: 'Ik heb morgen een afspraak bij de dokter.', exampleTr: 'Yarın doktorda randevum var.' },
+    { word: 'rekening', article: 'de', cefr: 'A1', translation: 'hesap / fatura', pronunciation: '/ˈreːkə.nɪŋ/', example: 'Mag ik de rekening, alstublieft?', exampleTr: 'Hesabı alabilir miyim, lütfen?' },
+    { word: 'vergunning', article: 'de', cefr: 'A2', translation: 'izin / ruhsat', pronunciation: '/vərˈɣʏ.nɪŋ/', example: 'U heeft een parkeervergunning nodig.', exampleTr: 'Park iznine ihtiyacınız var.' },
+    { word: 'overstappen', article: '', cefr: 'A2', translation: 'aktarma yapmak', pronunciation: '/ˈoːvərˌstɑpə(n)/', example: 'U moet overstappen in Utrecht.', exampleTr: 'Utrecht\'te aktarma yapmalısınız.' },
+    { word: 'belasting', article: 'de', cefr: 'A2', translation: 'vergi', pronunciation: '/bəˈlɑs.tɪŋ/', example: 'De belastingaangifte moet voor mei ingevuld worden.', exampleTr: 'Vergi beyannamesi mayıstan önce doldurulmalı.' },
+    { word: 'duurzaam', article: '', cefr: 'B1', translation: 'sürdürülebilir', pronunciation: '/ˈdyːr.zaːm/', example: 'We investeren in duurzame energie.', exampleTr: 'Sürdürülebilir enerjiye yatırım yapıyoruz.' },
+    { word: 'uitdaging', article: 'de', cefr: 'B1', translation: 'zorluk / meydan okuma', pronunciation: '/ˈœy̯tˌdaː.ɣɪŋ/', example: 'Dit project is een grote uitdaging.', exampleTr: 'Bu proje büyük bir meydan okuma.' },
+    { word: 'solliciteren', article: '', cefr: 'B1', translation: 'iş başvurusu yapmak', pronunciation: '/sɔ.li.siˈteː.rə(n)/', example: 'Ik ga solliciteren op die vacature.', exampleTr: 'O açık iş pozisyonuna başvuracağım.' }
+  ];
+
+  let flashcardDeck = [];
+  let flashcardIdx = 0;
+  let flashcardKnown = 0;
+  let isCardFlipped = false;
+
+  function initFlashcards(deckType = 'auto') {
+    const favs = getFavorites();
+    if (deckType === 'favorites' && favs.length > 0) {
+      flashcardDeck = favs.map(f => ({
+        word: f.word,
+        article: f.article || '',
+        cefr: f.cefr || 'A1',
+        translation: f.translation || 'Çeviri mevcut değil',
+        pronunciation: '',
+        example: `Belangrijk woord: ${f.word}`,
+        exampleTr: f.translation || ''
+      }));
+      const label = document.getElementById('flashcardDeckLabel');
+      if (label) label.textContent = `Favori Kelimelerim (${flashcardDeck.length} Kart)`;
+    } else if (favs.length >= 4 && deckType !== 'cefr') {
+      flashcardDeck = favs.map(f => ({
+        word: f.word,
+        article: f.article || '',
+        cefr: f.cefr || 'A1',
+        translation: f.translation || 'Çeviri mevcut değil',
+        pronunciation: '',
+        example: `Belangrijk woord: ${f.word}`,
+        exampleTr: f.translation || ''
+      }));
+      const label = document.getElementById('flashcardDeckLabel');
+      if (label) label.textContent = `Favori Kelimelerim (${flashcardDeck.length} Kart)`;
+    } else {
+      flashcardDeck = [...DEFAULT_FLASHCARDS];
+      const label = document.getElementById('flashcardDeckLabel');
+      if (label) label.textContent = `Temel & Günlük Kelimeler (${flashcardDeck.length} Kart)`;
+    }
+
+    // Shuffle deck
+    flashcardDeck.sort(() => Math.random() - 0.5);
+    flashcardIdx = 0;
+    flashcardKnown = 0;
+    isCardFlipped = false;
+
+    const finishScreen = document.getElementById('flashcardFinishScreen');
+    const stage = document.getElementById('flashcardElement');
+    const controls = document.getElementById('flashcardControls');
+    if (finishScreen) finishScreen.classList.add('hidden');
+    if (stage) stage.classList.remove('hidden');
+    if (controls) controls.classList.remove('hidden');
+
+    renderCurrentCard();
+  }
+  window.initFlashcards = initFlashcards;
+
+  function renderCurrentCard() {
+    if (flashcardIdx >= flashcardDeck.length) {
+      showFlashcardFinish();
+      return;
+    }
+
+    const card = flashcardDeck[flashcardIdx];
+    isCardFlipped = false;
+    const inner = document.getElementById('flashcardInner');
+    if (inner) inner.classList.remove('flipped');
+
+    // Update Counter & Progress Bar
+    const counter = document.getElementById('flashcardCounter');
+    if (counter) counter.textContent = `${flashcardIdx + 1} / ${flashcardDeck.length}`;
+    const pBar = document.getElementById('flashcardProgressBar');
+    if (pBar) {
+      const pct = (flashcardIdx / flashcardDeck.length) * 100;
+      pBar.style.width = `${pct}%`;
+    }
+
+    // Populate Front
+    const fcArticleBadge = document.getElementById('fcArticleBadge');
+    if (fcArticleBadge) {
+      if (card.article) {
+        fcArticleBadge.textContent = card.article;
+        fcArticleBadge.className = `text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${card.article === 'de' ? 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/60 dark:text-sky-400 dark:border-sky-800' : 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-800'}`;
+        fcArticleBadge.classList.remove('hidden');
+      } else {
+        fcArticleBadge.classList.add('hidden');
+      }
+    }
+
+    const fcCefrBadge = document.getElementById('fcCefrBadge');
+    if (fcCefrBadge) fcCefrBadge.textContent = card.cefr || 'A1';
+
+    const fcWord = document.getElementById('fcWord');
+    if (fcWord) fcWord.textContent = card.word;
+
+    const fcPronunciation = document.getElementById('fcPronunciation');
+    if (fcPronunciation) {
+      fcPronunciation.textContent = card.pronunciation || '';
+      fcPronunciation.classList.toggle('hidden', !card.pronunciation);
+    }
+
+    // Populate Back
+    const fcBackWord = document.getElementById('fcBackWord');
+    if (fcBackWord) fcBackWord.textContent = card.word;
+
+    const fcTranslation = document.getElementById('fcTranslation');
+    if (fcTranslation) fcTranslation.textContent = card.translation;
+
+    const fcExample = document.getElementById('fcExample');
+    if (fcExample) fcExample.textContent = card.example ? `"${card.example}"` : '';
+
+    const fcExampleTr = document.getElementById('fcExampleTr');
+    if (fcExampleTr) fcExampleTr.textContent = card.exampleTr ? `(${card.exampleTr})` : '';
+  }
+
+  function toggleCardFlip() {
+    isCardFlipped = !isCardFlipped;
+    const inner = document.getElementById('flashcardInner');
+    if (inner) inner.classList.toggle('flipped', isCardFlipped);
+  }
+
+  function handleCardRating(known) {
+    if (known) flashcardKnown++;
+    flashcardIdx++;
+    renderCurrentCard();
+  }
+
+  function showFlashcardFinish() {
+    const finishScreen = document.getElementById('flashcardFinishScreen');
+    const stage = document.getElementById('flashcardElement');
+    const controls = document.getElementById('flashcardControls');
+    const scoreText = document.getElementById('flashcardScoreText');
+    const counter = document.getElementById('flashcardCounter');
+    const pBar = document.getElementById('flashcardProgressBar');
+
+    if (pBar) pBar.style.width = '100%';
+    if (counter) counter.textContent = `${flashcardDeck.length} / ${flashcardDeck.length}`;
+    if (stage) stage.classList.add('hidden');
+    if (controls) controls.classList.add('hidden');
+    if (scoreText) scoreText.textContent = `${flashcardDeck.length} kelimeden ${flashcardKnown} tanesini bildiniz.`;
+    if (finishScreen) finishScreen.classList.remove('hidden');
+  }
+
+  function setupFlashcardListeners() {
+    const cardEl = document.getElementById('flashcardElement');
+    if (cardEl) cardEl.addEventListener('click', toggleCardFlip);
+
+    const fcSpeakBtn = document.getElementById('fcSpeakBtn');
+    if (fcSpeakBtn) {
+      fcSpeakBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const card = flashcardDeck[flashcardIdx];
+        if (card && card.word) {
+          speak(card.word, 'nl', 1.0, fcSpeakBtn);
+        }
+      });
+    }
+
+    const needPracticeBtn = document.getElementById('fcNeedPracticeBtn');
+    if (needPracticeBtn) {
+      needPracticeBtn.addEventListener('click', () => handleCardRating(false));
+    }
+
+    const masteredBtn = document.getElementById('fcMasteredBtn');
+    if (masteredBtn) {
+      masteredBtn.addEventListener('click', () => handleCardRating(true));
+    }
+
+    const restartBtn = document.getElementById('fcRestartBtn');
+    if (restartBtn) {
+      restartBtn.addEventListener('click', () => initFlashcards('auto'));
+    }
+  }
+
   function renderAutocomplete(query) {
     if (!autocompleteDropdown) return;
     if (!query || query.length < 2 || typeof window.LEXI_DICTIONARY_SEEDS === 'undefined') {
@@ -344,6 +662,8 @@ document.addEventListener('DOMContentLoaded', () => {
     renderDiacriticsBar();
     renderWordOfTheDay();
     updateThemeIcon();
+    setupVoiceSearch();
+    setupFlashcardListeners();
 
     // Autocomplete on search input
     if (searchInput) {
@@ -1165,6 +1485,42 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     `;
 
+    // 1.4 Compound Word Breakdown Card (Samenstelling)
+    const compoundInfo = getCompoundInfo(data.input, data);
+    if (compoundInfo) {
+      const isCompoundVisible = activeResultTab === 'all' || activeResultTab === 'details';
+      html += `
+        <div class="result-section-card ${isCompoundVisible ? '' : 'hidden'} bg-white dark:bg-slate-900 rounded-2xl p-4 md:p-5 border border-slate-100 dark:border-slate-800 shadow-sm animate-slide-up mb-4" data-section="compound" style="animation-delay: 0.04s">
+          <div class="flex items-center gap-2 mb-3">
+            <div class="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+              <i class="ph-bold ph-puzzle-piece text-base"></i>
+            </div>
+            <div>
+              <h3 class="font-bold text-slate-800 dark:text-slate-100 text-sm md:text-base">Bileşik Kelime Analizi (Samenstelling)</h3>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Bu Felemenkçe kelime, bağımsız köklerin birleşimiyle oluşmuştur:</p>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2 p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/70 dark:border-slate-700/60">
+            ${compoundInfo.parts.map((p, i) => `
+              <div class="flex items-center gap-2">
+                <button type="button" class="compound-part-btn px-3 py-1.5 min-h-[44px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-left cursor-pointer hover:border-primary-400 hover:text-primary-600 dark:hover:text-primary-400 transition-all shadow-2xs group active:scale-95" data-word="${escapeHtml(p.word)}" title="'${escapeHtml(p.word)}' kök kelimesini ara">
+                  <div class="font-bold text-xs md:text-sm text-slate-800 dark:text-slate-100 group-hover:text-primary-600 dark:group-hover:text-primary-400">${escapeHtml(p.word)}</div>
+                  <div class="text-xs text-slate-500 dark:text-slate-400 font-normal">${escapeHtml(p.meaning)}</div>
+                </button>
+                ${i < compoundInfo.parts.length - 1 ? `<span class="text-slate-400 dark:text-slate-500 font-bold text-base select-none">+</span>` : `<span class="text-slate-400 dark:text-slate-500 font-bold text-base select-none">=</span>`}
+              </div>
+            `).join('')}
+            <div class="px-3 py-1.5 min-h-[44px] flex flex-col justify-center bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800/60 rounded-xl text-left shadow-2xs">
+              <div class="font-extrabold text-xs md:text-sm text-indigo-700 dark:text-indigo-300">${escapeHtml(data.input)}</div>
+              <div class="text-xs text-indigo-600/80 dark:text-indigo-400 font-medium">${escapeHtml(compoundInfo.resultMeaning || '')}</div>
+            </div>
+          </div>
+          <p class="text-xs text-slate-400 dark:text-slate-500 mt-2">Kök kelimelerin detaylarını incelemek için kutularına dokunabilirsiniz.</p>
+        </div>
+      `;
+    }
+
     // 1.5 Verb Conjugation Matrix Card (if verb)
     if (data.conjugation && data.conjugation.isVerb) {
       const conj = data.conjugation;
@@ -1450,6 +1806,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const word = (w.dataset.word || w.textContent || '').trim().replace(/[.,!?;:"'()]/g, '');
         if (word && word.length > 1) {
           searchInput.value = word;
+          showToast(`'${word}' aranıyor...`);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          handleSearch();
+        }
+      });
+    });
+
+    // Attach compound word part buttons
+    resultsContainer.querySelectorAll('.compound-part-btn').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const word = btn.dataset.word;
+        if (word) {
+          searchInput.value = word;
+          if (searchBtn) searchBtn.disabled = false;
+          if (clearBtn) clearBtn.classList.remove('hidden');
           showToast(`'${word}' aranıyor...`);
           window.scrollTo({ top: 0, behavior: 'smooth' });
           handleSearch();
@@ -1788,6 +2160,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (typeof window.closeSettingsModal === 'function') window.closeSettingsModal();
       if (typeof window.closeHistoryModal === 'function') window.closeHistoryModal();
       if (typeof window.closeFlagModal === 'function') window.closeFlagModal();
+      if (typeof window.closeFlashcardModal === 'function') window.closeFlashcardModal();
     }
   });
 
