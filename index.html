@@ -11,9 +11,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="LexiBridge">
-  <link rel="apple-touch-icon" href="icon-192.png?v=3.4">
-  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=3.4">
-  <link rel="icon" type="image/x-icon" href="app_icon.ico?v=3.4">
+  <link rel="apple-touch-icon" href="icon-192.png?v=3.7">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=3.7">
+  <link rel="icon" type="image/x-icon" href="app_icon.ico?v=3.7">
 
   <!-- Local Tailwind Engine (with CDN fallback) -->
   <script src="vendor/tailwindcss.js" onerror="this.onerror=null;this.src='https://cdn.tailwindcss.com'"></script>
@@ -589,16 +589,16 @@
     <span id="toastMessage">Kopyalandı</span>
   </div>
 
-  <!-- PWA Service Worker Registration & AI Engine Scripts (Cache-Busted v3.6) -->
-  <script src="js/config.local.js?v=3.6" onerror="this.remove()"></script>
-  <script src="js/cache.js?v=3.6"></script>
-  <script src="js/aiEngine.js?v=3.6"></script>
-  <script src="js/dictionary_seeds.js?v=3.6"></script>
-  <script src="js/app.js?v=3.6"></script>
+  <!-- PWA Service Worker Registration & AI Engine Scripts (Cache-Busted v3.7) -->
+  <script src="js/config.local.js?v=3.7" onerror="this.remove()"></script>
+  <script src="js/cache.js?v=3.7"></script>
+  <script src="js/aiEngine.js?v=3.7"></script>
+  <script src="js/dictionary_seeds.js?v=3.7"></script>
+  <script src="js/app.js?v=3.7"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=3.5').then(reg => {
+        navigator.serviceWorker.register('./sw.js?v=3.7').then(reg => {
           reg.update();
         }).catch(err => {
           console.log('SW registration note:', err);

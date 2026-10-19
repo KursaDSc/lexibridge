@@ -143,7 +143,7 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
       "relation": "synonym | antonym | related"
     }
   ]
-};
+};`;
 
   const LOCAL_SYSTEM_PROMPT = `Sen Felemenkçe ve Türkçe dillerinde uzman, hızlı bir mobil sözlük asistanısın.
 Sana verilen kelime veya cümleyi analiz et ve YALNIZCA geçerli bir JSON objesi olarak döndür. Markdown (\`\`\`json) veya açıklama KULLANMA.
