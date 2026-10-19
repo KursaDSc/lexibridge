@@ -162,3 +162,32 @@ html.dark .is-speaking {
   display: none;
 }
 
+/* Explicit Dark Mode Overrides (Guaranteed Theme Application) */
+html.dark {
+  color-scheme: dark;
+  background-color: #0b1120 !important;
+}
+
+html.dark body {
+  background-color: #0b1120 !important;
+  color: #f1f5f9 !important;
+}
+
+html.dark header {
+  background-color: rgba(15, 23, 42, 0.92) !important;
+  border-color: #1e293b !important;
+}
+
+html.dark h1 {
+  color: #f8fafc !important;
+}
+
+html.dark #headerProviderBadge {
+  color: #94a3b8 !important;
+}
+
+html.dark #stickySearchBar {
+  background-color: rgba(15, 23, 42, 0.95) !important;
+  border-color: #1e293b !important;
+}
+

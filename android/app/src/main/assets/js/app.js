@@ -235,9 +235,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 2000);
   }
 
+  let lastThemeToggle = 0;
   window.toggleTheme = function() {
+    const now = Date.now();
+    if (now - lastThemeToggle < 250) return;
+    lastThemeToggle = now;
     const isDark = document.documentElement.classList.toggle('dark');
-    localStorage.setItem('lexi_theme', isDark ? 'dark' : 'light');
+    try {
+      localStorage.setItem('lexi_theme', isDark ? 'dark' : 'light');
+    } catch(e) {}
     updateThemeIcon();
     showToast(isDark ? 'Karanlık Mod Açık' : 'Aydınlık Mod Açık', isDark ? 'ph-bold ph-moon text-indigo-400' : 'ph-bold ph-sun text-amber-500');
   };
@@ -1329,9 +1335,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   swapLangBtn.addEventListener('click', toggleLanguage);
   modeToggleBtn.addEventListener('click', toggleQuickMode);
-  if (themeToggleBtn) {
-    themeToggleBtn.addEventListener('click', window.toggleTheme);
-  }
 
   // Provider selection tabs
   providerTabs.forEach((tab) => {

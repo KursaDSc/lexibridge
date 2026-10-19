@@ -96,23 +96,29 @@
       var statusMsg = document.getElementById('flagStatusMsg');
       if (statusMsg) statusMsg.classList.add('hidden');
     };
+    window.toggleTheme = function() {
+      var isDark = document.documentElement.classList.toggle('dark');
+      try { localStorage.setItem('lexi_theme', isDark ? 'dark' : 'light'); } catch(e) {}
+      var icon = document.getElementById('themeToggleIcon');
+      if (icon) icon.className = isDark ? 'ph-bold ph-sun text-xl text-amber-400' : 'ph-bold ph-moon text-xl';
+    };
   </script>
 </head>
-<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col selection:bg-primary-500 selection:text-white">
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 antialiased min-h-screen flex flex-col selection:bg-primary-500 selection:text-white">
 
   <!-- Top App Bar (Mobile Optimized with Safe Areas) -->
-  <header class="w-full bg-white/90 backdrop-blur-md border-b border-slate-100 shadow-sm sticky top-0 z-30 transition-all">
+  <header class="w-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-100 dark:border-slate-800 shadow-sm sticky top-0 z-30 transition-all">
     <div class="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
       
       <!-- Brand & Active Engine Badge -->
       <div class="flex items-center gap-2.5">
-        <img src="icon-192.png?v=3.4" alt="LexiBridge App Icon" class="w-9 h-9 rounded-xl shadow-sm shadow-primary-500/20 object-cover border border-slate-100">
+        <img src="icon-192.png?v=3.7" alt="LexiBridge App Icon" class="w-9 h-9 rounded-xl shadow-sm shadow-primary-500/20 object-cover border border-slate-100 dark:border-slate-800">
         <div>
           <div class="flex items-center gap-1.5">
-            <h1 class="text-lg font-bold tracking-tight text-slate-800 leading-tight">LexiBridge</h1>
+            <h1 class="text-lg font-bold tracking-tight text-slate-800 dark:text-slate-100 leading-tight">LexiBridge</h1>
             <span class="text-xs uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-primary-50 text-primary-600 border border-primary-100/80">AI</span>
           </div>
-          <button id="headerProviderBadge" onclick="window.openSettingsModal()" class="flex items-center gap-1.5 text-xs text-slate-600 hover:text-primary-600 transition-colors font-medium">
+          <button id="headerProviderBadge" onclick="window.openSettingsModal()" class="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium">
             <span id="headerProviderIcon">🔵</span>
             <span id="headerProviderName" class="truncate max-w-[140px]">Google Gemini</span>
             <i class="ph ph-caret-down text-xs"></i>
