@@ -217,6 +217,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const toastIcon = document.getElementById('toastIcon');
   let toastTimeout = null;
 
+  // Sticky Mini Search Bar & Tabs State
+  const stickySearchBar = document.getElementById('stickySearchBar');
+  const stickySearchTrigger = document.getElementById('stickySearchTrigger');
+  const stickySearchText = document.getElementById('stickySearchText');
+  const stickyScrollTopBtn = document.getElementById('stickyScrollTopBtn');
+  let activeResultTab = 'all'; // 'all' | 'examples' | 'conjugation' | 'details'
+
   function showToast(msg, iconClass = 'ph-bold ph-check-circle text-emerald-400') {
     if (!toastEl || !toastMessage) return;
     if (toastTimeout) clearTimeout(toastTimeout);
@@ -532,33 +539,58 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ── Pronunciation Audio (Google TTS Native Audio + SpeechSynthesis Fallback) ──
-  function speak(text, lang, rate = 1.0) {
+  function speak(text, lang, rate = 1.0, btnElement = null) {
     if (!text) return;
     const cleanLang = (lang === 'nl' || lang === 'nl-NL') ? 'nl' : 'tr';
     const playbackRate = typeof rate === 'number' && rate > 0 ? rate : 1.0;
+
+    if (btnElement) {
+      btnElement.classList.add('is-speaking');
+    }
+
+    const removeSpeaking = () => {
+      if (btnElement) {
+        btnElement.classList.remove('is-speaking');
+      }
+    };
 
     // 1. Try Google High-Quality Native TTS first
     try {
       const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&client=gtx&tl=${cleanLang}&q=${encodeURIComponent(text.slice(0, 100))}`;
       const audio = new Audio(ttsUrl);
       audio.playbackRate = playbackRate;
+      audio.onended = removeSpeaking;
+      audio.onerror = () => {
+        fallbackSpeech(text, cleanLang, playbackRate, removeSpeaking);
+      };
       const playPromise = audio.play();
       if (playPromise !== undefined) {
-        playPromise.catch(() => {
-          fallbackSpeech(text, cleanLang, playbackRate);
+        playPromise.then(() => {
+          // Playing started
+        }).catch(() => {
+          fallbackSpeech(text, cleanLang, playbackRate, removeSpeaking);
         });
       }
     } catch {
-      fallbackSpeech(text, cleanLang, playbackRate);
+      fallbackSpeech(text, cleanLang, playbackRate, removeSpeaking);
     }
   }
 
-  function fallbackSpeech(text, cleanLang, playbackRate = 1.0) {
-    if (!('speechSynthesis' in window)) return;
+  function fallbackSpeech(text, cleanLang, playbackRate = 1.0, onEndCallback = null) {
+    if (!('speechSynthesis' in window)) {
+      if (onEndCallback) onEndCallback();
+      return;
+    }
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = cleanLang === 'nl' ? 'nl-NL' : 'tr-TR';
     utterance.rate = playbackRate === 0.75 ? 0.75 : 0.9;
+    utterance.onend = () => {
+      if (onEndCallback) onEndCallback();
+    };
+    utterance.onerror = () => {
+      if (onEndCallback) onEndCallback();
+    };
     window.speechSynthesis.speak(utterance);
   }
 
@@ -749,10 +781,10 @@ document.addEventListener('DOMContentLoaded', () => {
               </button>
             </div>
 
-            <div class="flex flex-wrap items-center gap-2 mt-2">
-              ${isDe ? `<span class="text-xs px-2.5 py-1 rounded-lg font-bold uppercase tracking-wider bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800" title="De Belirteci">de</span>` : isHet ? `<span class="text-xs px-2.5 py-1 rounded-lg font-bold uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800" title="Het Belirteci">het</span>` : (data.grammar?.article ? renderArticleBadge(data.grammar.article) : '')}
+            <div class="metadata-ribbon flex items-center gap-1.5 mt-2.5 overflow-x-auto pb-1 max-w-full">
+              ${isDe ? `<span class="text-xs px-2.5 py-1 rounded-lg font-bold uppercase tracking-wider bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800 shrink-0" title="De Belirteci">de</span>` : isHet ? `<span class="text-xs px-2.5 py-1 rounded-lg font-bold uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shrink-0" title="Het Belirteci">het</span>` : (data.grammar?.article ? renderArticleBadge(data.grammar.article) : '')}
               ${data.cefr ? `
-                <span class="text-xs px-2.5 py-1 rounded-lg font-bold uppercase ${
+                <span class="text-xs px-2.5 py-1 rounded-lg font-bold uppercase shrink-0 ${
                   (data.cefr === 'A1' || data.cefr === 'A2')
                     ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
                     : (data.cefr === 'B1' || data.cefr === 'B2')
@@ -761,24 +793,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 } border" title="Avrupa Dil Seviyesi (CEFR)">${escapeHtml(data.cefr)}</span>
               ` : ''}
               ${data.partOfSpeech ? `
-                <span class="text-xs px-2.5 py-1 rounded-lg ${/idiom|expression|deyim/i.test(data.partOfSpeech) ? 'bg-amber-100 dark:bg-amber-950/50 text-amber-900 dark:text-amber-200 border-amber-300 dark:border-amber-700 font-bold inline-flex items-center gap-1 shadow-2xs' : 'bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border-sky-100/60 dark:border-sky-800'} border">
+                <span class="text-xs px-2.5 py-1 rounded-lg shrink-0 ${/idiom|expression|deyim/i.test(data.partOfSpeech) ? 'bg-amber-100 dark:bg-amber-950/50 text-amber-900 dark:text-amber-200 border-amber-300 dark:border-amber-700 font-bold inline-flex items-center gap-1 shadow-2xs' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700'} border">
                   ${/idiom|expression|deyim/i.test(data.partOfSpeech) ? '<i class="ph-bold ph-lightbulb text-amber-600"></i>' : ''}
                   <span>${escapeHtml(localizePos(data.partOfSpeech))}</span>
                 </span>
               ` : ''}
               ${data.pronunciation?.ipa ? `
-                <span class="font-mono text-xs px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/50 dark:border-slate-700/50">
-                  ${escapeHtml(data.pronunciation.ipa)}
+                <span class="font-mono text-xs px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/50 dark:border-slate-700/50 shrink-0">
+                  /${escapeHtml(data.pronunciation.ipa)}/
                 </span>
               ` : ''}
               ${data.grammar?.plural ? `
-                <span class="text-xs px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 font-medium border border-indigo-100/70 dark:border-indigo-800 inline-flex items-center gap-1" title="Çoğul Hali">
+                <span class="text-xs px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 font-medium border border-indigo-100/70 dark:border-indigo-800 inline-flex items-center gap-1 shrink-0" title="Çoğul Hali">
                   <span class="text-xs text-indigo-500 font-bold uppercase">çoğul:</span>
                   <span class="font-semibold text-slate-800 dark:text-slate-100">${escapeHtml(data.grammar.plural)}</span>
                 </span>
               ` : ''}
               ${data.grammar?.infinitive && data.grammar.infinitive !== data.input ? `
-                <span class="text-xs px-2.5 py-1 rounded-lg bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 font-medium border border-purple-100/70 dark:border-purple-800 inline-flex items-center gap-1" title="Fiil Mastar Hali">
+                <span class="text-xs px-2.5 py-1 rounded-lg bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 font-medium border border-purple-100/70 dark:border-purple-800 inline-flex items-center gap-1 shrink-0" title="Fiil Mastar Hali">
                   <span class="text-xs text-purple-500 font-bold uppercase">mastar:</span>
                   <span class="font-semibold text-slate-800 dark:text-slate-100">${escapeHtml(data.grammar.infinitive)}</span>
                 </span>
@@ -827,11 +859,37 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     `;
 
+    // 1.2 Segmented Result Tabs Bar (NNGroup Cognitive Chunking Pattern)
+    const hasConjugation = !!(data.conjugation && data.conjugation.isVerb);
+    html += `
+      <div class="result-tabs-bar flex items-center gap-1.5 p-1 bg-slate-100/90 dark:bg-slate-800/80 rounded-2xl border border-slate-200/70 dark:border-slate-700/70 my-3 overflow-x-auto">
+        <button class="result-tab-btn flex-1 min-h-[40px] px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${activeResultTab === 'all' ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-300 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}" data-tab="all">
+          <i class="ph-bold ph-squares-four text-sm"></i>
+          <span>Tümü</span>
+        </button>
+        <button class="result-tab-btn flex-1 min-h-[40px] px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${activeResultTab === 'examples' ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-300 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}" data-tab="examples">
+          <i class="ph-bold ph-chat-circle-text text-sm"></i>
+          <span>Örnekler</span>
+        </button>
+        ${hasConjugation ? `
+          <button class="result-tab-btn flex-1 min-h-[40px] px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${activeResultTab === 'conjugation' ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-300 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}" data-tab="conjugation">
+            <i class="ph-bold ph-arrows-clockwise text-sm"></i>
+            <span>Fiil Çekimi</span>
+          </button>
+        ` : ''}
+        <button class="result-tab-btn flex-1 min-h-[40px] px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${activeResultTab === 'details' ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-300 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}" data-tab="details">
+          <i class="ph-bold ph-book-open text-sm"></i>
+          <span>Detaylar</span>
+        </button>
+      </div>
+    `;
+
     // 1.5 Verb Conjugation Matrix Card (if verb)
     if (data.conjugation && data.conjugation.isVerb) {
       const conj = data.conjugation;
+      const isConjugationVisible = activeResultTab === 'all' || activeResultTab === 'conjugation';
       html += `
-        <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 md:p-5 border border-slate-100 dark:border-slate-800 shadow-sm animate-slide-up" style="animation-delay: 0.05s">
+        <div class="result-section-card ${isConjugationVisible ? '' : 'hidden'} bg-white dark:bg-slate-900 rounded-2xl p-4 md:p-5 border border-slate-100 dark:border-slate-800 shadow-sm animate-slide-up mb-4" data-section="conjugation" style="animation-delay: 0.05s">
           <div class="flex items-center justify-between mb-3">
             <div class="flex items-center gap-2 text-slate-700 dark:text-slate-300">
               <i class="ph-bold ph-arrows-clockwise text-indigo-500 text-lg"></i>
@@ -868,8 +926,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 2. Examples Card (with Tap-to-Lookup & Slow Audio)
     if (data.examples && data.examples.length > 0) {
+      const isExamplesVisible = activeResultTab === 'all' || activeResultTab === 'examples';
       html += `
-        <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 md:p-5 border border-slate-100 dark:border-slate-800 shadow-sm animate-slide-up" style="animation-delay: 0.08s">
+        <div class="result-section-card ${isExamplesVisible ? '' : 'hidden'} bg-white dark:bg-slate-900 rounded-2xl p-4 md:p-5 border border-slate-100 dark:border-slate-800 shadow-sm animate-slide-up mb-4" data-section="examples" style="animation-delay: 0.08s">
           <div class="flex items-center justify-between mb-3 text-slate-700 dark:text-slate-300">
             <div class="flex items-center gap-2">
               <i class="ph-bold ph-chat-circle-text text-blue-500 text-lg"></i>
@@ -879,24 +938,25 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
           <div class="space-y-2.5">
             ${data.examples.map(ex => `
-              <div class="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100/80 dark:border-slate-700/60">
-                <div class="flex items-start justify-between gap-2">
-                  <div class="font-medium text-sm md:text-base text-slate-800 dark:text-slate-100 leading-relaxed">
+              <div class="p-3.5 bg-slate-50/80 dark:bg-slate-800/60 rounded-xl border border-slate-100/90 dark:border-slate-700/60 hover:border-slate-200 dark:hover:border-slate-700 transition-colors">
+                <div class="flex items-start justify-between gap-3">
+                  <div class="font-medium text-sm md:text-base text-slate-900 dark:text-slate-100 leading-relaxed flex-1">
                     ${renderInteractiveSentence(ex.source, data.sourceLanguage, data.input) /* highlightKeyword(ex.source, data.input) */}
                   </div>
-                  <div class="flex items-center gap-0.5 shrink-0">
-                    <button class="speak-btn text-slate-500 dark:text-slate-400 hover:text-primary-600 p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" aria-label="Örnek cümleyi sesli oku" data-text="${escapeHtml(ex.source)}" data-lang="${data.sourceLanguage}" data-rate="1.0" title="Sesli Oku (1.0x)">
+                  <!-- Compact Micro-Actions Capsule -->
+                  <div class="flex items-center shrink-0 bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700 rounded-xl p-0.5 shadow-2xs">
+                    <button class="speak-btn text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 w-9 h-9 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors" aria-label="Örnek cümleyi sesli oku" data-text="${escapeHtml(ex.source)}" data-lang="${data.sourceLanguage}" data-rate="1.0" title="Sesli Oku (1.0x)">
                       <i class="ph ph-speaker-simple-high text-base"></i>
                     </button>
-                    <button class="speak-btn text-slate-400 hover:text-amber-600 p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-amber-50 dark:hover:bg-amber-950/40 text-xs font-bold transition-colors" aria-label="Yavaş sesli oku" data-text="${escapeHtml(ex.source)}" data-lang="${data.sourceLanguage}" data-rate="0.75" title="0.75x Yavaş Dinle">
+                    <button class="speak-btn text-slate-400 hover:text-amber-600 px-1.5 h-9 min-h-[36px] flex items-center justify-center rounded-lg hover:bg-amber-50 dark:hover:bg-amber-950/40 text-xs font-bold transition-colors border-l border-slate-100 dark:border-slate-700" aria-label="Yavaş sesli oku" data-text="${escapeHtml(ex.source)}" data-lang="${data.sourceLanguage}" data-rate="0.75" title="0.75x Yavaş Dinle">
                       0.75x
                     </button>
-                    <button class="copy-btn text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" data-copy="${escapeHtml(ex.source + ' — ' + ex.translation)}" title="Örneği Kopyala" aria-label="Örneği Kopyala">
-                      <i class="ph-bold ph-copy text-base"></i>
+                    <button class="copy-btn text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 w-9 h-9 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors border-l border-slate-100 dark:border-slate-700" data-copy="${escapeHtml(ex.source + ' — ' + ex.translation)}" title="Örneği Kopyala" aria-label="Örneği Kopyala">
+                      <i class="ph-bold ph-copy text-sm"></i>
                     </button>
                   </div>
                 </div>
-                <div class="text-xs md:text-sm text-slate-600 dark:text-slate-300 mt-1.5 leading-relaxed">${escapeHtml(ex.translation)}</div>
+                <div class="text-xs md:text-sm text-slate-600 dark:text-slate-300 mt-2 pl-2.5 border-l-2 border-primary-200 dark:border-primary-800 leading-relaxed">${escapeHtml(ex.translation)}</div>
               </div>
             `).join('')}
           </div>
@@ -905,7 +965,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Wrap detailed sections (Meanings, Grammar & Etymology, Related Words) in a collapsible container
-    html += `<div id="detailedSections" class="${isCompactView ? 'hidden' : ''} space-y-4">`;
+    const isDetailsVisible = (activeResultTab === 'all' && !isCompactView) || (activeResultTab === 'details');
+    html += `<div id="detailedSections" class="result-section-card ${isDetailsVisible ? '' : 'hidden'} space-y-4 mb-4" data-section="details">`;
 
     // 3. Meanings Card
     if (data.meanings && data.meanings.length > 0) {
@@ -1048,14 +1109,53 @@ document.addEventListener('DOMContentLoaded', () => {
     resultsContainer.innerHTML = html;
     resultsContainer.classList.remove('hidden');
 
-    // Attach speech events (supports 1.0x and 0.75x slow audio)
+    // Attach speech events (supports 1.0x and 0.75x slow audio + pulse feedback)
     resultsContainer.querySelectorAll('.speak-btn').forEach((b) => {
       b.addEventListener('click', (e) => {
         e.stopPropagation();
         const rate = parseFloat(b.dataset.rate || '1.0');
-        speak(b.dataset.text, b.dataset.lang, rate);
+        speak(b.dataset.text, b.dataset.lang, rate, b);
       });
     });
+
+    // Attach tab switching events (Cognitive Chunking)
+    resultsContainer.querySelectorAll('.result-tab-btn').forEach((tabBtn) => {
+      tabBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        activeResultTab = tabBtn.dataset.tab;
+        
+        // Update tab buttons styles
+        resultsContainer.querySelectorAll('.result-tab-btn').forEach((b) => {
+          const isActive = b.dataset.tab === activeResultTab;
+          b.className = `result-tab-btn flex-1 min-h-[40px] px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+            isActive 
+              ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-300 shadow-2xs' 
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+          }`;
+        });
+
+        // Show/hide sections
+        const sections = resultsContainer.querySelectorAll('.result-section-card');
+        sections.forEach((sec) => {
+          const secName = sec.dataset.section;
+          if (activeResultTab === 'all') {
+            if (secName === 'details') {
+              sec.classList.toggle('hidden', isCompactView);
+            } else {
+              sec.classList.remove('hidden');
+            }
+          } else {
+            sec.classList.toggle('hidden', secName !== activeResultTab);
+          }
+        });
+      });
+    });
+
+    // Update sticky search bar preview text
+    if (stickySearchText) {
+      const art = data.grammar?.article ? (data.grammar.article.toLowerCase() + ' ') : '';
+      stickySearchText.textContent = `${art}${data.input} — ${mainTrans}`;
+    }
 
     // Attach tap-to-lookup on sentence words
     resultsContainer.querySelectorAll('.lookup-word').forEach((w) => {
@@ -1377,6 +1477,27 @@ document.addEventListener('DOMContentLoaded', () => {
       if (typeof window.closeFlagModal === 'function') window.closeFlagModal();
     }
   });
+
+  // Sticky Mini Search Bar Scroll & Click Handlers (Fitts's Law Mobile Ergonomics)
+  if (stickySearchBar) {
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 240 && resultsContainer && !resultsContainer.classList.contains('hidden')) {
+        stickySearchBar.classList.add('visible');
+      } else {
+        stickySearchBar.classList.remove('visible');
+      }
+    });
+
+    const scrollToSearch = () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setTimeout(() => {
+        if (searchInput) searchInput.focus();
+      }, 300);
+    };
+
+    if (stickySearchTrigger) stickySearchTrigger.addEventListener('click', scrollToSearch);
+    if (stickyScrollTopBtn) stickyScrollTopBtn.addEventListener('click', scrollToSearch);
+  }
 
   // Network online/offline status monitors
   window.addEventListener('online', updateHeaderBadge);

@@ -115,3 +115,50 @@ html.dark .lookup-word:hover, html.dark .lookup-word:active {
   transform: translateX(-50%) translateY(0);
 }
 
+/* Live Audio TTS Pulse Animation */
+@keyframes audio-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(2, 132, 199, 0.45);
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 0 0 8px rgba(2, 132, 199, 0);
+  }
+}
+
+.is-speaking {
+  animation: audio-pulse 1.1s infinite ease-in-out !important;
+  color: #0284c7 !important;
+  background-color: rgba(2, 132, 199, 0.15) !important;
+}
+
+html.dark .is-speaking {
+  animation: audio-pulse 1.1s infinite ease-in-out !important;
+  color: #38bdf8 !important;
+  background-color: rgba(56, 189, 248, 0.22) !important;
+}
+
+/* Sticky Mini Search Bar */
+#stickySearchBar {
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s ease;
+  transform: translateY(-100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+#stickySearchBar.visible {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Metadata Ribbon Scrollbar Hide */
+.metadata-ribbon {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.metadata-ribbon::-webkit-scrollbar {
+  display: none;
+}
+
