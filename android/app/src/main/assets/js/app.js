@@ -182,7 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
     seedChipsContainer.innerHTML = list
       .map(
         (word) => `
-        <button class="seed-chip px-3 py-1.5 min-h-[38px] bg-white border border-slate-200/80 rounded-xl text-slate-700 hover:border-primary-400 hover:text-primary-700 font-medium whitespace-nowrap shadow-2xs transition-all active:scale-95" data-word="${escapeHtml(word)}">
+        <button class="seed-chip px-3 py-1.5 min-h-[38px] bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl text-slate-700 dark:text-slate-200 hover:border-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium whitespace-nowrap shadow-2xs transition-all active:scale-95" data-word="${escapeHtml(word)}">
           ${escapeHtml(word)}
         </button>
       `
@@ -645,16 +645,16 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderHistory() {
     const hist = getHistory();
     if (hist.length === 0) {
-      historyList.innerHTML = `<div class="p-6 text-center text-sm text-slate-400">Henüz arama geçmişi yok.</div>`;
+      historyList.innerHTML = `<div class="p-6 text-center text-sm text-slate-400 dark:text-slate-500">Henüz arama geçmişi yok.</div>`;
       return;
     }
     historyList.innerHTML = hist
       .map(
         (h) => `
-      <div class="history-item flex items-center justify-between p-2.5 hover:bg-slate-50 rounded-xl cursor-pointer transition-colors" data-query="${escapeHtml(h.query)}" data-source="${h.source}">
+      <div class="history-item flex items-center justify-between p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 rounded-xl cursor-pointer transition-colors" data-query="${escapeHtml(h.query)}" data-source="${h.source}">
         <div>
-          <div class="font-semibold text-sm text-slate-800">${escapeHtml(h.query)}</div>
-          <div class="text-xs text-slate-500">${escapeHtml(h.translation || '')}</div>
+          <div class="font-semibold text-sm text-slate-800 dark:text-slate-100">${escapeHtml(h.query)}</div>
+          <div class="text-xs text-slate-500 dark:text-slate-400">${escapeHtml(h.translation || '')}</div>
         </div>
         <span class="text-xs text-slate-400 font-mono">${h.source === 'nl' ? '🇳🇱➔🇹🇷' : '🇹🇷➔🇳🇱'}</span>
       </div>
@@ -1374,17 +1374,17 @@ document.addEventListener('DOMContentLoaded', () => {
     if (data._fallbackFrom === 'local') {
       const errDetail = data._localError || 'Bağlantı kurulamadı';
       html += `
-        <div class="text-left text-xs text-amber-900 bg-amber-50/90 border border-amber-200/80 rounded-2xl p-3.5 max-w-md mx-auto mt-2.5 animate-slide-up shadow-2xs">
-          <div class="font-bold flex items-center gap-1.5 text-amber-950 mb-1">
-            <i class="ph-bold ph-info text-amber-600 text-sm"></i>
+        <div class="text-left text-xs text-amber-900 dark:text-amber-200 bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/60 rounded-2xl p-3.5 max-w-md mx-auto mt-2.5 animate-slide-up shadow-2xs">
+          <div class="font-bold flex items-center gap-1.5 text-amber-950 dark:text-amber-100 mb-1">
+            <i class="ph-bold ph-info text-amber-600 dark:text-amber-400 text-sm"></i>
             <span>Akıllı Hibrit Yedek Devrede: ${escapeHtml(data._provider)}</span>
           </div>
-          <p class="text-amber-800 text-xs md:text-sm leading-relaxed mb-2">
+          <p class="text-amber-800 dark:text-amber-300 text-xs md:text-sm leading-relaxed mb-2">
             Yerel Ollama servisi o sırada yanıt vermediği için sorgunuz otomatik olarak bulut / hızlı yedek motorla çözümlendi.
           </p>
-          <details class="text-xs text-slate-600 mt-1 cursor-pointer">
-            <summary class="font-semibold text-amber-900 hover:underline">Geliştirici / Termux Ayarları (İsteğe Bağlı)</summary>
-            <div class="font-mono bg-white text-slate-800 border border-amber-200 p-2 rounded-lg my-1.5 text-xs select-all break-all leading-normal">
+          <details class="text-xs text-slate-600 dark:text-slate-400 mt-1 cursor-pointer">
+            <summary class="font-semibold text-amber-900 dark:text-amber-300 hover:underline">Geliştirici / Termux Ayarları (İsteğe Bağlı)</summary>
+            <div class="font-mono bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border border-amber-200 dark:border-amber-800/60 p-2 rounded-lg my-1.5 text-xs select-all break-all leading-normal">
               killall ollama 2>/dev/null; export OLLAMA_ORIGINS="*"; export OLLAMA_HOST="0.0.0.0:11434"; ollama serve &
             </div>
           </details>

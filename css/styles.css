@@ -249,4 +249,55 @@ html.dark #stickySearchBar {
   -webkit-user-select: none;
 }
 
+/* Universal Dark Mode Fallback Rules */
+html.dark [role="dialog"] > div {
+  background-color: #0f172a !important;
+  border-color: #1e293b !important;
+  color: #f1f5f9 !important;
+}
+
+html.dark [role="dialog"] header,
+html.dark [role="dialog"] footer {
+  border-color: #1e293b !important;
+}
+
+html.dark .provider-tab {
+  background-color: #1e293b;
+  border-color: #334155;
+  color: #e2e8f0;
+}
+
+html.dark .provider-tab .text-slate-800 {
+  color: #f8fafc !important;
+}
+
+html.dark .provider-tab .text-slate-500 {
+  color: #94a3b8 !important;
+}
+
+html.dark .provider-tab:hover {
+  border-color: #38bdf8 !important;
+}
+
+html.dark .topic-chip,
+html.dark .seed-chip {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #e2e8f0 !important;
+}
+
+html.dark .topic-chip:hover,
+html.dark .seed-chip:hover {
+  background-color: #334155 !important;
+  color: #38bdf8 !important;
+}
+
+html.dark .history-item {
+  color: #f1f5f9 !important;
+}
+
+html.dark .history-item:hover {
+  background-color: #1e293b !important;
+}
+
 
