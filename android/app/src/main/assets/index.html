@@ -102,17 +102,23 @@
             <span class="text-xs uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-primary-50 text-primary-600 border border-primary-100/80">AI</span>
           </div>
           <button id="headerProviderBadge" onclick="window.openSettingsModal()" class="flex items-center gap-1.5 text-xs text-slate-600 hover:text-primary-600 transition-colors font-medium">
-            <span id="headerProviderIcon">🏠</span>
-            <span id="headerProviderName" class="truncate max-w-[140px]">Yerel LLM (Ollama)</span>
+            <span id="headerProviderIcon">🔵</span>
+            <span id="headerProviderName" class="truncate max-w-[140px]">Google Gemini</span>
             <i class="ph ph-caret-down text-xs"></i>
           </button>
           <script>
             (function() {
               try {
-                var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+                if (localStorage.getItem('lexi_default_provider_v2') !== 'true') {
+                  if (localStorage.getItem('lexi_provider') === 'local') {
+                    localStorage.removeItem('lexi_provider');
+                    localStorage.removeItem('lexi_provider_user_chosen');
+                  }
+                  localStorage.setItem('lexi_default_provider_v2', 'true');
+                }
                 var saved = localStorage.getItem('lexi_provider');
                 var chosen = localStorage.getItem('lexi_provider_user_chosen') === 'true';
-                var prov = (chosen && saved) ? saved : (isMobile ? 'local' : 'google');
+                var prov = (chosen && saved) ? saved : 'google';
                 var icon = document.getElementById('headerProviderIcon');
                 var name = document.getElementById('headerProviderName');
                 if (icon && name) {

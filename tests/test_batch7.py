@@ -83,6 +83,21 @@ class TestMobileTypography(unittest.TestCase):
         self.assertIn("de kat uit de boom kijken", ai_engine_code)
         self.assertIn("nu komt de aap uit de mouw", ai_engine_code)
         self.assertIn("idiomNotice", ai_engine_code)
+    def test_default_provider_is_google_gemini_everywhere(self):
+        """Verify phone and desktop default provider is Google Gemini instead of Ollama."""
+        # Check index.html initial header badge and fallback script
+        self.assertIn('<span id="headerProviderIcon">🔵</span>', self.index_html)
+        self.assertIn('<span id="headerProviderName" class="truncate max-w-[140px]">Google Gemini</span>', self.index_html)
+        self.assertIn("var prov = (chosen && saved) ? saved : 'google';", self.index_html)
+
+        # Check aiEngine.js
+        ai_engine_path = os.path.join(self.root_dir, 'js', 'aiEngine.js')
+        with open(ai_engine_path, 'r', encoding='utf-8') as f:
+            ai_engine_code = f.read()
+        self.assertIn('const defaultProvider = "google";', ai_engine_code)
+
+        # Check app.js
+        self.assertIn("activeProvider = settings.provider || 'google';", self.app_js)
 
 if __name__ == '__main__':
     unittest.main()

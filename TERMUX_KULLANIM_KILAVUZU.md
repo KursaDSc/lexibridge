@@ -31,8 +31,9 @@ Telefonunuzun ana ekranından **tek bir dokunuşla** Ollama ve sözlüğü açab
   * İster GitHub Pages (`https://...`), ister yerel sunucu üzerinden açın, anında çalışır.
 
 * **📱 Cep Telefonunda (Android / Termux):**
-  * Varsayılan motor doğrudan telefonunuzdaki **Yerel LLM (Ollama)** motorudur.
-  * Widget ile açıldığında `http://127.0.0.1:8080` üzerinden açılır; böylece tarayıcının karma içerik (mixed content) engeline takılmadan %100 yerel Ollama kullanılır.
+  * Varsayılan motor hızlı ve yüksek kaliteli sonuçlar için **Google Gemini** (`gemini-3.5-flash-lite`) olarak başlar.
+  * Eğer internetsiz veya tamamen yerel çalışmak isterseniz, sağ üstteki Ayarlar menüsünden (⚙️) veya başlık rozetinden **Yerel LLM (Ollama)** seçeneğine geçebilirsiniz.
+  * Widget ile açıldığında `http://127.0.0.1:8080` üzerinden açılır; böylece tarayıcının karma içerik (mixed content) engeline takılmadan yerel Ollama da sorunsuz kullanılabilir.
   * Tarayıcı menüsünden "Ana Ekrana Ekle" diyerek tam ekran PWA olarak da kullanabilirsiniz.
 
 ---

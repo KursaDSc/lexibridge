@@ -221,7 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch {}
 
     const settings = AIEngine.getSettings();
-    activeProvider = settings.provider || (settings.isMobile ? 'local' : 'google');
+    activeProvider = settings.provider || 'google';
     activeModel = settings.model || (activeProvider === 'local' ? settings.localModel : AIEngine.PROVIDERS[activeProvider]?.default_model);
 
     googleKeyInput.value = settings.googleKey || AIEngine.SM_STUDIO_KEYS.google;

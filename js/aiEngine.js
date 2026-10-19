@@ -255,19 +255,31 @@ JSON Şablonu:
     return "http://127.0.0.1:11434/v1";
   }
 
-  // Helper to load settings (Phone defaults to Local Ollama; PC defaults to Google Gemini)
+  // Helper to load settings (Defaults to Google Gemini for both phone and desktop)
   function getSettings() {
     const isMobile = isMobileDevice();
-    const defaultProvider = isMobile ? "local" : "google";
+
+    // One-time migration: ensure devices previously defaulted to 'local' transition to Google Gemini
+    try {
+      if (typeof localStorage !== "undefined" && localStorage.getItem("lexi_default_provider_v2") !== "true") {
+        if (localStorage.getItem("lexi_provider") === "local") {
+          localStorage.removeItem("lexi_provider");
+          localStorage.removeItem("lexi_provider_user_chosen");
+        }
+        localStorage.setItem("lexi_default_provider_v2", "true");
+      }
+    } catch (e) {}
+
+    const defaultProvider = "google";
     const userChosen = localStorage.getItem("lexi_provider_user_chosen") === "true";
     const savedProvider = localStorage.getItem("lexi_provider");
     const activeProvider = (userChosen && savedProvider) ? savedProvider : defaultProvider;
 
     let savedModel = localStorage.getItem("lexi_model");
-    if (!savedModel || savedModel.includes("latest") || savedModel.includes("pro") || savedModel.includes("3.8") || savedModel.includes("3.6") || savedModel.includes("2.5")) {
+    if (!savedModel || savedModel.includes("latest") || savedModel.includes("pro") || savedModel.includes("3.8") || savedModel.includes("3.6") || savedModel.includes("2.5") || (activeProvider === "google" && (savedModel.includes("llama") || savedModel.includes("qwen")))) {
       savedModel = activeProvider === "local"
         ? (localStorage.getItem("local_llm_model") || (isMobile ? "qwen2.5:1.5b" : PROVIDERS.local.default_model))
-        : "gemini-3.5-flash-lite";
+        : PROVIDERS.google.default_model;
       localStorage.setItem("lexi_model", savedModel);
     }
     let googleKey = localStorage.getItem("gemini_api_key");
