@@ -500,6 +500,10 @@
         </div>
       </div>
       <div class="flex items-center gap-2">
+        <span id="fcStreakBadge" class="hidden text-xs font-bold px-2 py-1 bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/60 rounded-lg flex items-center gap-1" title="Öğrenme Serisi">
+          <i class="ph-bold ph-fire text-amber-500"></i>
+          <span id="fcStreakText">1 Gün</span>
+        </span>
         <span id="flashcardCounter" class="text-xs font-mono font-bold px-2.5 py-1 bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg">1 / 10</span>
         <button id="closeFlashcardBtn" type="button" onclick="window.switchMainTab('dictionary')" aria-label="Sözlüğe Dön" class="w-10 h-10 min-w-[40px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" title="Sözlüğe Dön">
           <i class="ph-bold ph-x text-lg"></i>
@@ -510,6 +514,11 @@
     <!-- CEFR & Deck Selector Tabs -->
     <div role="group" aria-label="Deste seçimi" class="px-4 py-2.5 bg-slate-50/50 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2 overflow-x-auto no-scrollbar">
       <button type="button" data-deck="auto" onclick="window.initFlashcards('auto')" class="fc-deck-chip shrink-0 text-xs font-semibold px-3 py-1.5 min-h-[44px] rounded-lg border">Tümü</button>
+      <button type="button" data-deck="due" onclick="window.initFlashcards('due')" class="fc-deck-chip shrink-0 text-xs font-semibold px-3 py-1.5 min-h-[44px] rounded-lg border flex items-center gap-1.5" title="Aralıklı tekrar zamanı gelen kelimeler (Leitner Kutuları)">
+        <i class="ph-bold ph-hourglass-high text-primary-500"></i>
+        <span>Tekrar Zamanı</span>
+        <span id="fcDueBadge" class="hidden text-xs font-bold px-1.5 py-0.5 rounded-full bg-primary-100 dark:bg-primary-900/60 text-primary-700 dark:text-primary-300">0</span>
+      </button>
       <button type="button" data-deck="favorites" onclick="window.initFlashcards('favorites')" class="fc-deck-chip shrink-0 text-xs font-semibold px-3 py-1.5 min-h-[44px] rounded-lg border flex items-center gap-1">
         <i class="ph-bold ph-star text-amber-500"></i>
         <span>Favorilerim</span>
@@ -531,7 +540,10 @@
           <div id="flashcardFront" class="flashcard-face absolute inset-0 p-5 flex flex-col justify-between items-center bg-white dark:bg-slate-800/95 rounded-2xl">
             <div class="w-full flex items-center justify-between">
               <span id="fcArticleBadge" class="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-400 border border-sky-200/60 dark:border-sky-800/60">de</span>
-              <span id="fcCefrBadge" class="text-xs font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">A1</span>
+              <div class="flex items-center gap-1.5">
+                <span id="fcBoxBadge" class="text-xs font-bold px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60" title="Leitner Tekrar Kutusu">Kutu 1</span>
+                <span id="fcCefrBadge" class="text-xs font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">A1</span>
+              </div>
             </div>
             <div class="my-auto w-full px-2 text-center">
               <h4 id="fcWord" class="text-2xl md:text-3xl font-extrabold text-slate-800 dark:text-slate-100 tracking-tight">ziekenhuis</h4>
@@ -636,6 +648,29 @@
         </button>
       </div>
     </div>
+
+    <!-- Search & Backup Subheader Toolbar -->
+    <div class="p-3 bg-slate-50/60 dark:bg-slate-800/30 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row gap-2 items-stretch sm:items-center justify-between">
+      <div class="relative flex-1">
+        <i class="ph-bold ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+        <input type="text" id="favSearchFilterInput" placeholder="Favorilerimde ara (Felemenkçe veya Türkçe)..." aria-label="Favorilerimde ara" class="w-full pl-9 pr-8 py-2 text-xs md:text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/20 text-slate-800 dark:text-slate-100 placeholder:text-slate-400">
+        <button id="clearFavFilterBtn" type="button" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1" title="Aramayı temizle">
+          <i class="ph-bold ph-x text-xs"></i>
+        </button>
+      </div>
+      <div class="flex items-center gap-1.5 shrink-0">
+        <button id="exportFavoritesBtn" type="button" class="text-xs text-slate-700 dark:text-slate-200 hover:text-primary-600 font-semibold px-2.5 py-1.5 min-h-[38px] rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 flex items-center gap-1.5 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" title="Favorileri JSON olarak indir / yedekle">
+          <i class="ph-bold ph-download-simple text-sm"></i>
+          <span>Yedekle</span>
+        </button>
+        <button id="importFavoritesBtn" type="button" class="text-xs text-slate-700 dark:text-slate-200 hover:text-primary-600 font-semibold px-2.5 py-1.5 min-h-[38px] rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 flex items-center gap-1.5 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" title="JSON yedek dosyasından favorileri geri yükle">
+          <i class="ph-bold ph-upload-simple text-sm"></i>
+          <span>Yedekten Yükle</span>
+        </button>
+        <input type="file" id="importFavoritesFile" accept=".json,application/json" class="hidden" aria-hidden="true">
+      </div>
+    </div>
+
     <div id="favoritesList" class="flex-1 overflow-y-auto p-3.5 space-y-1.5 divide-y divide-slate-50 dark:divide-slate-800/60 min-h-[350px]">
       <!-- Favorites items dynamically inserted -->
     </div>

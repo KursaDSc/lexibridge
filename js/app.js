@@ -612,6 +612,148 @@ document.addEventListener('DOMContentLoaded', () => {
     { word: 'solliciteren', article: '', cefr: 'B1', translation: 'iş başvurusu yapmak', pronunciation: '/sɔ.li.siˈteː.rə(n)/', example: 'Ik ga solliciteren op die vacature.', exampleTr: 'O açık iş pozisyonuna başvuracağım.' }
   ];
 
+  // ── Leitner SRS (Spaced Repetition System) Engine ──────────────────────────
+  // Box 1: 1 gün, Box 2: 3 gün, Box 3: 7 gün, Box 4: 14 gün, Box 5: 30 gün
+  const SRS_INTERVALS_MS = {
+    1: 1 * 24 * 60 * 60 * 1000,
+    2: 3 * 24 * 60 * 60 * 1000,
+    3: 7 * 24 * 60 * 60 * 1000,
+    4: 14 * 24 * 60 * 60 * 1000,
+    5: 30 * 24 * 60 * 60 * 1000
+  };
+
+  function getSRSData() {
+    try {
+      const raw = localStorage.getItem('lexi_srs');
+      return raw ? JSON.parse(raw) : {};
+    } catch (_) {
+      return {};
+    }
+  }
+
+  function saveSRSData(data) {
+    try {
+      localStorage.setItem('lexi_srs', JSON.stringify(data));
+    } catch (_) {}
+  }
+
+  function getCardSRS(word) {
+    if (!word) return { box: 1, lastReviewed: 0, nextDue: 0, reviewCount: 0, correctCount: 0 };
+    const srs = getSRSData();
+    const key = word.trim().toLowerCase();
+    return srs[key] || { box: 1, lastReviewed: 0, nextDue: 0, reviewCount: 0, correctCount: 0 };
+  }
+
+  function updateCardSRS(word, isKnown) {
+    if (!word) return;
+    const key = word.trim().toLowerCase();
+    const srs = getSRSData();
+    const current = srs[key] || { box: 1, lastReviewed: 0, nextDue: 0, reviewCount: 0, correctCount: 0 };
+    const now = Date.now();
+    let newBox = current.box || 1;
+    if (isKnown) {
+      newBox = Math.min(5, (current.reviewCount === 0 ? 2 : newBox + 1));
+    } else {
+      newBox = 1;
+    }
+    const nextDue = now + (SRS_INTERVALS_MS[newBox] || SRS_INTERVALS_MS[1]);
+    srs[key] = {
+      box: newBox,
+      lastReviewed: now,
+      nextDue: nextDue,
+      reviewCount: (current.reviewCount || 0) + 1,
+      correctCount: (current.correctCount || 0) + (isKnown ? 1 : 0)
+    };
+    saveSRSData(srs);
+    updateStreak();
+    updateDueBadge();
+  }
+
+  function isWordDue(word) {
+    if (!word) return true;
+    const key = word.trim().toLowerCase();
+    const srs = getSRSData();
+    const entry = srs[key];
+    if (!entry || !entry.nextDue) return true;
+    return entry.nextDue <= Date.now();
+  }
+
+  // ── Streak Tracker ───────────────────────────────────────────────────────
+  function getStreak() {
+    try {
+      const raw = localStorage.getItem('lexi_streak');
+      return raw ? JSON.parse(raw) : { streak: 0, lastDate: '' };
+    } catch (_) {
+      return { streak: 0, lastDate: '' };
+    }
+  }
+
+  function updateStreak() {
+    const today = new Date().toISOString().slice(0, 10);
+    const data = getStreak();
+    let streak = data.streak || 0;
+    if (data.lastDate === today) {
+      // Bugün zaten kaydedildi
+    } else {
+      const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+      if (data.lastDate === yesterday) {
+        streak += 1;
+      } else {
+        streak = 1;
+      }
+      data.streak = streak;
+      data.lastDate = today;
+      try {
+        localStorage.setItem('lexi_streak', JSON.stringify(data));
+      } catch (_) {}
+    }
+    renderStreakBadge();
+  }
+
+  function renderStreakBadge() {
+    const streakEl = document.getElementById('fcStreakBadge');
+    const textEl = document.getElementById('fcStreakText');
+    if (!streakEl || !textEl) return;
+    const data = getStreak();
+    if (data.streak > 0) {
+      textEl.textContent = `${data.streak} Gün`;
+      streakEl.classList.remove('hidden');
+    } else {
+      streakEl.classList.add('hidden');
+    }
+  }
+
+  function updateDueBadge() {
+    const badge = document.getElementById('fcDueBadge');
+    if (!badge) return;
+    const allPool = [...DEFAULT_FLASHCARDS];
+    const favs = getFavorites();
+    favs.forEach((f) => {
+      if (!allPool.some((p) => p.word.toLowerCase() === f.word.toLowerCase())) {
+        allPool.push({
+          word: f.word,
+          article: f.article || '',
+          cefr: f.cefr || 'A1',
+          translation: f.translation || '',
+          pronunciation: '',
+          example: `Belangrijk woord: ${f.word}`,
+          exampleTr: f.translation || ''
+        });
+      }
+    });
+    const dueCount = allPool.filter((c) => isWordDue(c.word)).length;
+    if (dueCount > 0) {
+      badge.textContent = String(dueCount);
+      badge.classList.remove('hidden');
+    } else {
+      badge.classList.add('hidden');
+    }
+  }
+
+  window.getSRSData = getSRSData;
+  window.updateCardSRS = updateCardSRS;
+  window.getStreak = getStreak;
+
   let flashcardDeck = [];
   let flashcardIdx = 0;
   let flashcardKnown = 0;
@@ -632,7 +774,27 @@ document.addEventListener('DOMContentLoaded', () => {
       chip.classList.toggle('dark:border-slate-700', !on);
     });
     const favs = getFavorites();
-    if (deckType === 'favorites' && favs.length > 0) {
+
+    if (deckType === 'due') {
+      const allPool = [...DEFAULT_FLASHCARDS];
+      favs.forEach((f) => {
+        if (!allPool.some((p) => p.word.toLowerCase() === f.word.toLowerCase())) {
+          allPool.push({
+            word: f.word,
+            article: f.article || '',
+            cefr: f.cefr || 'A1',
+            translation: f.translation || 'Çeviri mevcut değil',
+            pronunciation: '',
+            example: `Belangrijk woord: ${f.word}`,
+            exampleTr: f.translation || ''
+          });
+        }
+      });
+      const dueCards = allPool.filter((c) => isWordDue(c.word));
+      flashcardDeck = dueCards.length > 0 ? dueCards : allPool.slice(0, 10);
+      const label = document.getElementById('flashcardDeckLabel');
+      if (label) label.textContent = `Aralıklı Tekrar (${flashcardDeck.length} Kart)`;
+    } else if (deckType === 'favorites' && favs.length > 0) {
       flashcardDeck = favs.map(f => ({
         word: f.word,
         article: f.article || '',
@@ -661,6 +823,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const label = document.getElementById('flashcardDeckLabel');
       if (label) label.textContent = `Temel & Günlük Kelimeler (${flashcardDeck.length} Kart)`;
     }
+
+    renderStreakBadge();
+    updateDueBadge();
 
     // Shuffle deck
     flashcardDeck.sort(() => Math.random() - 0.5);
@@ -713,6 +878,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const fcCefrBadge = document.getElementById('fcCefrBadge');
     if (fcCefrBadge) fcCefrBadge.textContent = card.cefr || 'A1';
+
+    const fcBoxBadge = document.getElementById('fcBoxBadge');
+    if (fcBoxBadge) {
+      const srsEntry = getCardSRS(card.word);
+      if (srsEntry.reviewCount === 0) {
+        fcBoxBadge.textContent = 'Yeni';
+        fcBoxBadge.className = 'text-xs font-bold px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800/60';
+        fcBoxBadge.title = 'Henüz çalışılmadı (Yeni)';
+      } else {
+        fcBoxBadge.textContent = `Kutu ${srsEntry.box}`;
+        const boxStyles = {
+          1: 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800/60',
+          2: 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800/60',
+          3: 'bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-950/60 dark:text-teal-300 dark:border-teal-800/60',
+          4: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800/60',
+          5: 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800/60'
+        };
+        fcBoxBadge.className = `text-xs font-bold px-2 py-0.5 rounded border ${boxStyles[srsEntry.box] || boxStyles[1]}`;
+        fcBoxBadge.title = `Leitner Kutusu ${srsEntry.box} (${srsEntry.correctCount || 0}/${srsEntry.reviewCount || 0} doğru)`;
+      }
+    }
 
     const fcWord = document.getElementById('fcWord');
     if (fcWord) fcWord.textContent = card.word;
@@ -775,6 +961,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function handleCardRating(known) {
+    if (flashcardDeck[flashcardIdx]) {
+      updateCardSRS(flashcardDeck[flashcardIdx].word, known);
+    }
     if (known) flashcardKnown++;
     flashcardIdx++;
     renderCurrentCard();
@@ -954,6 +1143,100 @@ document.addEventListener('DOMContentLoaded', () => {
           renderFavorites();
           showToast('Favoriler temizlendi.');
         }
+      });
+    }
+
+    // Favorites Live Search Filter
+    const favFilterInput = document.getElementById('favSearchFilterInput');
+    const clearFavFilterBtn = document.getElementById('clearFavFilterBtn');
+    if (favFilterInput) {
+      favFilterInput.addEventListener('input', (e) => {
+        const val = e.target.value;
+        if (clearFavFilterBtn) clearFavFilterBtn.classList.toggle('hidden', !val);
+        renderFavorites(val);
+      });
+    }
+    if (clearFavFilterBtn && favFilterInput) {
+      clearFavFilterBtn.addEventListener('click', () => {
+        favFilterInput.value = '';
+        clearFavFilterBtn.classList.add('hidden');
+        renderFavorites('');
+        favFilterInput.focus();
+      });
+    }
+
+    // Favorites JSON Export & Backup
+    const exportFavoritesBtn = document.getElementById('exportFavoritesBtn');
+    if (exportFavoritesBtn) {
+      exportFavoritesBtn.addEventListener('click', () => {
+        const favs = getFavorites();
+        if (!favs || favs.length === 0) {
+          showToast('Dışa aktarılacak favori kelime bulunamadı.');
+          return;
+        }
+        const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(favs, null, 2));
+        const downloadAnchor = document.createElement('a');
+        const todayStr = new Date().toISOString().slice(0, 10);
+        downloadAnchor.setAttribute('href', dataStr);
+        downloadAnchor.setAttribute('download', `lexibridge_favoriler_${todayStr}.json`);
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+        showToast(`${favs.length} favori kelime JSON olarak indirildi.`, 'ph-bold ph-download-simple text-primary-500');
+      });
+    }
+
+    // Favorites JSON Import & Restore
+    const importFavoritesBtn = document.getElementById('importFavoritesBtn');
+    const importFavoritesFile = document.getElementById('importFavoritesFile');
+    if (importFavoritesBtn && importFavoritesFile) {
+      importFavoritesBtn.addEventListener('click', () => {
+        importFavoritesFile.click();
+      });
+
+      importFavoritesFile.addEventListener('change', (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const parsed = JSON.parse(event.target.result);
+            if (!Array.isArray(parsed)) {
+              showToast('Geçersiz dosya formatı. JSON dizi bekleniyor.');
+              return;
+            }
+            const validItems = parsed.filter(item => item && typeof item.word === 'string' && item.word.trim().length > 0);
+            if (validItems.length === 0) {
+              showToast('Dosyada geçerli kelime bulunamadı.');
+              return;
+            }
+            const currentFavs = getFavorites();
+            let addedCount = 0;
+            validItems.forEach(item => {
+              const cleanWord = item.word.trim();
+              const exists = currentFavs.some(f => f.word.toLowerCase() === cleanWord.toLowerCase());
+              if (!exists) {
+                currentFavs.unshift({
+                  word: cleanWord,
+                  article: item.article || '',
+                  cefr: item.cefr || 'A1',
+                  translation: item.translation || '',
+                  source: item.source || 'nl'
+                });
+                addedCount++;
+              }
+            });
+            if (currentFavs.length > 200) currentFavs.length = 200;
+            localStorage.setItem('lexi_favorites', JSON.stringify(currentFavs));
+            renderFavorites();
+            showToast(`${addedCount} yeni kelime başarıyla eklendi!`, 'ph-bold ph-check text-emerald-500');
+          } catch (err) {
+            showToast('JSON dosyası okunurken hata oluştu.');
+          } finally {
+            importFavoritesFile.value = '';
+          }
+        };
+        reader.readAsText(file);
       });
     }
 
@@ -1293,12 +1576,28 @@ document.addEventListener('DOMContentLoaded', () => {
     return favs.some((f) => f.word.toLowerCase() === word.toLowerCase());
   }
 
-  function renderFavorites() {
+  function renderFavorites(filterQuery = null) {
     const favoritesList = document.getElementById('favoritesList');
     if (!favoritesList) return;
-    const favs = getFavorites();
-    if (favs.length === 0) {
+    const allFavs = getFavorites();
+    const filterInput = document.getElementById('favSearchFilterInput');
+    const q = (filterQuery !== null ? filterQuery : (filterInput ? filterInput.value : '')).trim().toLowerCase();
+
+    let favs = allFavs;
+    if (q) {
+      favs = allFavs.filter((f) =>
+        (f.word && f.word.toLowerCase().includes(q)) ||
+        (f.translation && f.translation.toLowerCase().includes(q))
+      );
+    }
+
+    if (allFavs.length === 0) {
       favoritesList.innerHTML = `<div class="p-6 text-center text-sm text-slate-400">Henüz favorilere eklenmiş kelime yok. Kelime kartındaki yıldız ikonuna dokunarak kaydedebilirsiniz.</div>`;
+      return;
+    }
+
+    if (favs.length === 0) {
+      favoritesList.innerHTML = `<div class="p-6 text-center text-sm text-slate-400">"${escapeHtml(q)}" ile eşleşen favori kelime bulunamadı.</div>`;
       return;
     }
     favoritesList.innerHTML = favs

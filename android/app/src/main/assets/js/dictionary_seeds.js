@@ -447,5 +447,749 @@ window.LEXI_DICTIONARY_SEEDS = [
   { nl: "de kat uit de boom kijken", tr: "durumu uzaktan izlemek / acele etmeyip bekleyip görmek", pos: "Deyim", cefr: "B2", example: { source: "Hij besloot eerst de kat uit de boom te kijken.", translation: "Önce durumu uzaktan izleyip beklemeye karar verdi." } },
   { nl: "nu komt de aap uit de mouw", tr: "işin aslı ortaya çıktı / baklayı ağzından çıkardı", pos: "Deyim", cefr: "B2", example: { source: "Toen hij de waarheid vertelde, kwam de aap uit de mouw.", translation: "Gerçeği anlattığında işin aslı ortaya çıktı." } },
   { nl: "over koetjes en kalfjes praten", tr: "havadan sudan konuşmak / önemsiz şeylerden bahsetmek", pos: "Deyim", cefr: "B1", example: { source: "We zaten een uur lang over koetjes en kalfjes te praten.", translation: "Bir saat boyunca havadan sudan konuştuk." } },
-  { nl: "een appeltje met iemand te schillen hebben", tr: "biriyle görülecek bir hesabı olmak", pos: "Deyim", cefr: "B2", example: { source: "Ik heb nog een appeltje met jou te schillen!", translation: "Seninle görülecek bir hesabım var!" } }
+  { nl: "een appeltje met iemand te schillen hebben", tr: "biriyle görülecek bir hesabı olmak", pos: "Deyim", cefr: "B2", example: { source: "Ik heb nog een appeltje met jou te schillen!", translation: "Seninle görülecek bir hesabım var!" } },
+
+  // --- Günlük Yaşam & Sağlık & NS Ulaşım (Expanded Seeds) ---
+  {
+    "nl": "apotheek",
+    "article": "de",
+    "plural": "apotheken",
+    "diminutive": "apotheekje",
+    "tr": "eczane",
+    "pos": "İsim",
+    "cefr": "A1",
+    "example": {
+      "source": "Het recept ligt klaar bij de apotheek.",
+      "translation": "Reçeteniz eczanede hazır bekliyor."
+    }
+  },
+  {
+    "nl": "recept",
+    "article": "het",
+    "plural": "recepten",
+    "diminutive": "receptje",
+    "tr": "reçete (doktor) / yemek tarifi",
+    "pos": "İsim",
+    "cefr": "A2",
+    "example": {
+      "source": "De arts heeft een recept voor antibiotica uitgeschreven.",
+      "translation": "Doktor antibiyotik için bir reçete yazdı."
+    }
+  },
+  {
+    "nl": "tandarts",
+    "article": "de",
+    "plural": "tandartsen",
+    "diminutive": "tandartsje",
+    "tr": "diş hekimi",
+    "pos": "İsim",
+    "cefr": "A1",
+    "example": {
+      "source": "Twee keer per jaar ga ik naar de tandarts.",
+      "translation": "Yılda iki kez diş hekimine giderim."
+    }
+  },
+  {
+    "nl": "medicijn",
+    "article": "het",
+    "plural": "medicijnen",
+    "diminutive": "medicijntje",
+    "tr": "ilaç",
+    "pos": "İsim",
+    "cefr": "A1",
+    "example": {
+      "source": "Neem dit medicijn in na de maaltijd.",
+      "translation": "Bu ilacı yemekten sonra alınız."
+    }
+  },
+  {
+    "nl": "koorts",
+    "article": "de",
+    "tr": "yüksek ateş",
+    "pos": "İsim",
+    "cefr": "A2",
+    "example": {
+      "source": "Mijn dochter heeft hoge koorts en blijft thuis.",
+      "translation": "Kızımın yüksek ateşi var ve evde kalıyor."
+    }
+  },
+  {
+    "nl": "zorgverzekering",
+    "article": "de",
+    "plural": "zorgverzekeringen",
+    "tr": "sağlık sigortası",
+    "pos": "İsim",
+    "cefr": "B1",
+    "example": {
+      "source": "Iedereen in Nederland is verplicht een zorgverzekering af te sluiten.",
+      "translation": "Hollanda'da herkesin sağlık sigortası yaptırması zorunludur."
+    }
+  },
+  {
+    "nl": "eigen risico",
+    "article": "het",
+    "tr": "zorunlu katkı payı / muafiyet (sağlık harcamalarında)",
+    "pos": "İsim",
+    "cefr": "B1",
+    "example": {
+      "source": "Het verplichte eigen risico is dit jaar 385 euro.",
+      "translation": "Zorunlu muafiyet payı bu yıl 385 eurodur."
+    }
+  },
+  {
+    "nl": "spoedeisende hulp",
+    "article": "de",
+    "tr": "acil servis / acil yardım",
+    "pos": "İsim",
+    "cefr": "B1",
+    "example": {
+      "source": "Bij levensbedreigende situaties ga je naar de spoedeisende hulp.",
+      "translation": "Hayati tehlike olan durumlarda acil servise gidilir."
+    }
+  },
+  {
+    "nl": "pijn",
+    "article": "de",
+    "tr": "ağrı / acı",
+    "pos": "İsim",
+    "cefr": "A1",
+    "example": {
+      "source": "Waar heeft u precies pijn?",
+      "translation": "Tam olarak nereniz ağrıyor?"
+    }
+  },
+  {
+    "nl": "perron",
+    "article": "het",
+    "plural": "perrons",
+    "diminutive": "perronnetje",
+    "tr": "peron (tren/otobüs)",
+    "pos": "İsim",
+    "cefr": "A1",
+    "example": {
+      "source": "De intercity naar Rotterdam vertrekt van perron 4b.",
+      "translation": "Rotterdam yönüne giden intercity peron 4b'den kalkıyor."
+    }
+  },
+  {
+    "nl": "spoor",
+    "article": "het",
+    "plural": "sporen",
+    "diminutive": "spoortje",
+    "tr": "demiryolu hattı / tren peronu hattı",
+    "pos": "İsim",
+    "cefr": "A1",
+    "example": {
+      "source": "Let op: de trein vertrekt vandaag van een ander spoor.",
+      "translation": "Dikkat: tren bugün farklı bir hattan kalkmaktadır."
+    }
+  },
+  {
+    "nl": "inchecken",
+    "tr": "kart okutarak giriş yapmak (toplu taşıma/otel)",
+    "pos": "Fiil",
+    "cefr": "A1",
+    "conjugation": {
+      "isVerb": true,
+      "present": {
+        "ik": "check in",
+        "jij": "checkt in",
+        "wij": "checken in"
+      },
+      "past": {
+        "singular": "checkte in",
+        "plural": "checkten in"
+      },
+      "perfect": "heeft ingecheckt"
+    },
+    "example": {
+      "source": "Vergeet niet in te checken bij de poortjes.",
+      "translation": "Turnikelerde kartınızı okutmayı unutmayın."
+    }
+  },
+  {
+    "nl": "uitchecken",
+    "tr": "kart okutarak çıkış yapmak",
+    "pos": "Fiil",
+    "cefr": "A1",
+    "conjugation": {
+      "isVerb": true,
+      "present": {
+        "ik": "check uit",
+        "jij": "checkt uit",
+        "wij": "checken uit"
+      },
+      "past": {
+        "singular": "checkte uit",
+        "plural": "checkten uit"
+      },
+      "perfect": "heeft uitgecheckt"
+    },
+    "example": {
+      "source": "Als u overstapt op een andere vervoerder, moet u eerst uitchecken.",
+      "translation": "Farklı bir taşımacıya aktarma yaparken önce çıkış kartınızı okutmalısınız."
+    }
+  },
+  {
+    "nl": "vertraging",
+    "article": "de",
+    "plural": "vertragingen",
+    "tr": "gecikme / rötar",
+    "pos": "İsim",
+    "cefr": "A2",
+    "example": {
+      "source": "De trein heeft tien minuten vertraging.",
+      "translation": "Trenin on dakika gecikmesi var."
+    }
+  },
+  {
+    "nl": "overstappen",
+    "tr": "aktarma yapmak",
+    "pos": "Fiil",
+    "cefr": "A2",
+    "fixedPreposition": "op (overstappen op - bir araca/ hatta aktarma yapmak)",
+    "conjugation": {
+      "isVerb": true,
+      "present": {
+        "ik": "stap over",
+        "jij": "stapt over",
+        "wij": "stappen over"
+      },
+      "past": {
+        "singular": "stapte over",
+        "plural": "stapten over"
+      },
+      "perfect": "is overgestapt"
+    },
+    "example": {
+      "source": "In Utrecht kunt u overstappen op de trein naar Den Haag.",
+      "translation": "Utrecht'te Lahey trenine aktarma yapabilirsiniz."
+    }
+  },
+  {
+    "nl": "ov-chipkaart",
+    "article": "de",
+    "plural": "ov-chipkaarten",
+    "tr": "toplu taşıma kartı",
+    "pos": "İsim",
+    "cefr": "A1",
+    "example": {
+      "source": "Heeft u voldoende saldo op uw ov-chipkaart?",
+      "translation": "Toplu taşıma kartınızda yeterli bakiye var mı?"
+    }
+  },
+  {
+    "nl": "abonnement",
+    "article": "het",
+    "plural": "abonnementen",
+    "diminutive": "abonnementje",
+    "tr": "abonelik (NS, spor, telefon)",
+    "pos": "İsim",
+    "cefr": "A2",
+    "example": {
+      "source": "Met het dal-vrij abonnement reis je buiten de spits gratis.",
+      "translation": "Yoğun saat dışı abonelikle yoğun saatler haricinde ücretsiz seyahat edersiniz."
+    }
+  },
+  {
+    "nl": "fietsenstalling",
+    "article": "de",
+    "plural": "fietsenstallingen",
+    "tr": "bisiklet otoparkı",
+    "pos": "İsim",
+    "cefr": "A2",
+    "example": {
+      "source": "Je kunt je fiets de eerste 24 uur gratis in de fietsenstalling zetten.",
+      "translation": "Bisikletinizi bisiklet otoparkına ilk 24 saat ücretsiz bırakabilirsiniz."
+    }
+  },
+  {
+    "nl": "burgerservicenummer",
+    "article": "het",
+    "plural": "burgerservicenummers",
+    "tr": "vatandaşlık servis numarası (BSN)",
+    "pos": "İsim",
+    "cefr": "B1",
+    "example": {
+      "source": "Je BSN heb je nodig voor werk, belasting en zorg.",
+      "translation": "BSN numaranız iş, vergi ve sağlık hizmetleri için gereklidir."
+    }
+  },
+  {
+    "nl": "gemeentehuis",
+    "article": "het",
+    "plural": "gemeentehuizen",
+    "diminutive": "gemeentehuisje",
+    "tr": "belediye binası",
+    "pos": "İsim",
+    "cefr": "A2",
+    "example": {
+      "source": "We hebben om elf uur een afspraak op het gemeentehuis.",
+      "translation": "Saat on birde belediye binasında bir randevumuz var."
+    }
+  },
+  {
+    "nl": "belastingdienst",
+    "article": "de",
+    "tr": "Hollanda vergi dairesi",
+    "pos": "İsim",
+    "cefr": "B1",
+    "example": {
+      "source": "De blauwe envelop is een brief van de Belastingdienst.",
+      "translation": "Mavi zarf Vergi Dairesi'nden gelen bir mektuptur."
+    }
+  },
+  {
+    "nl": "toeslag",
+    "article": "de",
+    "plural": "toeslagen",
+    "diminutive": "toeslagje",
+    "tr": "devlet desteği / sübvansiyon (zorgtoeslag, huurtoeslag)",
+    "pos": "İsim",
+    "cefr": "B1",
+    "example": {
+      "source": "Heb je al zorgtoeslag aangevraagd via de overheid?",
+      "translation": "Devlet üzerinden sağlık desteği başvurusu yaptın mı?"
+    }
+  },
+  {
+    "nl": "digid",
+    "article": "de",
+    "tr": "Hollanda resmi dijital kimlik doğrulama sistemi",
+    "pos": "İsim",
+    "cefr": "A2",
+    "example": {
+      "source": "Log in met je DigiD om je gegevens in te zien.",
+      "translation": "Bilgilerinizi görmek için DigiD ile giriş yapınız."
+    }
+  },
+  {
+    "nl": "verhuizing",
+    "article": "de",
+    "plural": "verhuizingen",
+    "tr": "taşınma / ev değiştirme",
+    "pos": "İsim",
+    "cefr": "A2",
+    "example": {
+      "source": "Geef je verhuizing binnen vijf dagen door aan de gemeente.",
+      "translation": "Taşınmanızı beş gün içinde belediyeye bildiriniz."
+    }
+  },
+  {
+    "nl": "huurovereenkomst",
+    "article": "de",
+    "plural": "huurovereenkomsten",
+    "tr": "kira sözleşmesi",
+    "pos": "İsim",
+    "cefr": "B1",
+    "example": {
+      "source": "Lees de huurovereenkomst goed door voordat je tekent.",
+      "translation": "İmzalamadan önce kira sözleşmesini dikkatlice okuyunuz."
+    }
+  },
+  {
+    "nl": "waarborgsom",
+    "article": "de",
+    "plural": "waarborgsommen",
+    "tr": "kira teminatı / depozito",
+    "pos": "İsim",
+    "cefr": "B1",
+    "example": {
+      "source": "De waarborgsom bedraagt meestal één maand huur.",
+      "translation": "Depozito bedeli genelde bir aylık kiradır."
+    }
+  },
+  {
+    "nl": "makelaar",
+    "article": "de",
+    "plural": "makelaars",
+    "diminutive": "makelaartje",
+    "tr": "emlakçı",
+    "pos": "İsim",
+    "cefr": "A2",
+    "example": {
+      "source": "De makelaar organiseert morgen een bezichtiging van de woning.",
+      "translation": "Emlakçı yarın evin gezilmesi için bir randevu ayarlıyor."
+    }
+  },
+  {
+    "nl": "cv-ketel",
+    "article": "de",
+    "plural": "cv-ketels",
+    "tr": "kombi / merkezi ısıtma kazanı",
+    "pos": "İsim",
+    "cefr": "A2",
+    "example": {
+      "source": "De cv-ketel moet elk jaar gecontroleerd worden.",
+      "translation": "Kombi her yıl kontrol edilmelidir."
+    }
+  },
+  {
+    "nl": "sollicitatiegesprek",
+    "article": "het",
+    "plural": "sollicitatiegesprekken",
+    "diminutive": "sollicitatiegesprekje",
+    "tr": "iş görüşmesi / mülakat",
+    "pos": "İsim",
+    "cefr": "B1",
+    "example": {
+      "source": "Ik heb morgen een belangrijk sollicitatiegesprek.",
+      "translation": "Yarın önemli bir iş görüşmem var."
+    }
+  },
+  {
+    "nl": "arbeidsovereenkomst",
+    "article": "de",
+    "plural": "arbeidsovereenkomsten",
+    "tr": "iş sözleşmesi",
+    "pos": "İsim",
+    "cefr": "B1",
+    "example": {
+      "source": "Zij heeft een vaste arbeidsovereenkomst gekregen.",
+      "translation": "Kalıcı (süresiz) bir iş sözleşmesi aldı."
+    }
+  },
+  {
+    "nl": "salaris",
+    "article": "het",
+    "plural": "salarissen",
+    "diminutive": "salarisje",
+    "tr": "maaş / aylık kazanç",
+    "pos": "İsim",
+    "cefr": "A2",
+    "example": {
+      "source": "Het salaris wordt rond de 25e van de maand gestort.",
+      "translation": "Maaş ayın 25'i civarında hesaba yatırılır."
+    }
+  },
+  {
+    "nl": "collega",
+    "article": "de",
+    "plural": "collega's",
+    "diminutive": "collegaatje",
+    "tr": "iş arkadaşı / meslektaş",
+    "pos": "İsim",
+    "cefr": "A1",
+    "example": {
+      "source": "Ik lunch elke dag gezellig met mijn collega's.",
+      "translation": "Her gün iş arkadaşlarımla keyifle öğle yemeği yerim."
+    }
+  },
+  {
+    "nl": "vakantiegeld",
+    "article": "het",
+    "tr": "tatil harçlığı / ödeneği (yıllık %8)",
+    "pos": "İsim",
+    "cefr": "B1",
+    "example": {
+      "source": "In mei ontvangen de meeste werknemers hun vakantiegeld.",
+      "translation": "Mayıs ayında çalışanların çoğu tatil ödeneğini alır."
+    }
+  },
+  {
+    "nl": "vacature",
+    "article": "de",
+    "plural": "vacatures",
+    "diminutive": "vacaturetje",
+    "tr": "açık iş pozisyonu",
+    "pos": "İsim",
+    "cefr": "A2",
+    "example": {
+      "source": "Er staat een interessante vacature op LinkedIn.",
+      "translation": "LinkedIn'de ilginç bir iş ilanı var."
+    }
+  },
+  {
+    "nl": "korting",
+    "article": "de",
+    "plural": "kortingen",
+    "diminutive": "kortinkje",
+    "tr": "indirim / tenzilat",
+    "pos": "İsim",
+    "cefr": "A1",
+    "example": {
+      "source": "Op dit product krijg je vandaag 25% korting.",
+      "translation": "Bu üründe bugün %25 indirim var."
+    }
+  },
+  {
+    "nl": "aanbieding",
+    "article": "de",
+    "plural": "aanbiedingen",
+    "diminutive": "aanbiedinkje",
+    "tr": "kampanyalı ürün / indirim teklifi",
+    "pos": "İsim",
+    "cefr": "A1",
+    "example": {
+      "source": "De kaas is deze week in de aanbieding.",
+      "translation": "Peynir bu hafta kampanyada/indirimde."
+    }
+  },
+  {
+    "nl": "kassabon",
+    "article": "de",
+    "plural": "kassabonnen",
+    "diminutive": "kassabonnetje",
+    "tr": "kasa fişi / fatura",
+    "pos": "İsim",
+    "cefr": "A1",
+    "example": {
+      "source": "Wilt u de kassabon meenemen?",
+      "translation": "Kasa fişinizi almak ister misiniz?"
+    }
+  },
+  {
+    "nl": "pinnen",
+    "tr": "banka kartıyla / temassız ödemek",
+    "pos": "Fiil",
+    "cefr": "A1",
+    "conjugation": {
+      "isVerb": true,
+      "present": {
+        "ik": "pin",
+        "jij": "pint",
+        "wij": "pinnen"
+      },
+      "past": {
+        "singular": "pinde",
+        "plural": "pinden"
+      },
+      "perfect": "heeft gepind"
+    },
+    "example": {
+      "source": "Kan ik hier contactloos pinnen?",
+      "translation": "Burada temassız kartla ödeyebilir miyim?"
+    }
+  },
+  {
+    "nl": "statiegeld",
+    "article": "het",
+    "tr": "şişe ve kutu depozitosu",
+    "pos": "İsim",
+    "cefr": "A2",
+    "example": {
+      "source": "Je kunt de plastic flesjes inleveren voor statiegeld.",
+      "translation": "Plastik şişeleri depozito iadesi için teslim edebilirsiniz."
+    }
+  },
+  {
+    "nl": "klantenservice",
+    "article": "de",
+    "tr": "müşteri hizmetleri",
+    "pos": "İsim",
+    "cefr": "A2",
+    "example": {
+      "source": "Als het pakket niet aankomt, bel je de klantenservice.",
+      "translation": "Paket ulaşmazsa müşteri hizmetlerini ararsınız."
+    }
+  },
+  {
+    "nl": "retourneren",
+    "tr": "iade etmek (sipariş/ürün)",
+    "pos": "Fiil",
+    "cefr": "B1",
+    "conjugation": {
+      "isVerb": true,
+      "present": {
+        "ik": "retourneer",
+        "jij": "retourneert",
+        "wij": "retourneren"
+      },
+      "past": {
+        "singular": "retourneerde",
+        "plural": "retourneerden"
+      },
+      "perfect": "heeft geretourneerd"
+    },
+    "example": {
+      "source": "U kunt de kleding binnen 30 dagen gratis retourneren.",
+      "translation": "Kıyafetleri 30 gün içinde ücretsiz iade edebilirsiniz."
+    }
+  },
+  {
+    "nl": "bezorgen",
+    "tr": "adrese teslim etmek / getirmek",
+    "pos": "Fiil",
+    "cefr": "A2",
+    "conjugation": {
+      "isVerb": true,
+      "present": {
+        "ik": "bezorg",
+        "jij": "bezorgt",
+        "wij": "bezorgen"
+      },
+      "past": {
+        "singular": "bezorgde",
+        "plural": "bezorgden"
+      },
+      "perfect": "heeft bezorgd"
+    },
+    "example": {
+      "source": "De postbode komt vanmiddag het pakket bezorgen.",
+      "translation": "Postacı öğleden sonra paketi teslim etmeye gelecek."
+    }
+  },
+  {
+    "nl": "verhuizen",
+    "tr": "taşınmak",
+    "pos": "Fiil",
+    "cefr": "A2",
+    "fixedPreposition": "naar (verhuizen naar - bir yere taşınmak)",
+    "conjugation": {
+      "isVerb": true,
+      "present": {
+        "ik": "verhuis",
+        "jij": "verhuist",
+        "wij": "verhuizen"
+      },
+      "past": {
+        "singular": "verhuisde",
+        "plural": "verhuisden"
+      },
+      "perfect": "is verhuisd"
+    },
+    "example": {
+      "source": "Volgende maand verhuizen we naar een grotere woning.",
+      "translation": "Gelecek ay daha büyük bir eve taşınıyoruz."
+    }
+  },
+  {
+    "nl": "huren",
+    "tr": "kiralamak",
+    "pos": "Fiil",
+    "cefr": "A2",
+    "conjugation": {
+      "isVerb": true,
+      "present": {
+        "ik": "huur",
+        "jij": "huurt",
+        "wij": "huren"
+      },
+      "past": {
+        "singular": "huurde",
+        "plural": "huurden"
+      },
+      "perfect": "heeft gehuurd"
+    },
+    "example": {
+      "source": "Zij huren een gemeubileerd appartement in Rotterdam.",
+      "translation": "Rotterdam'da eşyalı bir daire kiralıyorlar."
+    }
+  },
+  {
+    "nl": "proberen",
+    "tr": "denemek / çabalamak",
+    "pos": "Fiil",
+    "cefr": "A1",
+    "conjugation": {
+      "isVerb": true,
+      "present": {
+        "ik": "probeer",
+        "jij": "probeert",
+        "wij": "proberen"
+      },
+      "past": {
+        "singular": "probeerde",
+        "plural": "probeerden"
+      },
+      "perfect": "heeft geprobeerd"
+    },
+    "example": {
+      "source": "Ik probeer elke dag een half uur Nederlands te oefenen.",
+      "translation": "Her gün yarım saat Felemenkçe pratik yapmaya çalışıyorum."
+    }
+  },
+  {
+    "nl": "vergeten",
+    "tr": "unutmak",
+    "pos": "Fiil",
+    "cefr": "A1",
+    "conjugation": {
+      "isVerb": true,
+      "present": {
+        "ik": "vergeet",
+        "jij": "vergeet",
+        "wij": "vergeten"
+      },
+      "past": {
+        "singular": "vergat",
+        "plural": "vergaten"
+      },
+      "perfect": "is/heeft vergeten"
+    },
+    "example": {
+      "source": "Ik ben mijn sleutels thuis vergeten.",
+      "translation": "Anahtarlarımı evde unuttum."
+    }
+  },
+  {
+    "nl": "onthouden",
+    "tr": "akılda tutmak / ezberinde tutmak",
+    "pos": "Fiil",
+    "cefr": "A2",
+    "conjugation": {
+      "isVerb": true,
+      "present": {
+        "ik": "onthoud",
+        "jij": "onthoudt",
+        "wij": "onthouden"
+      },
+      "past": {
+        "singular": "onthield",
+        "plural": "onthielden"
+      },
+      "perfect": "heeft onthouden"
+    },
+    "example": {
+      "source": "Het is handig om deze woorden goed te onthouden.",
+      "translation": "Bu kelimeleri iyi akılda tutmak faydalıdır."
+    }
+  },
+  {
+    "nl": "meenemen",
+    "tr": "yanına almak / beraberinde götürmek",
+    "pos": "Fiil",
+    "cefr": "A2",
+    "conjugation": {
+      "isVerb": true,
+      "present": {
+        "ik": "neem mee",
+        "jij": "neemt mee",
+        "wij": "nemen mee"
+      },
+      "past": {
+        "singular": "nam mee",
+        "plural": "namen mee"
+      },
+      "perfect": "heeft meegenomen"
+    },
+    "example": {
+      "source": "Vergeet niet je paraplu mee te nemen!",
+      "translation": "Yanına şemsiyeni almayı unutma!"
+    }
+  },
+  {
+    "nl": "afrekenen",
+    "tr": "hesap ödemek / hesabı kapatmak",
+    "pos": "Fiil",
+    "cefr": "A2",
+    "fixedPreposition": "met (afrekenen met - ile hesaplaşmak)",
+    "conjugation": {
+      "isVerb": true,
+      "present": {
+        "ik": "reken af",
+        "jij": "rekent af",
+        "wij": "rekenen af"
+      },
+      "past": {
+        "singular": "rekende af",
+        "plural": "rekenden af"
+      },
+      "perfect": "heeft afgerekend"
+    },
+    "example": {
+      "source": "Ober, mogen wij alsjeblieft afrekenen?",
+      "translation": "Garson, hesabı ödeyebilir miyiz lütfen?"
+    }
+  }
 ];

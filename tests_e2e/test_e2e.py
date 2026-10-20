@@ -265,6 +265,39 @@ class E2E(unittest.TestCase):
             page.evaluate("localStorage.getItem('lexi_theme')"), "light" if before else "dark"
         )
 
+    # ── Müşteri Deneyimi & SRS Leitner ────────────────────────────────────
+    def test_favorites_live_filter_narrows_list_and_resets(self):
+        page = self.new_page(storage={"lexi_favorites": json.dumps(FAVORITES)})
+        self.open(page)
+        page.click("#navTabFavorites")
+        self.assertEqual(page.locator("#favoritesList .fav-item").count(), 5)
+
+        # "brood" için filtrele -> sadece 1 kart kalmalı
+        page.fill("#favSearchFilterInput", "brood")
+        self.assertEqual(page.locator("#favoritesList .fav-item").count(), 1)
+        self.assertIn("brood", page.locator("#favoritesList").inner_text())
+
+        # Temizle butonuna tıkla -> tekrar 5 karta dönmeli
+        page.click("#clearFavFilterBtn")
+        self.assertEqual(page.locator("#favoritesList .fav-item").count(), 5)
+        self.assertEqual(page.errors, [])
+
+    def test_srs_due_deck_selection_and_card_rating_updates_streak(self):
+        page = self.new_page()
+        self.open(page)
+        page.click("#navTabPractice")
+
+        # Tekrar Zamanı ("due") çipine tıkla
+        page.click('.fc-deck-chip[data-deck="due"]')
+        self.assertEqual(page.get_attribute('.fc-deck-chip[data-deck="due"]', "aria-pressed"), "true")
+        self.assertTrue(page.locator("#fcBoxBadge").is_visible())
+
+        # Kartı "Biliyorum" olarak puanla -> seri (streak) tetiklenmeli
+        page.click("#fcMasteredBtn")
+        self.assertTrue(page.locator("#fcStreakBadge").is_visible())
+        self.assertIn("1 Gün", page.locator("#fcStreakText").inner_text())
+        self.assertEqual(page.errors, [])
+
 
 if __name__ == "__main__":
     unittest.main()
