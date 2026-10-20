@@ -8,15 +8,29 @@ html {
   font-size: 16px;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
 }
 
 html, body {
   -webkit-tap-highlight-color: transparent;
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
 }
 
 body {
-  overscroll-behavior-y: none;
+  overscroll-behavior-y: auto;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
+}
+
+/* Touch screen scroll fluidity for main containers */
+main, #viewDictionary, #flashcardModal, #favoritesModal, #settingsModal {
+  touch-action: pan-y;
 }
 
 /* Ensure mobile form controls never auto-zoom on focus (iOS HIG Best Practice) and fit viewport */
@@ -32,19 +46,9 @@ select {
   white-space: nowrap;
 }
 
-html, body {
-  max-width: 100%;
-}
-
-/* overflow-x: clip does not create a scroll container, so touch scrolling stays on the viewport.
-   (overflow-x: hidden on both html and body breaks touch scroll in mobile WebViews.) */
-html, body {
+/* Contain horizontal overflow on main without altering viewport scroller */
+main {
   overflow-x: clip;
-}
-
-body {
-  padding-top: var(--safe-top);
-  padding-bottom: var(--safe-bottom);
 }
 
 /* Animations */
