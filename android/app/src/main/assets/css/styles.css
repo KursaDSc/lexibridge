@@ -12,8 +12,11 @@ html {
 
 html, body {
   -webkit-tap-highlight-color: transparent;
-  overscroll-behavior-y: none;
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+}
+
+body {
+  overscroll-behavior-y: none;
 }
 
 /* Ensure mobile form controls never auto-zoom on focus (iOS HIG Best Practice) and fit viewport */
@@ -30,8 +33,13 @@ select {
 }
 
 html, body {
-  max-width: 100vw;
-  overflow-x: hidden;
+  max-width: 100%;
+}
+
+/* overflow-x: clip does not create a scroll container, so touch scrolling stays on the viewport.
+   (overflow-x: hidden on both html and body breaks touch scroll in mobile WebViews.) */
+html, body {
+  overflow-x: clip;
 }
 
 body {
