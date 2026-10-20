@@ -124,6 +124,13 @@
       var m = document.getElementById('flashcardModal');
       if (m) m.classList.add('hidden');
     };
+    window.closeQuickPeek = function() {
+      var s = document.getElementById('quickPeekSheet');
+      if (s) {
+        s.classList.remove('is-visible');
+        setTimeout(function() { s.classList.add('hidden'); }, 250);
+      }
+    };
   </script>
 </head>
 <body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 antialiased min-h-screen flex flex-col selection:bg-primary-500 selection:text-white">
@@ -772,6 +779,43 @@
 
       </div>
 
+    </div>
+  </div>
+
+  <!-- Quick-Peek Mini Sheet (İnteraktif Dokun-Öğren Cümle Motoru) -->
+  <div id="quickPeekSheet" class="hidden fixed inset-x-0 bottom-0 z-40 p-3 sm:p-4 max-w-lg mx-auto pointer-events-none transition-all duration-300 ease-out transform translate-y-full opacity-0" role="dialog" aria-modal="false" aria-label="Kelime Hızlı Önizleme">
+    <div class="pointer-events-auto bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-2xl p-3.5 sm:p-4 border border-slate-200/90 dark:border-slate-800 shadow-2xl shadow-slate-900/20 text-slate-800 dark:text-slate-100 flex flex-col gap-2.5">
+      <div class="flex items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-2">
+        <div class="flex items-center gap-1.5 min-w-0 flex-wrap">
+          <span id="qpArticleBadge" class="hidden text-xs px-2 py-0.5 rounded-md font-bold uppercase shrink-0"></span>
+          <h4 id="qpWord" class="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 truncate"></h4>
+          <span id="qpPos" class="hidden text-xs px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-medium"></span>
+          <span id="qpCefr" class="hidden text-xs px-1.5 py-0.5 rounded font-bold uppercase"></span>
+        </div>
+        <div class="flex items-center gap-1 shrink-0">
+          <button id="qpSpeakBtn" type="button" class="w-9 h-9 min-w-[36px] min-h-[36px] rounded-full flex items-center justify-center text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/50 transition-colors" title="Sesli Dinle" aria-label="Sesli Dinle">
+            <i class="ph-bold ph-speaker-high text-lg"></i>
+          </button>
+          <button id="qpFavBtn" type="button" class="w-9 h-9 min-w-[36px] min-h-[36px] rounded-full flex items-center justify-center text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-colors" title="Favorilere Ekle" aria-label="Favorilere Ekle">
+            <i id="qpFavIcon" class="ph-bold ph-star text-lg"></i>
+          </button>
+          <button id="qpCloseBtn" type="button" onclick="window.closeQuickPeek && window.closeQuickPeek()" class="w-9 h-9 min-w-[36px] min-h-[36px] rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Kapat" aria-label="Kapat">
+            <i class="ph-bold ph-x text-lg"></i>
+          </button>
+        </div>
+      </div>
+      <div class="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
+        <div class="flex-1 min-w-0">
+          <div id="qpTranslation" class="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
+            Yükleniyor...
+          </div>
+          <div id="qpExtraNote" class="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5 hidden"></div>
+        </div>
+        <button id="qpFullAnalyzeBtn" type="button" class="shrink-0 px-3.5 py-2 min-h-[44px] bg-primary-600 hover:bg-primary-700 active:scale-95 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs">
+          <span>Detaylı İncele</span>
+          <i class="ph-bold ph-arrow-right text-xs"></i>
+        </button>
+      </div>
     </div>
   </div>
 

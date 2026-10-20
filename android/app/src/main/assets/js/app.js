@@ -267,10 +267,200 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (isWord) {
         const keyClass = isKey ? 'text-primary-600 dark:text-primary-400 font-bold bg-primary-50 dark:bg-primary-950/60 px-1 rounded' : '';
-        return `<span class="lookup-word ${keyClass}" data-word="${escapeHtml(clean)}" title="'${escapeHtml(clean)}' kelimesini ara">${escapeHtml(token)}</span>`;
+        return `<span class="lookup-word ${keyClass}" data-word="${escapeHtml(clean)}" title="'${escapeHtml(clean)}' anlamını gör">${escapeHtml(token)}</span>`;
       }
       return escapeHtml(token);
     }).join('');
+  }
+
+  // ── Quick-Peek Word Inspector (Dokun-Öğren Cümle Motoru) ─────────────────
+  const quickPeekSheet = document.getElementById('quickPeekSheet');
+  const qpWord = document.getElementById('qpWord');
+  const qpArticleBadge = document.getElementById('qpArticleBadge');
+  const qpPos = document.getElementById('qpPos');
+  const qpCefr = document.getElementById('qpCefr');
+  const qpTranslation = document.getElementById('qpTranslation');
+  const qpExtraNote = document.getElementById('qpExtraNote');
+  const qpSpeakBtn = document.getElementById('qpSpeakBtn');
+  const qpFavBtn = document.getElementById('qpFavBtn');
+  const qpFavIcon = document.getElementById('qpFavIcon');
+  const qpCloseBtn = document.getElementById('qpCloseBtn');
+  const qpFullAnalyzeBtn = document.getElementById('qpFullAnalyzeBtn');
+  let currentQpWord = '';
+
+  function openQuickPeek(rawWord, lang = 'nl') {
+    if (!quickPeekSheet) return;
+    const cleanWord = (rawWord || '').trim().replace(/[.,!?;:"'()\[\]]/g, '');
+    if (!cleanWord || cleanWord.length < 2) return;
+
+    currentQpWord = cleanWord;
+    if (qpWord) qpWord.textContent = cleanWord;
+
+    // Reset badges
+    if (qpArticleBadge) {
+      qpArticleBadge.className = 'hidden text-xs px-2 py-0.5 rounded-md font-bold uppercase shrink-0';
+      qpArticleBadge.textContent = '';
+    }
+    if (qpPos) {
+      qpPos.className = 'hidden text-xs px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-medium';
+      qpPos.textContent = '';
+    }
+    if (qpCefr) {
+      qpCefr.className = 'hidden text-xs px-1.5 py-0.5 rounded font-bold uppercase';
+      qpCefr.textContent = '';
+    }
+    if (qpExtraNote) {
+      qpExtraNote.className = 'text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5 hidden';
+      qpExtraNote.textContent = '';
+    }
+
+    updateQpFavState();
+
+    // 1. Instant check in curated seeds (0ms local lookup)
+    const lowerWord = cleanWord.toLowerCase();
+    let seedMatch = null;
+    if (window.LEXI_DICTIONARY_SEEDS && Array.isArray(window.LEXI_DICTIONARY_SEEDS)) {
+      seedMatch = window.LEXI_DICTIONARY_SEEDS.find(s => s.nl && s.nl.toLowerCase() === lowerWord);
+    }
+
+    if (seedMatch) {
+      if (qpTranslation) qpTranslation.textContent = seedMatch.tr;
+      if (seedMatch.article && qpArticleBadge) {
+        const art = seedMatch.article.toLowerCase();
+        qpArticleBadge.textContent = art;
+        qpArticleBadge.className = art === 'de'
+          ? 'text-xs px-2 py-0.5 rounded-md font-bold uppercase shrink-0 bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300 border border-sky-300 dark:border-sky-800'
+          : 'text-xs px-2 py-0.5 rounded-md font-bold uppercase shrink-0 bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800';
+      }
+      if (seedMatch.pos && qpPos) {
+        qpPos.textContent = seedMatch.pos;
+        qpPos.classList.remove('hidden');
+      }
+      if (seedMatch.cefr && qpCefr) {
+        qpCefr.textContent = seedMatch.cefr;
+        qpCefr.className = 'text-xs px-1.5 py-0.5 rounded font-bold uppercase bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800';
+        qpCefr.classList.remove('hidden');
+      }
+      if (seedMatch.fixedPreposition && qpExtraNote) {
+        qpExtraNote.textContent = '🔗 Sabit Edat: ' + seedMatch.fixedPreposition;
+        qpExtraNote.classList.remove('hidden');
+      } else if (seedMatch.plural && qpExtraNote) {
+        qpExtraNote.textContent = `çoğul: de ${seedMatch.plural}${seedMatch.diminutive ? ' | küçültme: het ' + seedMatch.diminutive : ''}`;
+        qpExtraNote.classList.remove('hidden');
+      }
+    } else {
+      if (qpTranslation) qpTranslation.textContent = 'Anlam aranıyor...';
+      if (typeof AIEngine !== 'undefined' && AIEngine.quickTranslateRest) {
+        AIEngine.quickTranslateRest(cleanWord, lang, 'tr').then(res => {
+          if (currentQpWord === cleanWord && qpTranslation) {
+            const firstTrans = res.translations?.[0]?.text || 'Çeviri bulunamadı';
+            qpTranslation.textContent = firstTrans;
+            if (res.grammar?.article && qpArticleBadge) {
+              const art = res.grammar.article.toLowerCase();
+              qpArticleBadge.textContent = art;
+              qpArticleBadge.className = art === 'de'
+                ? 'text-xs px-2 py-0.5 rounded-md font-bold uppercase shrink-0 bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300 border border-sky-300 dark:border-sky-800'
+                : 'text-xs px-2 py-0.5 rounded-md font-bold uppercase shrink-0 bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800';
+            }
+            if (res.partOfSpeech && qpPos) {
+              qpPos.textContent = res.partOfSpeech;
+              qpPos.classList.remove('hidden');
+            }
+            if (res.cefr && qpCefr) {
+              qpCefr.textContent = res.cefr;
+              qpCefr.className = 'text-xs px-1.5 py-0.5 rounded font-bold uppercase bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800';
+              qpCefr.classList.remove('hidden');
+            }
+            if (res.grammar?.fixedPreposition && qpExtraNote) {
+              qpExtraNote.textContent = '🔗 Sabit Edat: ' + res.grammar.fixedPreposition;
+              qpExtraNote.classList.remove('hidden');
+            }
+          }
+        }).catch(() => {
+          if (currentQpWord === cleanWord && qpTranslation) {
+            qpTranslation.textContent = cleanWord;
+          }
+        });
+      }
+    }
+
+    // Reveal sheet with smooth transition
+    quickPeekSheet.classList.remove('hidden');
+    requestAnimationFrame(() => {
+      quickPeekSheet.classList.add('is-visible');
+    });
+  }
+
+  function updateQpFavState() {
+    if (!qpFavIcon) return;
+    const isFav = isFavorite(currentQpWord);
+    qpFavIcon.className = isFav ? 'ph-bold ph-star text-lg text-amber-500' : 'ph-bold ph-star text-lg text-slate-400';
+    if (qpFavBtn) {
+      qpFavBtn.title = isFav ? 'Favorilerden Çıkar' : 'Favorilere Ekle';
+    }
+  }
+
+  function closeQuickPeek() {
+    if (!quickPeekSheet) return;
+    quickPeekSheet.classList.remove('is-visible');
+    setTimeout(() => {
+      quickPeekSheet.classList.add('hidden');
+    }, 250);
+  }
+  window.openQuickPeek = openQuickPeek;
+  window.closeQuickPeek = closeQuickPeek;
+
+  function setupQuickPeek() {
+    if (!quickPeekSheet) return;
+
+    if (qpSpeakBtn) {
+      qpSpeakBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (currentQpWord) speakText(currentQpWord, 'nl', 1.0);
+      });
+    }
+
+    if (qpFavBtn) {
+      qpFavBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (currentQpWord) {
+          toggleFavorite(currentQpWord);
+          updateQpFavState();
+        }
+      });
+    }
+
+    if (qpCloseBtn) {
+      qpCloseBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeQuickPeek();
+      });
+    }
+
+    if (qpFullAnalyzeBtn) {
+      qpFullAnalyzeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const targetWord = currentQpWord;
+        closeQuickPeek();
+        if (targetWord) {
+          searchInput.value = targetWord;
+          if (searchBtn) searchBtn.disabled = false;
+          if (clearBtn) clearBtn.classList.remove('hidden');
+          showToast(`'${targetWord}' aranıyor...`);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          handleSearch();
+        }
+      });
+    }
+
+    // Dismiss when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!quickPeekSheet.classList.contains('hidden') &&
+          !quickPeekSheet.contains(e.target) &&
+          !e.target.closest('.lookup-word')) {
+        closeQuickPeek();
+      }
+    });
   }
 
   // ── Voice Search (Web Speech API STT) ────────────────────────────────────
@@ -663,6 +853,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderWordOfTheDay();
     updateThemeIcon();
     setupVoiceSearch();
+    setupQuickPeek();
     setupFlashcardListeners();
 
     // Autocomplete on search input
@@ -1284,7 +1475,10 @@ document.addEventListener('DOMContentLoaded', () => {
             partOfSpeech: seedMatch.pos || 'İsim',
             grammar: {
               article: seedMatch.article || '',
-              plural: seedMatch.plural || ''
+              plural: seedMatch.plural || '',
+              diminutive: seedMatch.diminutive || '',
+              fixedPreposition: seedMatch.fixedPreposition || '',
+              infinitive: seedMatch.pos === 'Fiil' ? seedMatch.nl : ''
             },
             conjugation: seedMatch.conjugation || null,
             translations: [{ text: seedMatch.tr, frequency: 'very_common' }],
@@ -1370,6 +1564,17 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="flex items-start justify-between gap-2 sm:gap-3 flex-wrap sm:flex-nowrap">
           <div class="min-w-0 flex-1">
             <div class="flex items-center flex-wrap gap-1.5 sm:gap-2">
+              ${isDe ? `
+                <span class="text-xs sm:text-sm px-2.5 py-0.5 rounded-xl font-black uppercase tracking-wider bg-sky-100 dark:bg-sky-950/80 text-sky-800 dark:text-sky-300 border border-sky-300 dark:border-sky-700 shadow-2xs inline-flex items-center gap-1 shrink-0" title="De Belirteci">
+                  <span class="w-2 h-2 rounded-full bg-sky-500"></span>
+                  <span>de</span>
+                </span>
+              ` : isHet ? `
+                <span class="text-xs sm:text-sm px-2.5 py-0.5 rounded-xl font-black uppercase tracking-wider bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 shadow-2xs inline-flex items-center gap-1 shrink-0" title="Het Belirteci">
+                  <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  <span>het</span>
+                </span>
+              ` : ''}
               <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-slate-800 dark:text-slate-100 tracking-tight break-words">${escapeHtml(data.input)}</h2>
               <button class="speak-btn w-9 h-9 sm:w-11 sm:h-11 min-w-[36px] sm:min-w-[44px] min-h-[44px] flex items-center justify-center text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950/50 hover:bg-primary-100 dark:hover:bg-primary-900 active:scale-95 rounded-full transition-all" aria-label="Kelimeyi sesli telaffuz et" data-text="${escapeHtml(data.input)}" data-lang="${data.sourceLanguage}" data-rate="1.0" title="Sesli Telaffuz (1.0x)">
                 <i class="ph-bold ph-speaker-high text-lg sm:text-xl"></i>
@@ -1402,9 +1607,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 </span>
               ` : ''}
               ${data.grammar?.plural ? `
-                <span class="text-xs px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 font-medium border border-indigo-100/70 dark:border-indigo-800 inline-flex items-center gap-1 shrink-0" title="Çoğul Hali">
+                <span class="text-xs px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 font-medium border border-indigo-100/70 dark:border-indigo-800 inline-flex items-center gap-1 shrink-0" title="Çoğul Hali (Hollandaca çoğulların tamamı 'de' alır)">
                   <span class="text-xs text-indigo-500 font-bold uppercase">çoğul:</span>
-                  <span class="font-semibold text-slate-800 dark:text-slate-100">${escapeHtml(data.grammar.plural)}</span>
+                  <span class="font-semibold text-slate-800 dark:text-slate-100">de ${escapeHtml(data.grammar.plural)}</span>
+                </span>
+              ` : ''}
+              ${data.grammar?.diminutive ? `
+                <span class="text-xs px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 font-medium border border-emerald-100/70 dark:border-emerald-800 inline-flex items-center gap-1 shrink-0" title="Küçültme Hali (Hollandaca küçültmelerin tamamı 'het' alır)">
+                  <span class="text-xs text-emerald-500 font-bold uppercase">küçültme:</span>
+                  <span class="font-semibold text-slate-800 dark:text-slate-100">het ${escapeHtml(data.grammar.diminutive)}</span>
                 </span>
               ` : ''}
               ${data.grammar?.infinitive && data.grammar.infinitive !== data.input ? `
@@ -1457,6 +1668,24 @@ document.addEventListener('DOMContentLoaded', () => {
             ` : ''}
           </div>
         </div>
+
+        ${data.grammar?.fixedPreposition ? `
+          <div class="mt-3.5 p-3 bg-gradient-to-r from-indigo-50/90 to-sky-50/90 dark:from-indigo-950/40 dark:to-slate-800/60 border border-indigo-200/80 dark:border-indigo-800/80 rounded-xl flex items-center justify-between gap-3 text-xs sm:text-sm text-indigo-950 dark:text-indigo-200 shadow-2xs">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <div class="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                <i class="ph-bold ph-link text-base"></i>
+              </div>
+              <div class="min-w-0">
+                <div class="text-xs uppercase tracking-wider font-bold text-indigo-600 dark:text-indigo-400">Sabit Edat (Vast Voorzetsel)</div>
+                <div class="font-bold text-slate-800 dark:text-slate-100 truncate">${escapeHtml(data.grammar.fixedPreposition)}</div>
+              </div>
+            </div>
+            <button class="speak-btn px-2.5 py-1 min-h-[36px] bg-indigo-100/80 dark:bg-indigo-900/40 hover:bg-indigo-200 dark:hover:bg-indigo-800 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs font-semibold shrink-0 transition-colors flex items-center gap-1" data-text="${escapeHtml(data.grammar.fixedPreposition)}" data-lang="nl" title="Sabit edatı sesli oku">
+              <i class="ph-bold ph-speaker-high text-xs"></i>
+              <span>Dinle</span>
+            </button>
+          </div>
+        ` : ''}
       </div>
     `;
 
@@ -1576,7 +1805,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <i class="ph-bold ph-chat-circle-text text-blue-500 text-lg"></i>
               <h3 class="dark:text-slate-100 font-bold text-base text-slate-800">Doğal Örnek Cümleler</h3>
             </div>
-            <span class="text-xs text-slate-400 font-medium">Kelimelere dokunarak ara</span>
+            <span class="text-xs text-primary-600 dark:text-primary-400 font-medium flex items-center gap-1"><i class="ph-bold ph-hand-tap"></i> Kelimelere dokunup dinleyin</span>
           </div>
           <div class="space-y-2.5">
             ${data.examples.map(ex => `
@@ -1651,7 +1880,9 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             <div class="space-y-1.5">
               ${g.article ? `<div class="flex justify-between items-center py-1.5 border-b border-slate-50 dark:border-slate-800"><span class="text-slate-500 font-medium">Belirteç (Artikel)</span><div>${renderArticleBadge(g.article)}</div></div>` : ''}
-              ${g.plural ? `<div class="flex justify-between py-1.5 border-b border-slate-50 dark:border-slate-800"><span class="text-slate-500 font-medium">Çoğul</span><span class="font-semibold text-slate-800 dark:text-slate-100">${escapeHtml(g.plural)}</span></div>` : ''}
+              ${g.plural ? `<div class="flex justify-between py-1.5 border-b border-slate-50 dark:border-slate-800"><span class="text-slate-500 font-medium">Çoğul (de)</span><span class="font-semibold text-slate-800 dark:text-slate-100">de ${escapeHtml(g.plural)}</span></div>` : ''}
+              ${g.diminutive ? `<div class="flex justify-between py-1.5 border-b border-slate-50 dark:border-slate-800"><span class="text-slate-500 font-medium">Küçültme (het)</span><span class="font-semibold text-slate-800 dark:text-slate-100">het ${escapeHtml(g.diminutive)}</span></div>` : ''}
+              ${g.fixedPreposition ? `<div class="flex justify-between py-1.5 border-b border-slate-50 dark:border-slate-800"><span class="text-slate-500 font-medium">Sabit Edat</span><span class="font-semibold text-indigo-600 dark:text-indigo-400">${escapeHtml(g.fixedPreposition)}</span></div>` : ''}
               ${g.infinitive ? `<div class="flex justify-between py-1.5 border-b border-slate-50 dark:border-slate-800"><span class="text-slate-500 font-medium">Mastar</span><span class="font-semibold text-slate-800 dark:text-slate-100">${escapeHtml(g.infinitive)}</span></div>` : ''}
               ${g.register ? `<div class="flex justify-between py-1.5 border-b border-slate-50 dark:border-slate-800"><span class="text-slate-500 font-medium">Kullanım Düzeyi</span><span class="font-semibold text-slate-800 dark:text-slate-100">${escapeHtml(localizeRegister(g.register))}</span></div>` : ''}
             </div>
@@ -1799,16 +2030,22 @@ document.addEventListener('DOMContentLoaded', () => {
       stickySearchText.textContent = `${art}${data.input} — ${mainTrans}`;
     }
 
-    // Attach tap-to-lookup on sentence words
+    // Attach tap-to-lookup on sentence words (Dokun-Öğren Cümle Motoru)
     resultsContainer.querySelectorAll('.lookup-word').forEach((w) => {
       w.addEventListener('click', (e) => {
         e.stopPropagation();
         const word = (w.dataset.word || w.textContent || '').trim().replace(/[.,!?;:"'()]/g, '');
         if (word && word.length > 1) {
-          searchInput.value = word;
-          showToast(`'${word}' aranıyor...`);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-          handleSearch();
+          // If shift key or special modifier is held, execute instant full search directly
+          if (e.shiftKey) {
+            searchInput.value = word;
+            showToast(`'${word}' aranıyor...`);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            handleSearch();
+          } else {
+            // Default flagship behavior: Non-intrusive Quick-Peek bottom sheet
+            openQuickPeek(word, data.sourceLanguage || 'nl');
+          }
         }
       });
     });

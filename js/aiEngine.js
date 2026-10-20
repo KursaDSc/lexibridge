@@ -123,7 +123,9 @@ Sana verilen kelime, kelime grubu, deyim veya cümleyi en doğru şekilde analiz
   "grammar": {
     "article": "de / het (Hollandaca tekil isimler için)",
     "plural": "çoğul hali",
+    "diminutive": "küçültme hali (het -je/-tje/-pje hali)",
     "infinitive": "mastar",
+    "fixedPreposition": "fiil veya sıfatın aldığı sabit edat (örn: 'wachten op', 'houden van', 'bang voor', 'geïnteresseerd in')",
     "register": "informal / formal / slang / idiomatic vb.",
     "notes": ["ekstra gramer veya deyim notları"]
   },
@@ -176,6 +178,8 @@ JSON Şablonu:
   "grammar": {
     "article": "de / het (Felemenkçe ise)",
     "plural": "çoğul",
+    "diminutive": "küçültme",
+    "fixedPreposition": "sabit edat",
     "infinitive": "mastar"
   },
   "examples": [
@@ -388,6 +392,8 @@ JSON Şablonu:
         grammar: {
           article: (clean.match(/"article"\s*:\s*"([^"]+)"/i) || [])[1] || "",
           plural: (clean.match(/"plural"\s*:\s*"([^"]+)"/i) || [])[1] || "",
+          diminutive: (clean.match(/"diminutive"\s*:\s*"([^"]+)"/i) || [])[1] || "",
+          fixedPreposition: (clean.match(/"fixedPreposition"\s*:\s*"([^"]+)"/i) || [])[1] || "",
           infinitive: (clean.match(/"infinitive"\s*:\s*"([^"]+)"/i) || [])[1] || "",
           register: (clean.match(/"register"\s*:\s*"([^"]+)"/i) || [])[1] || ""
         },
@@ -512,10 +518,12 @@ ${sanitized}
     const grammar = (raw.grammar && typeof raw.grammar === "object") ? {
       article: raw.grammar.article ? String(raw.grammar.article).trim() : "",
       plural: raw.grammar.plural ? String(raw.grammar.plural).trim() : "",
+      diminutive: raw.grammar.diminutive ? String(raw.grammar.diminutive).trim() : "",
+      fixedPreposition: raw.grammar.fixedPreposition ? String(raw.grammar.fixedPreposition).trim() : "",
       infinitive: raw.grammar.infinitive ? String(raw.grammar.infinitive).trim() : "",
       register: raw.grammar.register ? String(raw.grammar.register).trim() : "",
       notes: Array.isArray(raw.grammar.notes) ? raw.grammar.notes.map(String) : []
-    } : { article: "", plural: "", infinitive: "", register: "", notes: [] };
+    } : { article: "", plural: "", diminutive: "", fixedPreposition: "", infinitive: "", register: "", notes: [] };
 
     // 4. Pronunciation normalization
     const pronunciation = (raw.pronunciation && typeof raw.pronunciation === "object") ? {

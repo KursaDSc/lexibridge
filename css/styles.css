@@ -93,21 +93,39 @@ html.dark body {
   border-top: 4px solid #10b981 !important;
 }
 
-/* Tap to Lookup Interactive Word Chips */
+/* Quick-Peek Bottom Sheet Transitions */
+#quickPeekSheet {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+}
+
+#quickPeekSheet.is-visible {
+  transform: translateY(0) !important;
+  opacity: 1 !important;
+}
+
+/* Tap to Lookup Interactive Word Chips (Linguistic Inspector) */
 .lookup-word {
+  border-bottom: 1.5px dotted rgba(2, 132, 199, 0.5);
   border-radius: 4px;
-  padding: 0 2px;
-  transition: all 0.15s ease;
+  padding: 0 1.5px;
+  transition: all 0.15s ease-in-out;
   cursor: pointer;
+  display: inline;
 }
 
 .lookup-word:hover, .lookup-word:active {
   background-color: rgba(2, 132, 199, 0.15);
+  border-bottom-color: #0284c7;
   color: #0284c7;
+}
+
+html.dark .lookup-word {
+  border-bottom-color: rgba(56, 189, 248, 0.5);
 }
 
 html.dark .lookup-word:hover, html.dark .lookup-word:active {
   background-color: rgba(56, 189, 248, 0.22);
+  border-bottom-color: #38bdf8;
   color: #38bdf8;
 }
 

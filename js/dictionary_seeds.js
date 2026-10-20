@@ -317,21 +317,21 @@ window.LEXI_DICTIONARY_SEEDS = [
     example: { source: "We moeten vandaag nog beslissen.", translation: "Bugün içinde karar vermeliyiz." }
   },
 
-  // --- Temel İsimler (Nouns with de/het articles & CEFR) ---
-  { nl: "fiets", tr: "bisiklet", article: "de", plural: "fietsen", pos: "İsim", cefr: "A1", example: { source: "Mijn fiets staat bij het station.", translation: "Bisikletim istasyonun yanında duruyor." } },
-  { nl: "huis", tr: "ev", article: "het", plural: "huizen", pos: "İsim", cefr: "A1", example: { source: "Zij hebben een nieuw huis gekocht.", translation: "Yeni bir ev satın aldılar." } },
-  { nl: "auto", tr: "araba / otomobil", article: "de", plural: "auto's", pos: "İsim", cefr: "A1", example: { source: "De auto staat op de parkeerplaats.", translation: "Araba otoparkta." } },
-  { nl: "werk", tr: "iş / çalışma", article: "het", plural: "werken", pos: "İsim", cefr: "A1", example: { source: "Ik ga om acht uur naar mijn werk.", translation: "Saat sekizde işime gidiyorum." } },
-  { nl: "stad", tr: "şehir / kent", article: "de", plural: "steden", pos: "İsim", cefr: "A1", example: { source: "Utrecht is een gezellige stad.", translation: "Utrecht samimi ve keyifli bir şehir." } },
-  { nl: "kind", tr: "çocuk", article: "het", plural: "kinderen", pos: "İsim", cefr: "A1", example: { source: "De kinderen spelen in het park.", translation: "Çocuklar parkta oynuyor." } },
-  { nl: "school", tr: "okul", article: "de", plural: "scholen", pos: "İsim", cefr: "A1", example: { source: "De school begint om half negen.", translation: "Okul sekiz buçukta başlıyor." } },
-  { nl: "afspraak", tr: "randevu / anlaşma", article: "de", plural: "afspraken", pos: "İsim", cefr: "A1", example: { source: "Ik heb morgen een afspraak bij de huisarts.", translation: "Yarın aile hekiminde bir randevum var." } },
+  // --- Temel İsimler (Nouns with de/het articles, diminutive & CEFR) ---
+  { nl: "fiets", tr: "bisiklet", article: "de", plural: "fietsen", diminutive: "fietsje", pos: "İsim", cefr: "A1", example: { source: "Mijn fiets staat bij het station.", translation: "Bisikletim istasyonun yanında duruyor." } },
+  { nl: "huis", tr: "ev", article: "het", plural: "huizen", diminutive: "huisje", pos: "İsim", cefr: "A1", example: { source: "Zij hebben een nieuw huis gekocht.", translation: "Yeni bir ev satın aldılar." } },
+  { nl: "auto", tr: "araba / otomobil", article: "de", plural: "auto's", diminutive: "autootje", pos: "İsim", cefr: "A1", example: { source: "De auto staat op de parkeerplaats.", translation: "Araba otoparkta." } },
+  { nl: "werk", tr: "iş / çalışma", article: "het", plural: "werken", diminutive: "werkje", pos: "İsim", cefr: "A1", example: { source: "Ik ga om acht uur naar mijn werk.", translation: "Saat sekizde işime gidiyorum." } },
+  { nl: "stad", tr: "şehir / kent", article: "de", plural: "steden", diminutive: "stadje", pos: "İsim", cefr: "A1", example: { source: "Utrecht is een gezellige stad.", translation: "Utrecht samimi ve keyifli bir şehir." } },
+  { nl: "kind", tr: "çocuk", article: "het", plural: "kinderen", diminutive: "kindje", pos: "İsim", cefr: "A1", example: { source: "De kinderen spelen in het park.", translation: "Çocuklar parkta oynuyor." } },
+  { nl: "school", tr: "okul", article: "de", plural: "scholen", diminutive: "schooltje", pos: "İsim", cefr: "A1", example: { source: "De school begint om half negen.", translation: "Okul sekiz buçukta başlıyor." } },
+  { nl: "afspraak", tr: "randevu / anlaşma", article: "de", plural: "afspraken", diminutive: "afspraakje", pos: "İsim", cefr: "A1", example: { source: "Ik heb morgen een afspraak bij de huisarts.", translation: "Yarın aile hekiminde bir randevum var." } },
   { nl: "huisarts", tr: "aile hekimi / pratisyen doktor", article: "de", plural: "huisartsen", pos: "İsim", cefr: "A1", example: { source: "Bel eerst de huisarts voor je naar het ziekenhuis gaat.", translation: "Hastaneye gitmeden önce aile hekimini ara." } },
   { nl: "ziekenhuis", tr: "hastane", article: "het", plural: "ziekenhuizen", pos: "İsim", cefr: "A1", example: { source: "Het ziekenhuis ligt dichtbij het centrum.", translation: "Hastane merkeze yakın konumda." } },
   { nl: "gemeente", tr: "belediye", article: "de", plural: "gemeenten", pos: "İsim", cefr: "A2", example: { source: "U moet zich inschrijven bij de gemeente.", translation: "Belediyeye kayıt yaptırmalısınız." } },
   { nl: "inschrijving", tr: "kayıt / ikamet kaydı (BRP)", article: "de", plural: "inschrijvingen", pos: "İsim", cefr: "A2", example: { source: "De inschrijving bij de gemeente is verplicht.", translation: "Belediyeye kayıt zorunludur." } },
-  { nl: "brief", tr: "mektup", article: "de", plural: "brieven", pos: "İsim", cefr: "A1", example: { source: "Ik heb een belangrijke brief van de Belastingdienst gekregen.", translation: "Vergi dairesinden önemli bir mektup aldım." } },
-  { nl: "formulier", tr: "form / resmi belge", article: "het", plural: "formulieren", pos: "İsim", cefr: "A2", example: { source: "Kunt u dit formulier alstublieft invullen?", translation: "Bu formu lütfen doldurabilir misiniz?" } },
+  { nl: "brief", tr: "mektup", article: "de", plural: "brieven", diminutive: "briefje", pos: "İsim", cefr: "A1", example: { source: "Ik heb een belangrijke brief van de Belastingdienst gekregen.", translation: "Vergi dairesinden önemli bir mektup aldım." } },
+  { nl: "formulier", tr: "form / resmi belge", article: "het", plural: "formulieren", diminutive: "formuliertje", pos: "İsim", cefr: "A2", example: { source: "Kunt u dit formulier alstublieft invullen?", translation: "Bu formu lütfen doldurabilir misiniz?" } },
   { nl: "tijd", tr: "zaman / vakit", article: "de", plural: "tijden", pos: "İsim", cefr: "A1", example: { source: "Heb je vanmiddag even tijd voor mij?", translation: "Öğleden sonra bana ayıracak vaktin var mı?" } },
   { nl: "geld", tr: "para", article: "het", plural: "-", pos: "İsim", cefr: "A1", example: { source: "Ik heb niet genoeg contant geld bij me.", translation: "Yanımda yeterince nakit para yok." } },
   { nl: "taal", tr: "dil / lisan", article: "de", plural: "talen", pos: "İsim", cefr: "A1", example: { source: "Nederlands is een interessante taal.", translation: "Felemenkçe ilginç bir dil." } },
@@ -340,15 +340,87 @@ window.LEXI_DICTIONARY_SEEDS = [
   { nl: "inburgering", tr: "toplumsal uyum / entegrasyon", article: "de", plural: "-", pos: "İsim", cefr: "A2", example: { source: "De inburgering helpt nieuwkomers in Nederland.", translation: "Uyum süreci Hollanda'daki yeni gelenlere yardımcı olur." } },
   { nl: "paspoort", tr: "pasaport", article: "het", plural: "paspoorten", pos: "İsim", cefr: "A1", example: { source: "Vergeet je paspoort niet mee te nemen.", translation: "Pasaportunu yanına almayı unutma." } },
   { nl: "verblijfsvergunning", tr: "oturum izni / ikamet kartı", article: "de", plural: "verblijfsvergunningen", pos: "İsim", cefr: "B1", example: { source: "Mijn verblijfsvergunning is vijf jaar geldig.", translation: "Oturum iznim beş yıl geçerli." } },
-  { nl: "trein", tr: "tren", article: "de", plural: "treinen", pos: "İsim", cefr: "A1", example: { source: "De trein naar Den Haag heeft vijf minuten vertraging.", translation: "Lahey treni beş dakika gecikmeli." } },
-  { nl: "station", tr: "istasyon / gar", article: "het", plural: "stations", pos: "İsim", cefr: "A1", example: { source: "We ontmoeten elkaar voor het Centraal Station.", translation: "Merkez İstasyonu'nun önünde buluşuyoruz." } },
+  { nl: "trein", tr: "tren", article: "de", plural: "treinen", diminutive: "treintje", pos: "İsim", cefr: "A1", example: { source: "De trein naar Den Haag heeft vijf minuten vertraging.", translation: "Lahey treni beş dakika gecikmeli." } },
+  { nl: "station", tr: "istasyon / gar", article: "het", plural: "stations", diminutive: "stationnetje", pos: "İsim", cefr: "A1", example: { source: "We ontmoeten elkaar voor het Centraal Station.", translation: "Merkez İstasyonu'nun önünde buluşuyoruz." } },
   { nl: "supermarkt", tr: "süpermarket", article: "de", plural: "supermarkten", pos: "İsim", cefr: "A1", example: { source: "De supermarkt is open tot tien uur 's avonds.", translation: "Süpermarket akşam ona kadar açık." } },
   { nl: "rekening", tr: "hesap / fatura", article: "de", plural: "rekeningen", pos: "İsim", cefr: "A1", example: { source: "Mag ik de rekening alstublieft?", translation: "Hesabı alabilir miyim lütfen?" } },
-  { nl: "vriend", tr: "arkadaş / dost", article: "de", plural: "vrienden", pos: "İsim", cefr: "A1", example: { source: "Mijn beste vriend woont in Eindhoven.", translation: "En iyi arkadaşım Eindhoven'da yaşıyor." } },
+  { nl: "vriend", tr: "arkadaş / dost", article: "de", plural: "vrienden", diminutive: "vriendje", pos: "İsim", cefr: "A1", example: { source: "Mijn beste vriend woont in Eindhoven.", translation: "En iyi arkadaşım Eindhoven'da yaşıyor." } },
   { nl: "gezin", tr: "çekirdek aile", article: "het", plural: "gezinnen", pos: "İsim", cefr: "A2", example: { source: "Zij hebben een hecht gezin.", translation: "Bağları kuvvetli bir çekirdek aileleri var." } },
-  { nl: "kamer", tr: "oda", article: "de", plural: "kamers", pos: "İsim", cefr: "A1", example: { source: "Ik huur een kamer in het centrum.", translation: "Merkezde bir oda kiralıyorum." } },
-  { nl: "deur", tr: "kapı", article: "de", plural: "deuren", pos: "İsim", cefr: "A1", example: { source: "Wilt u de deur achter u sluiten?", translation: "Arkanızdan kapıyı kapatır mısınız?" } },
-  { nl: "raam", tr: "pencere", article: "het", plural: "ramen", pos: "İsim", cefr: "A1", example: { source: "Doe het raam maar open voor wat frisse lucht.", translation: "Temiz hava için pencereyi açabilirsin." } },
+  { nl: "kamer", tr: "oda", article: "de", plural: "kamers", diminutive: "kamertje", pos: "İsim", cefr: "A1", example: { source: "Ik huur een kamer in het centrum.", translation: "Merkezde bir oda kiralıyorum." } },
+  { nl: "deur", tr: "kapı", article: "de", plural: "deuren", diminutive: "deurtje", pos: "İsim", cefr: "A1", example: { source: "Wilt u de deur achter u sluiten?", translation: "Arkanızdan kapıyı kapatır mısınız?" } },
+  { nl: "raam", tr: "pencere", article: "het", plural: "ramen", diminutive: "raampje", pos: "İsim", cefr: "A1", example: { source: "Doe het raam maar open voor wat frisse lucht.", translation: "Temiz hava için pencereyi açabilirsin." } },
+
+  // --- Sabit Edatlı Fiiller (Verbs with Vaste Voorzetsels & CEFR) ---
+  {
+    nl: "wachten",
+    tr: "beklemek",
+    pos: "Fiil",
+    cefr: "A1",
+    fixedPreposition: "op (wachten op - birini/bir şeyi beklemek)",
+    conjugation: {
+      isVerb: true,
+      present: { ik: "wacht", jij: "wacht", wij: "wachten" },
+      past: { singular: "wachtte", plural: "wachtten" },
+      perfect: "heeft gewacht"
+    },
+    example: { source: "Ik wacht op de bus naar het werk.", translation: "İşe giden otobüsü bekliyorum." }
+  },
+  {
+    nl: "houden",
+    tr: "tutmak / sevmek (van ile)",
+    pos: "Fiil",
+    cefr: "A1",
+    fixedPreposition: "van (houden van - sevmek/hoşlanmak)",
+    conjugation: {
+      isVerb: true,
+      present: { ik: "hou / houd", jij: "houdt", wij: "houden" },
+      past: { singular: "hield", plural: "hielden" },
+      perfect: "heeft gehouden"
+    },
+    example: { source: "Zij houdt heel veel van reizen.", translation: "Seyahat etmeyi çok seviyor." }
+  },
+  {
+    nl: "kijken",
+    tr: "bakmak / izlemek",
+    pos: "Fiil",
+    cefr: "A1",
+    fixedPreposition: "naar (kijken naar - bakmak/izlemek)",
+    conjugation: {
+      isVerb: true,
+      present: { ik: "kijk", jij: "kijkt", wij: "kijken" },
+      past: { singular: "keek", plural: "keken" },
+      perfect: "heeft gekeken"
+    },
+    example: { source: "Wij kijken vanavond naar een spannende film.", translation: "Bu akşam heyecanlı bir film izliyoruz." }
+  },
+  {
+    nl: "denken",
+    tr: "düşünmek",
+    pos: "Fiil",
+    cefr: "A1",
+    fixedPreposition: "aan (denken aan - düşünmek/hatırlamak)",
+    conjugation: {
+      isVerb: true,
+      present: { ik: "denk", jij: "denkt", wij: "denken" },
+      past: { singular: "dacht", plural: "dachten" },
+      perfect: "heeft gedacht"
+    },
+    example: { source: "Ik denk vaak aan mijn familie.", translation: "Sık sık ailemi düşünüyorum." }
+  },
+  {
+    nl: "luisteren",
+    tr: "dinlemek",
+    pos: "Fiil",
+    cefr: "A1",
+    fixedPreposition: "naar (luisteren naar - dinlemek)",
+    conjugation: {
+      isVerb: true,
+      present: { ik: "luister", jij: "luistert", wij: "luisteren" },
+      past: { singular: "luisterde", plural: "luisterden" },
+      perfect: "heeft geluisterd"
+    },
+    example: { source: "Zij luistert graag naar klassieke muziek.", translation: "Klasik müzik dinlemeyi sever." }
+  },
 
   // --- Sıfatlar (Adjectives with CEFR) ---
   { nl: "gezellig", tr: "keyifli / sıcak / samimi (özel Hollanda kavramı)", pos: "Sıfat", cefr: "A1", example: { source: "Het was gisteren erg gezellig bij jullie.", translation: "Dün sizin evde ortam çok keyifli ve samimiydi." } },
