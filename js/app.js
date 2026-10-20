@@ -266,7 +266,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const isKey = keyword && clean.toLowerCase() === keyword.toLowerCase();
 
       if (isWord) {
-        const keyClass = isKey ? 'text-primary-600 dark:text-primary-400 font-bold bg-primary-50 dark:bg-primary-950/60 px-1 rounded' : '';
+        const keyClass = isKey
+          ? 'text-amber-600 dark:text-amber-400 font-black bg-amber-50 dark:bg-amber-950/60 px-1.5 py-0.5 rounded-md border border-amber-200/80 dark:border-amber-800/80 shadow-2xs'
+          : '';
         return `<span class="lookup-word ${keyClass}" data-word="${escapeHtml(clean)}" title="'${escapeHtml(clean)}' anlamını gör">${escapeHtml(token)}</span>`;
       }
       return escapeHtml(token);
@@ -708,6 +710,21 @@ document.addEventListener('DOMContentLoaded', () => {
       fcPronunciation.classList.toggle('hidden', !card.pronunciation);
     }
 
+    // Highlight target word inside example sentences
+    function formatCardExample(sentence, targetWord) {
+      if (!sentence) return '';
+      const cleanTarget = (targetWord || '').trim();
+      const escapedSentence = escapeHtml(sentence);
+      if (!cleanTarget) return `"${escapedSentence}"`;
+
+      const escapedWord = cleanTarget.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(`(^|[^a-zA-ZÀ-ÿ])(${escapedWord})([^a-zA-ZÀ-ÿ]|$)`, 'gi');
+      const highlighted = escapedSentence.replace(regex, (match, p1, p2, p3) => {
+        return `${p1}<strong class="text-amber-300 font-black underline decoration-amber-400/80 underline-offset-2">${p2}</strong>${p3}`;
+      });
+      return `"${highlighted}"`;
+    }
+
     // Populate Back
     const fcBackWord = document.getElementById('fcBackWord');
     if (fcBackWord) fcBackWord.textContent = card.word;
@@ -716,10 +733,26 @@ document.addEventListener('DOMContentLoaded', () => {
     if (fcTranslation) fcTranslation.textContent = card.translation;
 
     const fcExample = document.getElementById('fcExample');
-    if (fcExample) fcExample.textContent = card.example ? `"${card.example}"` : '';
+    if (fcExample) {
+      fcExample.innerHTML = formatCardExample(card.example, card.word);
+      fcExample.classList.toggle('hidden', !card.example);
+    }
 
     const fcExampleTr = document.getElementById('fcExampleTr');
-    if (fcExampleTr) fcExampleTr.textContent = card.exampleTr ? `(${card.exampleTr})` : '';
+    if (fcExampleTr) {
+      fcExampleTr.textContent = card.exampleTr ? `(${card.exampleTr})` : '';
+      fcExampleTr.classList.toggle('hidden', !card.exampleTr);
+    }
+
+    const fcFrontExample = document.getElementById('fcFrontExample');
+    if (fcFrontExample) {
+      if (card.example) {
+        fcFrontExample.innerHTML = formatCardExample(card.example, card.word);
+        fcFrontExample.classList.remove('hidden');
+      } else {
+        fcFrontExample.classList.add('hidden');
+      }
+    }
   }
 
   function toggleCardFlip() {

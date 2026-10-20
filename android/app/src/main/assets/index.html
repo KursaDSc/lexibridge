@@ -786,9 +786,11 @@
                 <span id="fcArticleBadge" class="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-400 border border-sky-200/60 dark:border-sky-800/60">de</span>
                 <span id="fcCefrBadge" class="text-xs font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">A1</span>
               </div>
-              <div class="my-auto">
+              <div class="my-auto w-full px-2 text-center">
                 <h4 id="fcWord" class="text-2xl md:text-3xl font-extrabold text-slate-800 dark:text-slate-100 tracking-tight">ziekenhuis</h4>
                 <div id="fcPronunciation" class="text-xs text-slate-400 dark:text-slate-500 font-mono mt-1">/ˈzi.kə(n)ˌɦœy̯s/</div>
+                <!-- Ön Yüz Örnek Cümle İpucu -->
+                <div id="fcFrontExample" class="hidden mt-3 p-2.5 rounded-xl bg-sky-50/80 dark:bg-slate-900/60 border border-sky-100 dark:border-slate-700 text-xs sm:text-sm text-slate-700 dark:text-sky-200 leading-relaxed font-medium"></div>
               </div>
               <div class="w-full flex items-center justify-between text-xs text-slate-400 dark:text-slate-500 pt-2 border-t border-slate-100 dark:border-slate-700/60">
                 <button id="fcSpeakBtn" type="button" aria-label="Sesli Dinle" class="flex items-center gap-1 hover:text-primary-600 dark:hover:text-primary-400 py-1 px-2 rounded-lg min-h-[36px]">
@@ -803,21 +805,29 @@
             </div>
 
             <!-- Back Face -->
-            <div id="flashcardBack" class="flashcard-face flashcard-back absolute inset-0 p-5 flex flex-col justify-between items-center bg-slate-900 text-white rounded-2xl">
+            <div id="flashcardBack" class="flashcard-face flashcard-back absolute inset-0 p-5 flex flex-col justify-between items-center bg-slate-950 text-white rounded-2xl border border-slate-800 shadow-xl">
               <div class="w-full flex items-center justify-between">
-                <span class="text-xs font-bold uppercase tracking-wider text-primary-400">Türkçe Anlamı</span>
-                <span id="fcBackWord" class="text-xs font-mono text-slate-400">ziekenhuis</span>
+                <span class="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1">
+                  <i class="ph-bold ph-translate text-sm"></i>
+                  <span>Türkçe Anlamı</span>
+                </span>
+                <span id="fcBackWord" class="text-xs font-mono font-semibold text-slate-400">ziekenhuis</span>
               </div>
-              <div class="my-auto text-center px-2">
-                <div id="fcTranslation" class="text-xl md:text-2xl font-bold text-white mb-2">hastane</div>
-                <div id="fcExample" class="text-xs md:text-sm text-slate-300 italic max-w-xs leading-relaxed">
-                  "Hij ligt in het ziekenhuis."
-                </div>
-                <div id="fcExampleTr" class="text-xs text-slate-400 mt-1">
-                  (O hastanede yatıyor.)
+              <div class="my-auto text-center px-2 w-full">
+                <!-- Türkçe Anlam: Diğer metinlerden farklı, arka planda parlak seçilen Zümrüt Yeşili -->
+                <div id="fcTranslation" class="text-2xl md:text-3xl font-black text-emerald-300 dark:text-emerald-300 tracking-tight mb-2.5">hastane</div>
+                <!-- Örnek Cümle: Okunaklılığı yüksek Gök Mavisi ve hedef kelime Kehribar Sarısı vurgulu -->
+                <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 shadow-inner max-w-sm mx-auto">
+                  <div id="fcExample" class="text-sm md:text-base text-sky-200 font-medium leading-relaxed">
+                    "Hij ligt in het ziekenhuis."
+                  </div>
+                  <div id="fcExampleTr" class="text-xs sm:text-sm text-slate-300/90 mt-1.5 font-normal">
+                    (O hastanede yatıyor.)
+                  </div>
                 </div>
               </div>
-              <div class="w-full text-center text-xs text-slate-400 pt-2 border-t border-slate-800">
+              <div class="w-full text-center text-xs text-slate-400 pt-2 border-t border-slate-800 flex items-center justify-center gap-1">
+                <i class="ph-bold ph-arrows-clockwise text-xs"></i>
                 <span>Ön yüze dönmek için dokunun</span>
               </div>
             </div>
