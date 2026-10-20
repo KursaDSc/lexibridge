@@ -887,11 +887,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── Init Settings ───────────────────────────────────────────────────────
   function init() {
-    // Check URL hash or query for key auto-import (#key=... or ?key=...)
+    // API anahtarı içe aktarma yalnızca URL parmak izinden (#key=...) yapılır.
+    // ?key=... sorgu parametresi sunucuya, proxy ve günlüklere gittiği için kabul edilmez.
     try {
       const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-      const urlParams = new URLSearchParams(window.location.search);
-      const keyFromUrl = hashParams.get('key') || urlParams.get('key');
+      const keyFromUrl = hashParams.get('key');
       if (keyFromUrl) {
         localStorage.setItem('gemini_api_key', keyFromUrl.trim());
         window.history.replaceState(null, '', window.location.pathname);
