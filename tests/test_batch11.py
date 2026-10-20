@@ -55,6 +55,13 @@ class TestBatch11FlagshipCustomerExperience(unittest.TestCase):
         for word in ['huisarts', 'apotheek', 'perron', 'spoor', 'inchecken', 'burgerservicenummer', 'supermarkt', 'pinnen']:
             self.assertIn(f'"{word}"', self.dictionary_seeds_js, f"Seed word '{word}' missing in dictionary_seeds.js")
 
+    def test_cefr_deck_chips_and_comprehensive_pool(self):
+        """Verify A1, A2, B1 level deck chips and comprehensive flashcard pool exist."""
+        self.assertIn('data-deck="a1"', self.index_html)
+        self.assertIn('data-deck="a2"', self.index_html)
+        self.assertIn('data-deck="b1"', self.index_html)
+        self.assertIn('getComprehensiveFlashcardPool', self.app_js)
+
     def test_no_micro_fonts_or_ph_fill_in_new_features(self):
         """Verify zero micro fonts and zero ph-fill icons in all updated files."""
         micro_matches = re.findall(r'text-\[(9|10|11)px\]', self.index_html)

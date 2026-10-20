@@ -723,24 +723,70 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function getComprehensiveFlashcardPool() {
+    const pool = [];
+    const seen = new Set();
+
+    // 1. DEFAULT_FLASHCARDS (guaranteed presence)
+    if (typeof DEFAULT_FLASHCARDS !== 'undefined' && Array.isArray(DEFAULT_FLASHCARDS)) {
+      DEFAULT_FLASHCARDS.forEach((c) => {
+        if (!c || !c.word) return;
+        const k = c.word.trim().toLowerCase();
+        if (!seen.has(k)) {
+          seen.add(k);
+          pool.push({ ...c });
+        }
+      });
+    }
+
+    // 2. Curated LEXI_DICTIONARY_SEEDS (130+ words with examples and CEFR)
+    if (typeof window.LEXI_DICTIONARY_SEEDS !== 'undefined' && Array.isArray(window.LEXI_DICTIONARY_SEEDS)) {
+      window.LEXI_DICTIONARY_SEEDS.forEach((s) => {
+        if (!s || !s.nl) return;
+        const k = s.nl.trim().toLowerCase();
+        if (!seen.has(k)) {
+          seen.add(k);
+          pool.push({
+            word: s.nl,
+            article: s.article || '',
+            cefr: s.cefr || 'A1',
+            translation: s.tr || 'Çeviri mevcut değil',
+            pronunciation: '',
+            example: (s.example && s.example.source) || `Belangrijk woord: ${s.nl}`,
+            exampleTr: (s.example && s.example.translation) || s.tr || ''
+          });
+        }
+      });
+    }
+
+    // 3. User Saved Favorites
+    const favs = getFavorites();
+    if (Array.isArray(favs)) {
+      favs.forEach((f) => {
+        if (!f || !f.word) return;
+        const k = f.word.trim().toLowerCase();
+        if (!seen.has(k)) {
+          seen.add(k);
+          pool.push({
+            word: f.word,
+            article: f.article || '',
+            cefr: f.cefr || 'A1',
+            translation: f.translation || 'Çeviri mevcut değil',
+            pronunciation: '',
+            example: `Belangrijk woord: ${f.word}`,
+            exampleTr: f.translation || ''
+          });
+        }
+      });
+    }
+
+    return pool;
+  }
+
   function updateDueBadge() {
     const badge = document.getElementById('fcDueBadge');
     if (!badge) return;
-    const allPool = [...DEFAULT_FLASHCARDS];
-    const favs = getFavorites();
-    favs.forEach((f) => {
-      if (!allPool.some((p) => p.word.toLowerCase() === f.word.toLowerCase())) {
-        allPool.push({
-          word: f.word,
-          article: f.article || '',
-          cefr: f.cefr || 'A1',
-          translation: f.translation || '',
-          pronunciation: '',
-          example: `Belangrijk woord: ${f.word}`,
-          exampleTr: f.translation || ''
-        });
-      }
-    });
+    const allPool = getComprehensiveFlashcardPool();
     const dueCount = allPool.filter((c) => isWordDue(c.word)).length;
     if (dueCount > 0) {
       badge.textContent = String(dueCount);
@@ -753,13 +799,16 @@ document.addEventListener('DOMContentLoaded', () => {
   window.getSRSData = getSRSData;
   window.updateCardSRS = updateCardSRS;
   window.getStreak = getStreak;
+  window.getComprehensiveFlashcardPool = getComprehensiveFlashcardPool;
 
+  let currentDeckType = 'auto';
   let flashcardDeck = [];
   let flashcardIdx = 0;
   let flashcardKnown = 0;
   let isCardFlipped = false;
 
   function initFlashcards(deckType = 'auto') {
+    currentDeckType = deckType;
     document.querySelectorAll('.fc-deck-chip').forEach((chip) => {
       const on = chip.dataset.deck === deckType;
       chip.setAttribute('aria-pressed', String(on));
@@ -774,26 +823,13 @@ document.addEventListener('DOMContentLoaded', () => {
       chip.classList.toggle('dark:border-slate-700', !on);
     });
     const favs = getFavorites();
+    const fullPool = getComprehensiveFlashcardPool();
+    const label = document.getElementById('flashcardDeckLabel');
 
     if (deckType === 'due') {
-      const allPool = [...DEFAULT_FLASHCARDS];
-      favs.forEach((f) => {
-        if (!allPool.some((p) => p.word.toLowerCase() === f.word.toLowerCase())) {
-          allPool.push({
-            word: f.word,
-            article: f.article || '',
-            cefr: f.cefr || 'A1',
-            translation: f.translation || 'Çeviri mevcut değil',
-            pronunciation: '',
-            example: `Belangrijk woord: ${f.word}`,
-            exampleTr: f.translation || ''
-          });
-        }
-      });
-      const dueCards = allPool.filter((c) => isWordDue(c.word));
-      flashcardDeck = dueCards.length > 0 ? dueCards : allPool.slice(0, 10);
-      const label = document.getElementById('flashcardDeckLabel');
-      if (label) label.textContent = `Aralıklı Tekrar (${flashcardDeck.length} Kart)`;
+      const dueCards = fullPool.filter((c) => isWordDue(c.word));
+      flashcardDeck = dueCards.length > 0 ? dueCards.slice(0, 20) : fullPool.slice(0, 15);
+      if (label) label.textContent = `Aralıklı Tekrar (${flashcardDeck.length} Kart / ${dueCards.length} Zamanı Gelen)`;
     } else if (deckType === 'favorites' && favs.length > 0) {
       flashcardDeck = favs.map(f => ({
         word: f.word,
@@ -804,9 +840,28 @@ document.addEventListener('DOMContentLoaded', () => {
         example: `Belangrijk woord: ${f.word}`,
         exampleTr: f.translation || ''
       }));
-      const label = document.getElementById('flashcardDeckLabel');
       if (label) label.textContent = `Favori Kelimelerim (${flashcardDeck.length} Kart)`;
-    } else if (favs.length >= 4 && deckType !== 'cefr') {
+    } else if (deckType === 'a1') {
+      const a1Pool = fullPool.filter(c => (c.cefr || '').toUpperCase() === 'A1');
+      a1Pool.sort(() => Math.random() - 0.5);
+      flashcardDeck = a1Pool.slice(0, 15);
+      if (label) label.textContent = `A1 Başlangıç Seviyesi (${flashcardDeck.length} Kart / Havuz: ${a1Pool.length})`;
+    } else if (deckType === 'a2') {
+      const a2Pool = fullPool.filter(c => (c.cefr || '').toUpperCase() === 'A2');
+      a2Pool.sort(() => Math.random() - 0.5);
+      flashcardDeck = a2Pool.slice(0, 15);
+      if (label) label.textContent = `A2 Temel Seviye (${flashcardDeck.length} Kart / Havuz: ${a2Pool.length})`;
+    } else if (deckType === 'b1') {
+      const b1Pool = fullPool.filter(c => (c.cefr || '').toUpperCase().startsWith('B'));
+      b1Pool.sort(() => Math.random() - 0.5);
+      flashcardDeck = b1Pool.slice(0, 15);
+      if (label) label.textContent = `B1-B2 Orta Seviye (${flashcardDeck.length} Kart / Havuz: ${b1Pool.length})`;
+    } else if (deckType === 'cefr') {
+      const cefrPool = [...fullPool];
+      cefrPool.sort(() => Math.random() - 0.5);
+      flashcardDeck = cefrPool.slice(0, 20);
+      if (label) label.textContent = `A1-B2 Karma Seviye (${flashcardDeck.length} Kart / Havuz: ${fullPool.length})`;
+    } else if (favs.length >= 4 && deckType !== 'cefr' && deckType !== 'auto') {
       flashcardDeck = favs.map(f => ({
         word: f.word,
         article: f.article || '',
@@ -816,12 +871,13 @@ document.addEventListener('DOMContentLoaded', () => {
         example: `Belangrijk woord: ${f.word}`,
         exampleTr: f.translation || ''
       }));
-      const label = document.getElementById('flashcardDeckLabel');
       if (label) label.textContent = `Favori Kelimelerim (${flashcardDeck.length} Kart)`;
     } else {
-      flashcardDeck = [...DEFAULT_FLASHCARDS];
-      const label = document.getElementById('flashcardDeckLabel');
-      if (label) label.textContent = `Temel & Günlük Kelimeler (${flashcardDeck.length} Kart)`;
+      // 'auto' mode: 15-card smart practice set from 130+ pool
+      const autoPool = [...fullPool];
+      autoPool.sort(() => Math.random() - 0.5);
+      flashcardDeck = autoPool.slice(0, 15);
+      if (label) label.textContent = `Günlük Pratik (${flashcardDeck.length} Kart / Havuz: ${fullPool.length})`;
     }
 
     renderStreakBadge();
@@ -1028,7 +1084,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const restartBtn = document.getElementById('fcRestartBtn');
     if (restartBtn) {
-      restartBtn.addEventListener('click', () => initFlashcards('auto'));
+      restartBtn.addEventListener('click', () => initFlashcards(currentDeckType || 'auto'));
     }
   }
 

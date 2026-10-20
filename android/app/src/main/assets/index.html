@@ -513,7 +513,7 @@
 
     <!-- CEFR & Deck Selector Tabs -->
     <div role="group" aria-label="Deste seçimi" class="px-4 py-2.5 bg-slate-50/50 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2 overflow-x-auto no-scrollbar">
-      <button type="button" data-deck="auto" onclick="window.initFlashcards('auto')" class="fc-deck-chip shrink-0 text-xs font-semibold px-3 py-1.5 min-h-[44px] rounded-lg border">Tümü</button>
+      <button type="button" data-deck="auto" onclick="window.initFlashcards('auto')" class="fc-deck-chip shrink-0 text-xs font-semibold px-3 py-1.5 min-h-[44px] rounded-lg border">Tümü (15'li Set)</button>
       <button type="button" data-deck="due" onclick="window.initFlashcards('due')" class="fc-deck-chip shrink-0 text-xs font-semibold px-3 py-1.5 min-h-[44px] rounded-lg border flex items-center gap-1.5" title="Aralıklı tekrar zamanı gelen kelimeler (Leitner Kutuları)">
         <i class="ph-bold ph-hourglass-high text-primary-500"></i>
         <span>Tekrar Zamanı</span>
@@ -523,7 +523,10 @@
         <i class="ph-bold ph-star text-amber-500"></i>
         <span>Favorilerim</span>
       </button>
-      <button type="button" data-deck="cefr" onclick="window.initFlashcards('cefr')" class="fc-deck-chip shrink-0 text-xs font-semibold px-3 py-1.5 min-h-[44px] rounded-lg border">A1-B2 Seviye</button>
+      <button type="button" data-deck="a1" onclick="window.initFlashcards('a1')" class="fc-deck-chip shrink-0 text-xs font-semibold px-3 py-1.5 min-h-[44px] rounded-lg border">A1 Başlangıç</button>
+      <button type="button" data-deck="a2" onclick="window.initFlashcards('a2')" class="fc-deck-chip shrink-0 text-xs font-semibold px-3 py-1.5 min-h-[44px] rounded-lg border">A2 Temel</button>
+      <button type="button" data-deck="b1" onclick="window.initFlashcards('b1')" class="fc-deck-chip shrink-0 text-xs font-semibold px-3 py-1.5 min-h-[44px] rounded-lg border">B1 Orta</button>
+      <button type="button" data-deck="cefr" onclick="window.initFlashcards('cefr')" class="fc-deck-chip shrink-0 text-xs font-semibold px-3 py-1.5 min-h-[44px] rounded-lg border">A1-B2 Tümü</button>
     </div>
 
     <!-- Card Stage / Body -->
