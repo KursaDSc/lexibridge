@@ -62,16 +62,88 @@
   <!-- Custom CSS -->
   <link rel="stylesheet" href="css/styles.css">
 
-  <!-- Immediate Modal Handlers (Fail-Safe) -->
+  <!-- Immediate Modal Handlers & Bottom Tab Controller (Fail-Safe) -->
   <script>
+    window.setActiveNavTab = function(activeTab) {
+      var tabs = ['dictionary', 'practice', 'favorites', 'settings'];
+      tabs.forEach(function(t) {
+        var cap = t.charAt(0).toUpperCase() + t.slice(1);
+        var btn = document.getElementById('navTab' + cap);
+        if (!btn) return;
+        var iconWrap = btn.querySelector('.nav-tab-icon-wrapper');
+        var label = btn.querySelector('span');
+        if (t === activeTab) {
+          btn.classList.add('active', 'text-primary-600', 'dark:text-primary-400');
+          btn.classList.remove('text-slate-500', 'dark:text-slate-400');
+          if (iconWrap) {
+            iconWrap.classList.add('bg-primary-50', 'dark:bg-primary-950/60', 'text-primary-600', 'dark:text-primary-400');
+          }
+          if (label) {
+            label.classList.add('font-bold');
+            label.classList.remove('font-semibold');
+          }
+        } else {
+          btn.classList.remove('active', 'text-primary-600', 'dark:text-primary-400');
+          btn.classList.add('text-slate-500', 'dark:text-slate-400');
+          if (iconWrap) {
+            iconWrap.classList.remove('bg-primary-50', 'dark:bg-primary-950/60', 'text-primary-600', 'dark:text-primary-400');
+          }
+          if (label) {
+            label.classList.remove('font-bold');
+            label.classList.add('font-semibold');
+          }
+        }
+      });
+    };
+
+    window.switchMainTab = function(tabName) {
+      var sm = document.getElementById('settingsModal');
+      var fm = document.getElementById('favoritesModal');
+      var hm = document.getElementById('historyModal');
+      var qm = document.getElementById('flashcardModal');
+      var qp = document.getElementById('quickPeekSheet');
+      
+      if (tabName === 'dictionary') {
+        if (sm) sm.classList.add('hidden');
+        if (fm) fm.classList.add('hidden');
+        if (hm) hm.classList.add('hidden');
+        if (qm) qm.classList.add('hidden');
+        if (qp && window.closeQuickPeek) window.closeQuickPeek();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        var input = document.getElementById('searchInput');
+        if (input) setTimeout(function() { input.focus(); }, 100);
+        window.setActiveNavTab('dictionary');
+      } else if (tabName === 'practice') {
+        if (sm) sm.classList.add('hidden');
+        if (fm) fm.classList.add('hidden');
+        if (hm) hm.classList.add('hidden');
+        if (window.openFlashcardModal) window.openFlashcardModal('auto');
+        window.setActiveNavTab('practice');
+      } else if (tabName === 'favorites') {
+        if (sm) sm.classList.add('hidden');
+        if (hm) hm.classList.add('hidden');
+        if (qm) qm.classList.add('hidden');
+        if (window.openFavoritesModal) window.openFavoritesModal();
+        window.setActiveNavTab('favorites');
+      } else if (tabName === 'settings') {
+        if (fm) fm.classList.add('hidden');
+        if (hm) hm.classList.add('hidden');
+        if (qm) qm.classList.add('hidden');
+        if (window.openSettingsModal) window.openSettingsModal();
+        window.setActiveNavTab('settings');
+      }
+    };
+
     window.openSettingsModal = function() {
       var m = document.getElementById('settingsModal');
       if (m) m.classList.remove('hidden');
       if (typeof window.syncSettingsModalUI === 'function') window.syncSettingsModalUI();
+      window.setActiveNavTab('settings');
     };
     window.closeSettingsModal = function() {
       var m = document.getElementById('settingsModal');
       if (m) m.classList.add('hidden');
+      window.setActiveNavTab('dictionary');
     };
     window.openHistoryModal = function() {
       var m = document.getElementById('historyModal');
@@ -108,10 +180,12 @@
         m.classList.remove('hidden');
         if (window.renderFavorites) window.renderFavorites();
       }
+      window.setActiveNavTab('favorites');
     };
     window.closeFavoritesModal = function() {
       var m = document.getElementById('favoritesModal');
       if (m) m.classList.add('hidden');
+      window.setActiveNavTab('dictionary');
     };
     window.openFlashcardModal = function(deckType) {
       var m = document.getElementById('flashcardModal');
@@ -119,10 +193,12 @@
         m.classList.remove('hidden');
         if (window.initFlashcards) window.initFlashcards(deckType);
       }
+      window.setActiveNavTab('practice');
     };
     window.closeFlashcardModal = function() {
       var m = document.getElementById('flashcardModal');
       if (m) m.classList.add('hidden');
+      window.setActiveNavTab('dictionary');
     };
     window.closeQuickPeek = function() {
       var s = document.getElementById('quickPeekSheet');
@@ -217,7 +293,7 @@
   </div>
 
   <!-- Main Container -->
-  <main class="flex-1 w-full max-w-2xl mx-auto px-4 py-4 md:py-6 flex flex-col">
+  <main class="flex-1 w-full max-w-2xl mx-auto px-4 py-4 md:py-6 pb-24 md:pb-28 flex flex-col">
     
     <!-- Search & Language Card -->
     <div class="w-full bg-white dark:bg-slate-900 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 dark:border-slate-800 overflow-hidden mb-4 transition-all">
@@ -783,7 +859,7 @@
   </div>
 
   <!-- Quick-Peek Mini Sheet (İnteraktif Dokun-Öğren Cümle Motoru) -->
-  <div id="quickPeekSheet" class="hidden fixed inset-x-0 bottom-0 z-40 p-3 sm:p-4 max-w-lg mx-auto pointer-events-none transition-all duration-300 ease-out transform translate-y-full opacity-0" role="dialog" aria-modal="false" aria-label="Kelime Hızlı Önizleme">
+  <div id="quickPeekSheet" class="hidden fixed inset-x-0 bottom-16 sm:bottom-16 z-40 p-3 sm:p-4 max-w-lg mx-auto pointer-events-none transition-all duration-300 ease-out transform translate-y-full opacity-0" role="dialog" aria-modal="false" aria-label="Kelime Hızlı Önizleme">
     <div class="pointer-events-auto bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-2xl p-3.5 sm:p-4 border border-slate-200/90 dark:border-slate-800 shadow-2xl shadow-slate-900/20 text-slate-800 dark:text-slate-100 flex flex-col gap-2.5">
       <div class="flex items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-2">
         <div class="flex items-center gap-1.5 min-w-0 flex-wrap">
@@ -818,6 +894,45 @@
       </div>
     </div>
   </div>
+
+  <!-- Modern Bottom Navigation Bar (4 Sekmeli Native Mimari) -->
+  <nav id="bottomNavBar" class="fixed bottom-0 inset-x-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-200/80 dark:border-slate-800/80 shadow-lg px-2 sm:px-4 py-1 pb-[calc(0.25rem+env(safe-area-inset-bottom,0px))] transition-transform" aria-label="Ana Gezinme Çubuğu">
+    <div class="max-w-md mx-auto grid grid-cols-4 gap-1">
+      
+      <!-- Tab 1: Sözlük (Arama) -->
+      <button id="navTabDictionary" type="button" onclick="window.switchMainTab('dictionary')" class="nav-tab-btn active flex flex-col items-center justify-center py-1 min-h-[44px] rounded-xl text-primary-600 dark:text-primary-400 transition-all group" aria-label="Sözlük ve Arama Sekmesi">
+        <div class="nav-tab-icon-wrapper flex items-center justify-center w-8 h-7 rounded-full bg-primary-50 dark:bg-primary-950/60 transition-colors">
+          <i class="ph-bold ph-magnifying-glass text-xl"></i>
+        </div>
+        <span class="text-xs font-bold mt-0.5 tracking-tight">Sözlük</span>
+      </button>
+
+      <!-- Tab 2: Pratik (Flashcards & SRS) -->
+      <button id="navTabPractice" type="button" onclick="window.switchMainTab('practice')" class="nav-tab-btn flex flex-col items-center justify-center py-1 min-h-[44px] rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-all group" aria-label="Kelime Pratiği ve Quiz Sekmesi">
+        <div class="nav-tab-icon-wrapper flex items-center justify-center w-8 h-7 rounded-full transition-colors">
+          <i class="ph-bold ph-cards text-xl"></i>
+        </div>
+        <span class="text-xs font-semibold mt-0.5 tracking-tight">Pratik</span>
+      </button>
+
+      <!-- Tab 3: Kelimelerim (Favoriler) -->
+      <button id="navTabFavorites" type="button" onclick="window.switchMainTab('favorites')" class="nav-tab-btn flex flex-col items-center justify-center py-1 min-h-[44px] rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-all group relative" aria-label="Favori Kelimeler Sekmesi">
+        <div class="nav-tab-icon-wrapper flex items-center justify-center w-8 h-7 rounded-full transition-colors">
+          <i class="ph-bold ph-star text-xl"></i>
+        </div>
+        <span class="text-xs font-semibold mt-0.5 tracking-tight">Kelimelerim</span>
+      </button>
+
+      <!-- Tab 4: Ayarlar & Yönetim -->
+      <button id="navTabSettings" type="button" onclick="window.switchMainTab('settings')" class="nav-tab-btn flex flex-col items-center justify-center py-1 min-h-[44px] rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-all group" aria-label="Ayarlar ve Geçmiş Sekmesi">
+        <div class="nav-tab-icon-wrapper flex items-center justify-center w-8 h-7 rounded-full transition-colors">
+          <i class="ph-bold ph-gear-six text-xl"></i>
+        </div>
+        <span class="text-xs font-semibold mt-0.5 tracking-tight">Ayarlar</span>
+      </button>
+
+    </div>
+  </nav>
 
   <!-- Micro Toast Notification -->
   <div id="toast" class="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-900/95 dark:bg-white/95 text-white dark:text-slate-900 text-xs font-semibold shadow-2xl backdrop-blur-md border border-slate-700/60 dark:border-slate-200/60">

@@ -855,6 +855,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupVoiceSearch();
     setupQuickPeek();
     setupFlashcardListeners();
+    if (window.setActiveNavTab) window.setActiveNavTab('dictionary');
 
     // Autocomplete on search input
     if (searchInput) {
