@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lexibridge-cache-v19';
+const CACHE_NAME = 'lexibridge-cache-v20';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

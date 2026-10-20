@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>LexiBridge | AI Mobil Sözlük</title>
   
   <!-- PWA & Mobile Meta Tags (Cache-Busted v4.0) -->
@@ -72,6 +72,7 @@
         if (!btn) return;
         var iconWrap = btn.querySelector('.nav-tab-icon-wrapper');
         var label = btn.querySelector('span');
+        if (t === activeTab) btn.setAttribute('aria-current', 'page'); else btn.removeAttribute('aria-current');
         if (t === activeTab) {
           btn.classList.add('active', 'text-primary-600', 'dark:text-primary-400');
           btn.classList.remove('text-slate-500', 'dark:text-slate-400');
@@ -96,7 +97,7 @@
       });
     };
 
-    window.switchMainTab = function(tabName) {
+    window.switchMainTab = function(tabName, deckType) {
       var vd = document.getElementById('viewDictionary');
       var qm = document.getElementById('flashcardModal');
       var fm = document.getElementById('favoritesModal');
@@ -107,13 +108,21 @@
       if (qp && window.closeQuickPeek) window.closeQuickPeek();
       if (hm) hm.classList.add('hidden');
 
-      if (vd) vd.classList.toggle('hidden', tabName !== 'dictionary');
-      if (qm) qm.classList.toggle('hidden', tabName !== 'practice');
-      if (fm) fm.classList.toggle('hidden', tabName !== 'favorites');
-      if (sm) sm.classList.toggle('hidden', tabName !== 'settings');
+      var views = { dictionary: vd, practice: qm, favorites: fm, settings: sm };
+      Object.keys(views).forEach(function(k) {
+        if (views[k]) views[k].classList.toggle('hidden', k !== tabName);
+      });
+      window.__activeTab = tabName;
 
       window.setActiveNavTab(tabName);
       window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      var active = views[tabName];
+      if (active && tabName !== 'dictionary') {
+        active.setAttribute('tabindex', '-1');
+        active.style.outline = 'none';
+        active.focus({ preventScroll: true });
+      }
 
       if (tabName === 'dictionary') {
         var input = document.getElementById('searchInput');
@@ -121,8 +130,9 @@
           setTimeout(function() { input.focus(); }, 100);
         }
       } else if (tabName === 'practice') {
+        var deck = deckType || 'auto';
         if (typeof window.initFlashcards === 'function') {
-          window.initFlashcards('auto');
+          window.initFlashcards(deck);
         }
       } else if (tabName === 'favorites') {
         if (typeof window.renderFavorites === 'function') {
@@ -134,6 +144,7 @@
         }
       }
     };
+    window.__activeTab = 'dictionary';
 
     window.openSettingsModal = function() {
       window.switchMainTab('settings');
@@ -177,8 +188,7 @@
       window.switchMainTab('dictionary');
     };
     window.openFlashcardModal = function(deckType) {
-      window.switchMainTab('practice');
-      if (typeof window.initFlashcards === 'function') window.initFlashcards(deckType || 'auto');
+      window.switchMainTab('practice', deckType || 'auto');
     };
     window.closeFlashcardModal = function() {
       window.switchMainTab('dictionary');
@@ -253,6 +263,11 @@
 
     </div>
   </header>
+
+  <!-- Offline status strip (visible only when offline) -->
+  <div id="offlineBanner" role="status" aria-live="polite" class="hidden w-full bg-amber-50 dark:bg-amber-950/50 border-b border-amber-200 dark:border-amber-900 text-amber-800 dark:text-amber-200 text-xs font-medium px-4 py-1.5 text-center">
+    Çevrimdışısınız. Kayıtlı kelimeler ve yerel sözlük kullanılabilir; yapay zeka çevirisi için bağlantı gerekir.
+  </div>
 
   <!-- Sticky Mini Search Bar (Appears on Scroll - Best Practice for Long Result Cards) -->
   <div id="stickySearchBar" class="fixed top-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 shadow-md py-2 px-4">
@@ -510,13 +525,13 @@
     </div>
 
     <!-- CEFR & Deck Selector Tabs -->
-    <div class="px-4 py-2.5 bg-slate-50/50 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2 overflow-x-auto no-scrollbar">
-      <button type="button" onclick="window.initFlashcards('auto')" class="shrink-0 text-xs font-semibold px-3 py-1.5 min-h-[36px] rounded-lg bg-primary-600 text-white shadow-2xs">Tümü</button>
-      <button type="button" onclick="window.initFlashcards('favorites')" class="shrink-0 text-xs font-semibold px-3 py-1.5 min-h-[36px] rounded-lg bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 flex items-center gap-1">
+    <div role="group" aria-label="Deste seçimi" class="px-4 py-2.5 bg-slate-50/50 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2 overflow-x-auto no-scrollbar">
+      <button type="button" data-deck="auto" onclick="window.initFlashcards('auto')" class="fc-deck-chip shrink-0 text-xs font-semibold px-3 py-1.5 min-h-[44px] rounded-lg border">Tümü</button>
+      <button type="button" data-deck="favorites" onclick="window.initFlashcards('favorites')" class="fc-deck-chip shrink-0 text-xs font-semibold px-3 py-1.5 min-h-[44px] rounded-lg border flex items-center gap-1">
         <i class="ph-bold ph-star text-amber-500"></i>
         <span>Favorilerim</span>
       </button>
-      <button type="button" onclick="window.initFlashcards('cefr')" class="shrink-0 text-xs font-semibold px-3 py-1.5 min-h-[36px] rounded-lg bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700">A1-B2 Seviye</button>
+      <button type="button" data-deck="cefr" onclick="window.initFlashcards('cefr')" class="fc-deck-chip shrink-0 text-xs font-semibold px-3 py-1.5 min-h-[44px] rounded-lg border">A1-B2 Seviye</button>
     </div>
 
     <!-- Card Stage / Body -->
@@ -527,7 +542,7 @@
       </div>
 
       <!-- 3D Interactive Flip Card -->
-      <div id="flashcardElement" class="flashcard-container w-full h-64 cursor-pointer select-none">
+      <div id="flashcardElement" role="button" tabindex="0" aria-label="Kartı çevir. Boşluk veya Enter ile çevir, sağ ok Biliyorum, sol ok Tekrar Lazım." class="flashcard-container w-full h-64 cursor-pointer select-none rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-500">
         <div id="flashcardInner" class="flashcard-inner relative w-full h-full text-center rounded-2xl shadow-md border border-slate-200/80 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/80 p-5 flex flex-col justify-between">
           <!-- Front Face -->
           <div id="flashcardFront" class="flashcard-face absolute inset-0 p-5 flex flex-col justify-between items-center bg-white dark:bg-slate-800/95 rounded-2xl">
@@ -628,7 +643,7 @@
         </div>
       </div>
       <div class="flex items-center gap-1.5">
-        <button id="quizFavoritesBtn" type="button" onclick="window.switchMainTab('practice'); if (window.initFlashcards) window.initFlashcards('favorites');" class="text-xs text-primary-600 dark:text-primary-400 hover:text-primary-700 font-bold px-3 py-2 min-h-[44px] rounded-xl flex items-center gap-1.5 border border-primary-200 dark:border-primary-800/80 bg-primary-50/80 dark:bg-primary-950/50 shadow-2xs hover:bg-primary-100 active:scale-95 transition-all">
+        <button id="quizFavoritesBtn" type="button" onclick="window.switchMainTab('practice', 'favorites');" class="text-xs text-primary-600 dark:text-primary-400 hover:text-primary-700 font-bold px-3 py-2 min-h-[44px] rounded-xl flex items-center gap-1.5 border border-primary-200 dark:border-primary-800/80 bg-primary-50/80 dark:bg-primary-950/50 shadow-2xs hover:bg-primary-100 active:scale-95 transition-all">
           <i class="ph-bold ph-cards text-base"></i>
           <span>Kartlarla Çalış</span>
         </button>

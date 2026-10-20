@@ -823,20 +823,21 @@ ${sanitized}
       }
     };
 
-    let url = `https://generativelanguage.googleapis.com/v1beta/models/${activeModel}:generateContent?key=${apiKey}`;
+    let url = `https://generativelanguage.googleapis.com/v1beta/models/${activeModel}:generateContent`;
+    const geminiHeaders = { "Content-Type": "application/json", "x-goog-api-key": apiKey };
     let resp = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: geminiHeaders,
       body: JSON.stringify(payload)
     });
 
     // Fast Single Fallback if 429 quota or 503 busy
     if (!resp.ok && (resp.status === 429 || resp.status === 503 || resp.status === 404)) {
       const fbModel = activeModel === "gemini-3.5-flash-lite" ? "gemini-3.5-flash" : "gemini-3.5-flash-lite";
-      const fbUrl = `https://generativelanguage.googleapis.com/v1beta/models/${fbModel}:generateContent?key=${apiKey}`;
+      const fbUrl = `https://generativelanguage.googleapis.com/v1beta/models/${fbModel}:generateContent`;
       const fbResp = await fetch(fbUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: geminiHeaders,
         body: JSON.stringify(payload)
       });
       if (fbResp.ok) {

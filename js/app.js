@@ -618,6 +618,19 @@ document.addEventListener('DOMContentLoaded', () => {
   let isCardFlipped = false;
 
   function initFlashcards(deckType = 'auto') {
+    document.querySelectorAll('.fc-deck-chip').forEach((chip) => {
+      const on = chip.dataset.deck === deckType;
+      chip.setAttribute('aria-pressed', String(on));
+      chip.classList.toggle('bg-primary-600', on);
+      chip.classList.toggle('text-white', on);
+      chip.classList.toggle('border-primary-600', on);
+      chip.classList.toggle('bg-white', !on);
+      chip.classList.toggle('dark:bg-slate-800', !on);
+      chip.classList.toggle('text-slate-600', !on);
+      chip.classList.toggle('dark:text-slate-300', !on);
+      chip.classList.toggle('border-slate-200', !on);
+      chip.classList.toggle('dark:border-slate-700', !on);
+    });
     const favs = getFavorites();
     if (deckType === 'favorites' && favs.length > 0) {
       flashcardDeck = favs.map(f => ({
@@ -787,6 +800,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const cardEl = document.getElementById('flashcardElement');
     if (cardEl) cardEl.addEventListener('click', toggleCardFlip);
 
+    document.addEventListener('keydown', (e) => {
+      if (window.__activeTab !== 'practice') return;
+      const tag = (e.target && e.target.tagName) || '';
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      const finish = document.getElementById('flashcardFinishScreen');
+      if (finish && !finish.classList.contains('hidden')) return;
+      if ((e.key === ' ' || e.key === 'Enter') && e.target === cardEl) {
+        e.preventDefault();
+        toggleCardFlip();
+      } else if (e.key === 'ArrowRight' && flashcardDeck.length) {
+        handleCardRating(true);
+      } else if (e.key === 'ArrowLeft' && flashcardDeck.length) {
+        handleCardRating(false);
+      }
+    });
+
     const fcSpeakBtn = document.getElementById('fcSpeakBtn');
     if (fcSpeakBtn) {
       fcSpeakBtn.addEventListener('click', (e) => {
@@ -939,7 +968,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── UI Updates ──────────────────────────────────────────────────────────
   function updateHeaderBadge() {
-    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    const offlineBanner = document.getElementById('offlineBanner');
+    const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+    if (offlineBanner) offlineBanner.classList.toggle('hidden', !isOffline);
+    if (isOffline) {
       headerProviderIcon.textContent = '✈️';
       headerProviderName.textContent = 'Çevrimdışı';
       return;
@@ -2436,17 +2468,22 @@ document.addEventListener('DOMContentLoaded', () => {
   // Global Escape key listener for accessible modal closing
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-      if (typeof window.closeSettingsModal === 'function') window.closeSettingsModal();
+      const overlayOpen = ['historyModal', 'flagModal'].some((id) => {
+        const el = document.getElementById(id);
+        return el && !el.classList.contains('hidden');
+      });
       if (typeof window.closeHistoryModal === 'function') window.closeHistoryModal();
       if (typeof window.closeFlagModal === 'function') window.closeFlagModal();
-      if (typeof window.closeFlashcardModal === 'function') window.closeFlashcardModal();
+      if (!overlayOpen && window.__activeTab && window.__activeTab !== 'dictionary') {
+        window.switchMainTab('dictionary');
+      }
     }
   });
 
   // Sticky Mini Search Bar Scroll & Click Handlers (Fitts's Law Mobile Ergonomics)
   if (stickySearchBar) {
     window.addEventListener('scroll', () => {
-      if (window.scrollY > 240 && resultsContainer && !resultsContainer.classList.contains('hidden')) {
+      if (window.scrollY > 240 && window.__activeTab === 'dictionary' && resultsContainer && !resultsContainer.classList.contains('hidden')) {
         stickySearchBar.classList.add('visible');
       } else {
         stickySearchBar.classList.remove('visible');
