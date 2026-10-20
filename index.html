@@ -97,53 +97,49 @@
     };
 
     window.switchMainTab = function(tabName) {
-      var sm = document.getElementById('settingsModal');
-      var fm = document.getElementById('favoritesModal');
-      var hm = document.getElementById('historyModal');
+      var vd = document.getElementById('viewDictionary');
       var qm = document.getElementById('flashcardModal');
+      var fm = document.getElementById('favoritesModal');
+      var sm = document.getElementById('settingsModal');
       var qp = document.getElementById('quickPeekSheet');
+      var hm = document.getElementById('historyModal');
       
+      if (qp && window.closeQuickPeek) window.closeQuickPeek();
+      if (hm) hm.classList.add('hidden');
+
+      if (vd) vd.classList.toggle('hidden', tabName !== 'dictionary');
+      if (qm) qm.classList.toggle('hidden', tabName !== 'practice');
+      if (fm) fm.classList.toggle('hidden', tabName !== 'favorites');
+      if (sm) sm.classList.toggle('hidden', tabName !== 'settings');
+
+      window.setActiveNavTab(tabName);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
       if (tabName === 'dictionary') {
-        if (sm) sm.classList.add('hidden');
-        if (fm) fm.classList.add('hidden');
-        if (hm) hm.classList.add('hidden');
-        if (qm) qm.classList.add('hidden');
-        if (qp && window.closeQuickPeek) window.closeQuickPeek();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
         var input = document.getElementById('searchInput');
-        if (input) setTimeout(function() { input.focus(); }, 100);
-        window.setActiveNavTab('dictionary');
+        if (input && window.innerWidth >= 768) {
+          setTimeout(function() { input.focus(); }, 100);
+        }
       } else if (tabName === 'practice') {
-        if (sm) sm.classList.add('hidden');
-        if (fm) fm.classList.add('hidden');
-        if (hm) hm.classList.add('hidden');
-        if (window.openFlashcardModal) window.openFlashcardModal('auto');
-        window.setActiveNavTab('practice');
+        if (typeof window.initFlashcards === 'function') {
+          window.initFlashcards('auto');
+        }
       } else if (tabName === 'favorites') {
-        if (sm) sm.classList.add('hidden');
-        if (hm) hm.classList.add('hidden');
-        if (qm) qm.classList.add('hidden');
-        if (window.openFavoritesModal) window.openFavoritesModal();
-        window.setActiveNavTab('favorites');
+        if (typeof window.renderFavorites === 'function') {
+          window.renderFavorites();
+        }
       } else if (tabName === 'settings') {
-        if (fm) fm.classList.add('hidden');
-        if (hm) hm.classList.add('hidden');
-        if (qm) qm.classList.add('hidden');
-        if (window.openSettingsModal) window.openSettingsModal();
-        window.setActiveNavTab('settings');
+        if (typeof window.syncSettingsModalUI === 'function') {
+          window.syncSettingsModalUI();
+        }
       }
     };
 
     window.openSettingsModal = function() {
-      var m = document.getElementById('settingsModal');
-      if (m) m.classList.remove('hidden');
-      if (typeof window.syncSettingsModalUI === 'function') window.syncSettingsModalUI();
-      window.setActiveNavTab('settings');
+      window.switchMainTab('settings');
     };
     window.closeSettingsModal = function() {
-      var m = document.getElementById('settingsModal');
-      if (m) m.classList.add('hidden');
-      window.setActiveNavTab('dictionary');
+      window.switchMainTab('dictionary');
     };
     window.openHistoryModal = function() {
       var m = document.getElementById('historyModal');
@@ -175,30 +171,17 @@
       if (icon) icon.className = isDark ? 'ph-bold ph-sun text-xl text-amber-400' : 'ph-bold ph-moon text-xl';
     };
     window.openFavoritesModal = function() {
-      var m = document.getElementById('favoritesModal');
-      if (m) {
-        m.classList.remove('hidden');
-        if (window.renderFavorites) window.renderFavorites();
-      }
-      window.setActiveNavTab('favorites');
+      window.switchMainTab('favorites');
     };
     window.closeFavoritesModal = function() {
-      var m = document.getElementById('favoritesModal');
-      if (m) m.classList.add('hidden');
-      window.setActiveNavTab('dictionary');
+      window.switchMainTab('dictionary');
     };
     window.openFlashcardModal = function(deckType) {
-      var m = document.getElementById('flashcardModal');
-      if (m) {
-        m.classList.remove('hidden');
-        if (window.initFlashcards) window.initFlashcards(deckType);
-      }
-      window.setActiveNavTab('practice');
+      window.switchMainTab('practice');
+      if (typeof window.initFlashcards === 'function') window.initFlashcards(deckType || 'auto');
     };
     window.closeFlashcardModal = function() {
-      var m = document.getElementById('flashcardModal');
-      if (m) m.classList.add('hidden');
-      window.setActiveNavTab('dictionary');
+      window.switchMainTab('dictionary');
     };
     window.closeQuickPeek = function() {
       var s = document.getElementById('quickPeekSheet');
@@ -215,44 +198,40 @@
   <header class="w-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-100 dark:border-slate-800 shadow-sm sticky top-0 z-30 transition-all">
     <div class="max-w-2xl mx-auto px-2.5 sm:px-4 py-2 sm:py-3 flex items-center justify-between gap-1 sm:gap-2 flex-nowrap">
       
-      <!-- Brand & Active Engine Badge -->
-      <div class="flex items-center gap-1.5 sm:gap-2.5 min-w-0 shrink">
+      <!-- Brand (Pure, Minimal & Aesthetic) -->
+      <div class="flex items-center gap-2.5 min-w-0">
         <img src="icon-192.png?v=4.0" alt="LexiBridge App Icon" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl shadow-sm shadow-primary-500/20 object-cover border border-slate-100 dark:border-slate-800 shrink-0">
-        <div class="min-w-0">
-          <div class="flex items-center gap-1 sm:gap-1.5">
-            <h1 class="text-base sm:text-lg font-bold tracking-tight text-slate-800 dark:text-slate-100 leading-tight truncate">LexiBridge</h1>
-            <span class="text-xs uppercase font-bold tracking-wider px-1.5 py-0.2 rounded bg-primary-50 text-primary-600 border border-primary-100/80 shrink-0">AI</span>
-          </div>
-          <button id="headerProviderBadge" onclick="window.openSettingsModal()" class="flex items-center gap-1 text-xs text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium">
-            <span id="headerProviderIcon">🔵</span>
-            <span id="headerProviderName" class="truncate max-w-[140px]">Google Gemini</span>
-            <i class="ph ph-caret-down text-xs shrink-0"></i>
-          </button>
-          <script>
-            (function() {
-              try {
-                if (localStorage.getItem('lexi_default_provider_v2') !== 'true') {
-                  if (localStorage.getItem('lexi_provider') === 'local') {
-                    localStorage.removeItem('lexi_provider');
-                    localStorage.removeItem('lexi_provider_user_chosen');
-                  }
-                  localStorage.setItem('lexi_default_provider_v2', 'true');
-                }
-                var saved = localStorage.getItem('lexi_provider');
-                var chosen = localStorage.getItem('lexi_provider_user_chosen') === 'true';
-                var prov = (chosen && saved) ? saved : 'google';
-                var icon = document.getElementById('headerProviderIcon');
-                var name = document.getElementById('headerProviderName');
-                if (icon && name) {
-                  if (prov === 'local') { icon.textContent = '🏠'; name.textContent = 'Yerel LLM (Ollama)'; }
-                  else if (prov === 'nvidia') { icon.textContent = '🟢'; name.textContent = 'NVIDIA NIM'; }
-                  else if (prov === 'quick_rest') { icon.textContent = '⚡'; name.textContent = 'Hızlı REST'; }
-                  else { icon.textContent = '🔵'; name.textContent = 'Google Gemini'; }
-                }
-              } catch(e) {}
-            })();
-          </script>
+        <h1 class="text-base sm:text-lg font-bold tracking-tight text-slate-800 dark:text-slate-100 leading-tight">LexiBridge</h1>
+
+        <!-- Hidden provider metadata container for background state management & tests -->
+        <div id="headerProviderBadge" class="hidden" aria-hidden="true">
+          <span id="headerProviderIcon">🔵</span>
+          <span id="headerProviderName" class="truncate max-w-[140px]">Google Gemini</span>
         </div>
+        <script>
+          (function() {
+            try {
+              if (localStorage.getItem('lexi_default_provider_v2') !== 'true') {
+                if (localStorage.getItem('lexi_provider') === 'local') {
+                  localStorage.removeItem('lexi_provider');
+                  localStorage.removeItem('lexi_provider_user_chosen');
+                }
+                localStorage.setItem('lexi_default_provider_v2', 'true');
+              }
+              var saved = localStorage.getItem('lexi_provider');
+              var chosen = localStorage.getItem('lexi_provider_user_chosen') === 'true';
+              var prov = (chosen && saved) ? saved : 'google';
+              var icon = document.getElementById('headerProviderIcon');
+              var name = document.getElementById('headerProviderName');
+              if (icon && name) {
+                if (prov === 'local') { icon.textContent = '🏠'; name.textContent = 'Yerel LLM (Ollama)'; }
+                else if (prov === 'nvidia') { icon.textContent = '🟢'; name.textContent = 'NVIDIA NIM'; }
+                else if (prov === 'quick_rest') { icon.textContent = '⚡'; name.textContent = 'Hızlı REST'; }
+                else { icon.textContent = '🔵'; name.textContent = 'Google Gemini'; }
+              }
+            } catch(e) {}
+          })();
+        </script>
       </div>
 
       <!-- Action Buttons (WCAG AA >= 44x44px Touch Targets) -->
@@ -291,6 +270,8 @@
   <!-- Main Container -->
   <main class="flex-1 w-full max-w-2xl mx-auto px-4 py-4 md:py-6 pb-24 md:pb-28 flex flex-col">
     
+    <!-- Tab 1: Sözlük Görünümü (SPA View) -->
+    <div id="viewDictionary" class="w-full flex flex-col transition-all">
     <!-- Search & Language Card -->
     <div class="w-full bg-white dark:bg-slate-900 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 dark:border-slate-800 overflow-hidden mb-4 transition-all">
       
@@ -504,6 +485,298 @@
     <div id="resultsContainer" class="hidden w-full space-y-4 pb-12" aria-live="polite">
       <!-- Populated dynamically via JS -->
     </div>
+  </div>
+  <!-- End of Tab 1: viewDictionary -->
+
+  <!-- Tab 2: Pratik Görünümü (Flashcards & Quiz Full SPA View) -->
+  <div id="flashcardModal" class="hidden w-full bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col transition-all overflow-hidden" role="region" aria-labelledby="flashcardModalTitle">
+    <!-- Header -->
+    <div class="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/50">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 flex items-center justify-center">
+          <i class="ph-bold ph-cards text-xl"></i>
+        </div>
+        <div>
+          <h3 id="flashcardModalTitle" class="font-bold text-slate-800 dark:text-slate-100 text-base leading-tight">Kelime Pratiği & Kartlar</h3>
+          <span id="flashcardDeckLabel" class="text-xs text-slate-500 dark:text-slate-400">Favori & Temel Kelimeler</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span id="flashcardCounter" class="text-xs font-mono font-bold px-2.5 py-1 bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg">1 / 10</span>
+        <button id="closeFlashcardBtn" type="button" onclick="window.switchMainTab('dictionary')" aria-label="Sözlüğe Dön" class="w-10 h-10 min-w-[40px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" title="Sözlüğe Dön">
+          <i class="ph-bold ph-x text-lg"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- CEFR & Deck Selector Tabs -->
+    <div class="px-4 py-2.5 bg-slate-50/50 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2 overflow-x-auto no-scrollbar">
+      <button type="button" onclick="window.initFlashcards('auto')" class="shrink-0 text-xs font-semibold px-3 py-1.5 min-h-[36px] rounded-lg bg-primary-600 text-white shadow-2xs">Tümü</button>
+      <button type="button" onclick="window.initFlashcards('favorites')" class="shrink-0 text-xs font-semibold px-3 py-1.5 min-h-[36px] rounded-lg bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 flex items-center gap-1">
+        <i class="ph-bold ph-star text-amber-500"></i>
+        <span>Favorilerim</span>
+      </button>
+      <button type="button" onclick="window.initFlashcards('cefr')" class="shrink-0 text-xs font-semibold px-3 py-1.5 min-h-[36px] rounded-lg bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700">A1-B2 Seviye</button>
+    </div>
+
+    <!-- Card Stage / Body -->
+    <div id="flashcardStage" class="p-5 flex flex-col items-center">
+      <!-- Progress Bar -->
+      <div class="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden mb-4">
+        <div id="flashcardProgressBar" class="bg-primary-600 h-full w-0 transition-all duration-300"></div>
+      </div>
+
+      <!-- 3D Interactive Flip Card -->
+      <div id="flashcardElement" class="flashcard-container w-full h-64 cursor-pointer select-none">
+        <div id="flashcardInner" class="flashcard-inner relative w-full h-full text-center rounded-2xl shadow-md border border-slate-200/80 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/80 p-5 flex flex-col justify-between">
+          <!-- Front Face -->
+          <div id="flashcardFront" class="flashcard-face absolute inset-0 p-5 flex flex-col justify-between items-center bg-white dark:bg-slate-800/95 rounded-2xl">
+            <div class="w-full flex items-center justify-between">
+              <span id="fcArticleBadge" class="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-400 border border-sky-200/60 dark:border-sky-800/60">de</span>
+              <span id="fcCefrBadge" class="text-xs font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">A1</span>
+            </div>
+            <div class="my-auto w-full px-2 text-center">
+              <h4 id="fcWord" class="text-2xl md:text-3xl font-extrabold text-slate-800 dark:text-slate-100 tracking-tight">ziekenhuis</h4>
+              <div id="fcPronunciation" class="text-xs text-slate-400 dark:text-slate-500 font-mono mt-1">/ˈzi.kə(n)ˌɦœy̯s/</div>
+              <!-- Ön Yüz Örnek Cümle İpucu -->
+              <div id="fcFrontExample" class="hidden mt-3 p-2.5 rounded-xl bg-sky-50/80 dark:bg-slate-900/60 border border-sky-100 dark:border-slate-700 text-xs sm:text-sm text-slate-700 dark:text-sky-200 leading-relaxed font-medium"></div>
+            </div>
+            <div class="w-full flex items-center justify-between text-xs text-slate-400 dark:text-slate-500 pt-2 border-t border-slate-100 dark:border-slate-700/60">
+              <button id="fcSpeakBtn" type="button" aria-label="Sesli Dinle" class="flex items-center gap-1 hover:text-primary-600 dark:hover:text-primary-400 py-1 px-2 rounded-lg min-h-[36px]">
+                <i class="ph-bold ph-speaker-high text-base"></i>
+                <span>Dinle</span>
+              </button>
+              <span class="flex items-center gap-1 font-medium text-slate-500 dark:text-slate-400">
+                <i class="ph-bold ph-arrows-clockwise text-xs"></i>
+                <span>Çevirmek için dokun</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- Back Face -->
+          <div id="flashcardBack" class="flashcard-face flashcard-back absolute inset-0 p-5 flex flex-col justify-between items-center bg-slate-950 text-white rounded-2xl border border-slate-800 shadow-xl">
+            <div class="w-full flex items-center justify-between">
+              <span class="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1">
+                <i class="ph-bold ph-translate text-sm"></i>
+                <span>Türkçe Anlamı</span>
+              </span>
+              <span id="fcBackWord" class="text-xs font-mono font-semibold text-slate-400">ziekenhuis</span>
+            </div>
+            <div class="my-auto text-center px-2 w-full">
+              <!-- Türkçe Anlam: Diğer metinlerden farklı, arka planda parlak seçilen Zümrüt Yeşili -->
+              <div id="fcTranslation" class="text-2xl md:text-3xl font-black text-emerald-300 dark:text-emerald-300 tracking-tight mb-2.5">hastane</div>
+              <!-- Örnek Cümle: Okunaklılığı yüksek Gök Mavisi ve hedef kelime Kehribar Sarısı vurgulu -->
+              <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 shadow-inner max-w-sm mx-auto">
+                <div id="fcExample" class="text-sm md:text-base text-sky-200 font-medium leading-relaxed">
+                  "Hij ligt in het ziekenhuis."
+                </div>
+                <div id="fcExampleTr" class="text-xs sm:text-sm text-slate-300/90 mt-1.5 font-normal">
+                  (O hastanede yatıyor.)
+                </div>
+              </div>
+            </div>
+            <div class="w-full text-center text-xs text-slate-400 pt-2 border-t border-slate-800 flex items-center justify-center gap-1">
+              <i class="ph-bold ph-arrows-clockwise text-xs"></i>
+              <span>Ön yüze dönmek için dokunun</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rating / Action Controls -->
+      <div id="flashcardControls" class="w-full grid grid-cols-2 gap-3 mt-4">
+        <button id="fcNeedPracticeBtn" type="button" class="flex items-center justify-center gap-2 py-3 px-4 min-h-[48px] rounded-xl bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 hover:bg-red-100 font-bold text-xs md:text-sm transition-all border border-red-200/80 dark:border-red-900/60 active:scale-95">
+          <i class="ph-bold ph-arrow-counter-clockwise text-base"></i>
+          <span>Tekrar Lazım</span>
+        </button>
+        <button id="fcMasteredBtn" type="button" class="flex items-center justify-center gap-2 py-3 px-4 min-h-[48px] rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 font-bold text-xs md:text-sm transition-all active:scale-95 shadow-sm shadow-emerald-500/20">
+          <i class="ph-bold ph-check text-base"></i>
+          <span>Biliyorum ✓</span>
+        </button>
+      </div>
+
+      <!-- Finish Screen (Hidden by default) -->
+      <div id="flashcardFinishScreen" class="hidden w-full text-center py-6">
+        <div class="w-16 h-16 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-3 text-3xl">
+          🎉
+        </div>
+        <h4 class="text-xl font-bold text-slate-800 dark:text-slate-100 mb-1">Tebrikler! Set Tamamlandı</h4>
+        <p id="flashcardScoreText" class="text-sm text-slate-500 dark:text-slate-400 mb-6">10 kelimeden 8 tanesini başarıyla bildiniz.</p>
+        <div class="flex gap-2 justify-center">
+          <button id="fcRestartBtn" type="button" class="px-5 py-2.5 min-h-[44px] bg-primary-600 text-white text-sm font-bold rounded-xl hover:bg-primary-700 transition-colors">
+            Tekrar Pratik Yap
+          </button>
+          <button type="button" onclick="window.switchMainTab('dictionary')" class="px-4 py-2.5 min-h-[44px] bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm font-semibold rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+            Sözlüğe Dön
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Tab 3: Kelimelerim Görünümü (Favorites Full SPA View) -->
+  <div id="favoritesModal" class="hidden w-full bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col transition-all overflow-hidden min-h-[500px]" role="region" aria-labelledby="favoritesModalTitle">
+    <div class="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-500 flex items-center justify-center">
+          <i class="ph-bold ph-star text-xl"></i>
+        </div>
+        <div>
+          <h3 id="favoritesModalTitle" class="font-bold text-slate-800 dark:text-slate-100 text-base leading-tight">Favori Kelimelerim</h3>
+          <span class="text-xs text-slate-500 dark:text-slate-400">Kaydettiğiniz kelimeler ve özel sözlüğünüz</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <button id="quizFavoritesBtn" type="button" onclick="window.switchMainTab('practice'); if (window.initFlashcards) window.initFlashcards('favorites');" class="text-xs text-primary-600 dark:text-primary-400 hover:text-primary-700 font-bold px-3 py-2 min-h-[44px] rounded-xl flex items-center gap-1.5 border border-primary-200 dark:border-primary-800/80 bg-primary-50/80 dark:bg-primary-950/50 shadow-2xs hover:bg-primary-100 active:scale-95 transition-all">
+          <i class="ph-bold ph-cards text-base"></i>
+          <span>Kartlarla Çalış</span>
+        </button>
+        <button id="clearFavoritesBtn" class="text-xs text-red-500 hover:text-red-700 font-semibold px-2.5 py-2 min-h-[44px] rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors">Temizle</button>
+        <button id="closeFavoritesBtn" onclick="window.switchMainTab('dictionary')" aria-label="Sözlüğe Dön" class="w-10 h-10 min-w-[40px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" title="Sözlüğe Dön">
+          <i class="ph-bold ph-x text-lg"></i>
+        </button>
+      </div>
+    </div>
+    <div id="favoritesList" class="flex-1 overflow-y-auto p-3.5 space-y-1.5 divide-y divide-slate-50 dark:divide-slate-800/60 min-h-[350px]">
+      <!-- Favorites items dynamically inserted -->
+    </div>
+  </div>
+
+  <!-- Tab 4: Ayarlar Görünümü (Settings & Provider Full SPA View) -->
+  <div id="settingsModal" class="hidden w-full bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col transition-all overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle">
+    
+    <!-- View Header -->
+    <div class="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 flex items-center justify-center">
+          <i class="ph-bold ph-gear-six text-xl"></i>
+        </div>
+        <div>
+          <h3 id="settingsModalTitle" class="font-bold text-slate-800 dark:text-slate-100 text-base leading-tight">LexiBridge Yapay Zeka Ayarları</h3>
+          <span class="text-xs text-slate-500 dark:text-slate-400">Model sağlayıcıları, API anahtarları ve sistem tercihleri</span>
+        </div>
+      </div>
+      <button id="closeSettingsBtn" onclick="window.switchMainTab('dictionary')" aria-label="Sözlüğe Dön" class="w-10 h-10 min-w-[40px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" title="Sözlüğe Dön">
+        <i class="ph-bold ph-x text-lg"></i>
+      </button>
+    </div>
+
+    <!-- View Body -->
+    <div class="p-4 sm:p-6 space-y-5 text-sm max-w-full">
+      
+      <!-- Active Provider Picker -->
+      <div>
+        <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Yapay Zeka Sağlayıcısı</label>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2" id="providerButtonGroup">
+          <button data-provider="google" class="provider-tab flex items-center gap-2 p-2.5 rounded-xl border border-primary-500 bg-primary-50/60 dark:bg-primary-950/40 text-primary-900 dark:text-primary-100 font-semibold text-left transition-all min-w-0">
+            <span class="text-xl shrink-0">🔵</span>
+            <div class="min-w-0 flex-1">
+              <div class="text-sm font-semibold text-slate-800">Google Gemini</div>
+              <div class="text-xs text-slate-500 dark:text-slate-400 font-normal truncate">Flash / Pro REST</div>
+            </div>
+          </button>
+          <button data-provider="nvidia" class="provider-tab flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-left transition-all min-w-0">
+            <span class="text-xl shrink-0">🟢</span>
+            <div class="min-w-0 flex-1">
+              <div class="text-sm font-semibold text-slate-800">NVIDIA NIM</div>
+              <div class="text-xs text-slate-500 dark:text-slate-400 font-normal truncate">Nemotron / Mistral</div>
+            </div>
+          </button>
+          <button data-provider="local" class="provider-tab flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-left transition-all min-w-0">
+            <span class="text-xl shrink-0">🏠</span>
+            <div class="min-w-0 flex-1">
+              <div class="text-sm font-semibold text-slate-800">Yerel LLM (Ollama)</div>
+              <div class="text-xs text-slate-500 dark:text-slate-400 font-normal truncate">Termux / Localhost</div>
+            </div>
+          </button>
+          <button data-provider="quick_rest" class="provider-tab flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-left transition-all min-w-0">
+            <span class="text-xl shrink-0">⚡</span>
+            <div class="min-w-0 flex-1">
+              <div class="text-sm font-semibold text-slate-800">Hızlı REST</div>
+              <div class="text-xs text-slate-500 dark:text-slate-400 font-normal truncate">0 Key - Anında</div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Model Selection Dropdown -->
+      <div class="min-w-0 max-w-full">
+        <div class="flex items-center justify-between mb-1.5">
+          <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Model Seçimi</label>
+          <button id="refreshModelsBtn" type="button" class="hidden text-xs text-primary-600 dark:text-primary-400 hover:text-primary-800 flex items-center gap-1 font-semibold px-2 py-0.5 rounded hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors" title="Ollama'daki Modelleri Algıla">
+            <i class="ph ph-arrows-clockwise text-xs"></i>
+            <span id="refreshModelsBtnText">Modelleri Algıla</span>
+          </button>
+        </div>
+        <select id="modelSelect" class="w-full max-w-full truncate px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary-500/20 text-sm">
+          <!-- Dynamically populated based on provider -->
+        </select>
+        <div id="modelDetectionStatus" class="hidden text-xs mt-1.5 font-medium"></div>
+      </div>
+
+      <!-- Keys Section -->
+      <div class="space-y-3.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+        
+        <!-- Google API Key -->
+        <div id="googleKeySection">
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Google Gemini API Key</label>
+          <input type="password" id="googleKeyInput" placeholder="AIzaSy... veya AQ..." 
+            class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/20 font-mono text-sm bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500">
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">Kişisel Google Gemini API anahtarınızı girerek derin dilbilimsel modelleri kullanabilirsiniz.</p>
+        </div>
+
+        <!-- NVIDIA API Key -->
+        <div id="nvidiaKeySection">
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">NVIDIA NIM API Key</label>
+          <input type="password" id="nvidiaKeyInput" placeholder="nvapi-..." 
+            class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/20 font-mono text-sm bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500">
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">Kişisel NVIDIA NIM API anahtarınızı girerek Nemotron modellerini kullanabilirsiniz.</p>
+        </div>
+
+        <!-- Local LLM URL & Model -->
+        <div id="localConfigSection" class="hidden space-y-2">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Yerel LLM Endpoint URL</label>
+            <input type="text" id="localUrlInput" placeholder="http://127.0.0.1:11434/v1" 
+              class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/20 font-mono text-sm bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500">
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">📱 <strong>Termux (Android):</strong> <code>http://127.0.0.1:11434/v1</code><br>💻 <strong>Bilgisayar:</strong> <code>http://localhost:11434/v1</code> veya yerel IP adresi.</p>
+          </div>
+        </div>
+
+        <!-- Privacy & Data Safety Notice (Apple & Google Play Store Compliance) -->
+        <div class="pt-3 border-t border-slate-100 dark:border-slate-800">
+          <details class="text-xs text-slate-600 dark:text-slate-400 cursor-pointer">
+            <summary class="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 hover:text-primary-700 dark:hover:text-primary-400">
+              <i class="ph-bold ph-info text-primary-600"></i>
+              <span>Gizlilik & Veri Güvenliği Beyanı</span>
+            </summary>
+            <div class="mt-2 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 text-xs leading-relaxed text-slate-600 dark:text-slate-300 space-y-2">
+              <p>• <strong>Sıfır Kişisel Veri:</strong> LexiBridge hiçbir kişisel veri, kimlik, konum veya analitik takip verisi toplamaz.</p>
+              <p>• <strong>BYOK Güvenliği:</strong> Girdiğiniz API anahtarları yalnızca cihazınızda saklanır, geliştiriciye veya harici sunucuya iletilmez.</p>
+              <p>• <strong>Yapay Zeka İletimi:</strong> Sözcükler yalnızca anlık dilbilimsel analiz için seçilen yapay zeka modeline iletilir.</p>
+            </div>
+          </details>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- View Footer -->
+    <div class="p-3.5 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+      <button id="resetAppBtn" type="button" onclick="if(confirm('Tüm ayarlar ve önbellek sıfırlansın mı?')) { localStorage.clear(); if('caches' in window) caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).then(() => location.reload(true)); else location.reload(true); }" class="text-xs text-red-500 hover:text-red-700 font-medium">
+        Önbelleği & Ayarları Sıfırla
+      </button>
+      <div class="flex items-center gap-2">
+        <span id="saveStatusText" class="text-xs text-emerald-600 dark:text-emerald-400 font-semibold opacity-0 transition-opacity">Kaydedildi ✓</span>
+        <button id="saveSettingsBtn" class="px-5 py-2 bg-primary-600 text-white rounded-xl text-sm font-semibold hover:bg-primary-700 active:scale-95 transition-all shadow-sm">
+          Ayarları Kaydet
+        </button>
+      </div>
+    </div>
+
+  </div>
 
   </main>
 
@@ -525,163 +798,6 @@
       <div id="historyList" class="flex-1 overflow-y-auto p-3 space-y-1.5 divide-y divide-slate-50 dark:divide-slate-800/60">
         <!-- History items dynamically inserted -->
       </div>
-    </div>
-  </div>
-
-  <!-- Favorites Drawer Modal -->
-  <div id="favoritesModal" class="hidden fixed inset-0 z-50 flex flex-col justify-end md:justify-center items-center bg-slate-900/40 backdrop-blur-xs p-0 md:p-4" role="dialog" aria-modal="true" aria-labelledby="favoritesModalTitle">
-    <div class="bg-white dark:bg-slate-900 rounded-t-3xl md:rounded-2xl w-full max-w-md max-h-[80vh] flex flex-col shadow-2xl overflow-hidden animate-slide-up border border-slate-100 dark:border-slate-800">
-      <div class="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
-        <div class="flex items-center gap-2">
-          <i class="ph-bold ph-star text-xl text-amber-500"></i>
-          <h3 id="favoritesModalTitle" class="font-bold text-slate-800 dark:text-slate-100 text-base">Favori Kelimelerim</h3>
-        </div>
-        <div class="flex items-center gap-1.5">
-          <button id="quizFavoritesBtn" type="button" onclick="window.closeFavoritesModal(); window.openFlashcardModal('favorites');" class="text-xs text-primary-600 dark:text-primary-400 hover:text-primary-700 font-semibold px-2.5 py-1.5 min-h-[44px] rounded-lg flex items-center gap-1 border border-primary-200 dark:border-primary-800/80 bg-primary-50/50 dark:bg-primary-950/40">
-            <i class="ph-bold ph-cards text-sm"></i>
-            <span>Kartlarla Çalış</span>
-          </button>
-          <button id="clearFavoritesBtn" class="text-xs text-red-500 hover:text-red-700 font-semibold px-2.5 py-1.5 min-h-[44px] rounded-lg">Temizle</button>
-          <button id="closeFavoritesBtn" onclick="window.closeFavoritesModal()" aria-label="Kapat" class="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-full">
-            <i class="ph-bold ph-x text-lg"></i>
-          </button>
-        </div>
-      </div>
-      <div id="favoritesList" class="flex-1 overflow-y-auto p-3 space-y-1.5 divide-y divide-slate-50 dark:divide-slate-800/60">
-        <!-- Favorites items dynamically inserted -->
-      </div>
-    </div>
-  </div>
-
-  <!-- Settings & Provider Modal -->
-  <div id="settingsModal" class="hidden fixed inset-0 z-50 flex flex-col justify-end md:justify-center items-center bg-slate-900/50 backdrop-blur-xs p-0 md:p-4" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle">
-    <div class="bg-white dark:bg-slate-900 rounded-t-3xl md:rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-slide-up border border-slate-100 dark:border-slate-800">
-      
-      <!-- Modal Header -->
-      <div class="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
-        <div class="flex items-center gap-2">
-          <i class="ph ph-sliders text-xl text-primary-600"></i>
-          <h3 id="settingsModalTitle" class="font-bold text-slate-800 dark:text-slate-100 text-base">LexiBridge Yapay Zeka Ayarları</h3>
-        </div>
-        <button id="closeSettingsBtn" onclick="window.closeSettingsModal()" aria-label="Kapat" class="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-full">
-          <i class="ph-bold ph-x text-lg"></i>
-        </button>
-      </div>
-
-      <!-- Modal Body (Scrollable) -->
-      <div class="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-5 text-sm max-w-full">
-        
-        <!-- Active Provider Picker -->
-        <div>
-          <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Yapay Zeka Sağlayıcısı</label>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2" id="providerButtonGroup">
-            <button data-provider="google" class="provider-tab flex items-center gap-2 p-2.5 rounded-xl border border-primary-500 bg-primary-50/60 dark:bg-primary-950/40 text-primary-900 dark:text-primary-100 font-semibold text-left transition-all min-w-0">
-              <span class="text-xl shrink-0">🔵</span>
-              <div class="min-w-0 flex-1">
-                <div class="text-sm font-semibold text-slate-800">Google Gemini</div>
-                <div class="text-xs text-slate-500 dark:text-slate-400 font-normal truncate">Flash / Pro REST</div>
-              </div>
-            </button>
-            <button data-provider="nvidia" class="provider-tab flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-left transition-all min-w-0">
-              <span class="text-xl shrink-0">🟢</span>
-              <div class="min-w-0 flex-1">
-                <div class="text-sm font-semibold text-slate-800">NVIDIA NIM</div>
-                <div class="text-xs text-slate-500 dark:text-slate-400 font-normal truncate">Nemotron / Mistral</div>
-              </div>
-            </button>
-            <button data-provider="local" class="provider-tab flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-left transition-all min-w-0">
-              <span class="text-xl shrink-0">🏠</span>
-              <div class="min-w-0 flex-1">
-                <div class="text-sm font-semibold text-slate-800">Yerel LLM (Ollama)</div>
-                <div class="text-xs text-slate-500 dark:text-slate-400 font-normal truncate">Termux / Localhost</div>
-              </div>
-            </button>
-            <button data-provider="quick_rest" class="provider-tab flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-left transition-all min-w-0">
-              <span class="text-xl shrink-0">⚡</span>
-              <div class="min-w-0 flex-1">
-                <div class="text-sm font-semibold text-slate-800">Hızlı REST</div>
-                <div class="text-xs text-slate-500 dark:text-slate-400 font-normal truncate">0 Key - Anında</div>
-              </div>
-            </button>
-          </div>
-        </div>
-
-        <!-- Model Selection Dropdown -->
-        <div class="min-w-0 max-w-full">
-          <div class="flex items-center justify-between mb-1.5">
-            <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Model Seçimi</label>
-            <button id="refreshModelsBtn" type="button" class="hidden text-xs text-primary-600 dark:text-primary-400 hover:text-primary-800 flex items-center gap-1 font-semibold px-2 py-0.5 rounded hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors" title="Ollama'daki Modelleri Algıla">
-              <i class="ph ph-arrows-clockwise text-xs"></i>
-              <span id="refreshModelsBtnText">Modelleri Algıla</span>
-            </button>
-          </div>
-          <select id="modelSelect" class="w-full max-w-full truncate px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary-500/20 text-sm">
-            <!-- Dynamically populated based on provider -->
-          </select>
-          <div id="modelDetectionStatus" class="hidden text-xs mt-1.5 font-medium"></div>
-        </div>
-
-        <!-- Keys Section -->
-        <div class="space-y-3.5 pt-2 border-t border-slate-100 dark:border-slate-800">
-          
-          <!-- Google API Key -->
-          <div id="googleKeySection">
-            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Google Gemini API Key</label>
-            <input type="password" id="googleKeyInput" placeholder="AIzaSy... veya AQ..." 
-              class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/20 font-mono text-sm bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500">
-            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">Kişisel Google Gemini API anahtarınızı girerek derin dilbilimsel modelleri kullanabilirsiniz.</p>
-          </div>
-
-          <!-- NVIDIA API Key -->
-          <div id="nvidiaKeySection">
-            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">NVIDIA NIM API Key</label>
-            <input type="password" id="nvidiaKeyInput" placeholder="nvapi-..." 
-              class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/20 font-mono text-sm bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500">
-            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">Kişisel NVIDIA NIM API anahtarınızı girerek Nemotron modellerini kullanabilirsiniz.</p>
-          </div>
-
-          <!-- Local LLM URL & Model -->
-          <div id="localConfigSection" class="hidden space-y-2">
-            <div>
-              <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Yerel LLM Endpoint URL</label>
-              <input type="text" id="localUrlInput" placeholder="http://127.0.0.1:11434/v1" 
-                class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/20 font-mono text-sm bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500">
-              <p class="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">📱 <strong>Termux (Android):</strong> <code>http://127.0.0.1:11434/v1</code><br>💻 <strong>Bilgisayar:</strong> <code>http://localhost:11434/v1</code> veya yerel IP adresi.</p>
-            </div>
-          </div>
-
-          <!-- Privacy & Data Safety Notice (Apple & Google Play Store Compliance) -->
-          <div class="pt-3 border-t border-slate-100 dark:border-slate-800">
-            <details class="text-xs text-slate-600 dark:text-slate-400 cursor-pointer">
-              <summary class="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 hover:text-primary-700 dark:hover:text-primary-400">
-                <i class="ph-bold ph-info text-primary-600"></i>
-                <span>Gizlilik & Veri Güvenliği Beyanı</span>
-              </summary>
-              <div class="mt-2 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 text-xs leading-relaxed text-slate-600 dark:text-slate-300 space-y-2">
-                <p>• <strong>Sıfır Kişisel Veri:</strong> LexiBridge hiçbir kişisel veri, kimlik, konum veya analitik takip verisi toplamaz.</p>
-                <p>• <strong>BYOK Güvenliği:</strong> Girdiğiniz API anahtarları yalnızca cihazınızda saklanır, geliştiriciye veya harici sunucuya iletilmez.</p>
-                <p>• <strong>Yapay Zeka İletimi:</strong> Sözcükler yalnızca anlık dilbilimsel analiz için seçilen yapay zeka modeline iletilir.</p>
-              </div>
-            </details>
-          </div>
-
-        </div>
-
-      </div>
-
-      <!-- Modal Footer -->
-      <div class="p-3.5 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-        <button id="resetAppBtn" type="button" onclick="if(confirm('Tüm ayarlar ve önbellek sıfırlansın mı?')) { localStorage.clear(); if('caches' in window) caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).then(() => location.reload(true)); else location.reload(true); }" class="text-xs text-red-500 hover:text-red-700 font-medium">
-          Önbelleği & Ayarları Sıfırla
-        </button>
-        <div class="flex items-center gap-2">
-          <span id="saveStatusText" class="text-xs text-emerald-600 dark:text-emerald-400 font-semibold opacity-0 transition-opacity">Kaydedildi ✓</span>
-          <button id="saveSettingsBtn" class="px-5 py-2 bg-primary-600 text-white rounded-xl text-sm font-semibold hover:bg-primary-700 active:scale-95 transition-all shadow-sm">
-            Ayarları Kaydet
-          </button>
-        </div>
-      </div>
-
     </div>
   </div>
 
@@ -742,125 +858,6 @@
           Bildirimi Gönder
         </button>
       </div>
-    </div>
-  </div>
-
-  <!-- Flashcard Quiz Modal -->
-  <div id="flashcardModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4" role="dialog" aria-modal="true" aria-labelledby="flashcardModalTitle">
-    <div class="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-slide-up border border-slate-100 dark:border-slate-800 flex flex-col">
-      
-      <!-- Header -->
-      <div class="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/50">
-        <div class="flex items-center gap-2">
-          <i class="ph-bold ph-cards text-xl text-primary-600 dark:text-primary-400"></i>
-          <div>
-            <h3 id="flashcardModalTitle" class="font-bold text-slate-800 dark:text-slate-100 text-sm md:text-base">Kelime Kartları</h3>
-            <span id="flashcardDeckLabel" class="text-xs text-slate-500 dark:text-slate-400">Favori & Temel Kelimeler</span>
-          </div>
-        </div>
-        <div class="flex items-center gap-2">
-          <span id="flashcardCounter" class="text-xs font-mono font-bold px-2 py-1 bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg">1 / 10</span>
-          <button id="closeFlashcardBtn" type="button" onclick="window.closeFlashcardModal()" aria-label="Kapat" class="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-full">
-            <i class="ph-bold ph-x text-lg"></i>
-          </button>
-        </div>
-      </div>
-
-      <!-- Card Stage / Body -->
-      <div id="flashcardStage" class="p-5 flex flex-col items-center">
-        <!-- Progress Bar -->
-        <div class="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden mb-4">
-          <div id="flashcardProgressBar" class="bg-primary-600 h-full w-0 transition-all duration-300"></div>
-        </div>
-
-        <!-- 3D Interactive Flip Card -->
-        <div id="flashcardElement" class="flashcard-container w-full h-64 cursor-pointer select-none">
-          <div id="flashcardInner" class="flashcard-inner relative w-full h-full text-center rounded-2xl shadow-md border border-slate-200/80 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/80 p-5 flex flex-col justify-between">
-            <!-- Front Face -->
-            <div id="flashcardFront" class="flashcard-face absolute inset-0 p-5 flex flex-col justify-between items-center bg-white dark:bg-slate-800/95 rounded-2xl">
-              <div class="w-full flex items-center justify-between">
-                <span id="fcArticleBadge" class="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-400 border border-sky-200/60 dark:border-sky-800/60">de</span>
-                <span id="fcCefrBadge" class="text-xs font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">A1</span>
-              </div>
-              <div class="my-auto w-full px-2 text-center">
-                <h4 id="fcWord" class="text-2xl md:text-3xl font-extrabold text-slate-800 dark:text-slate-100 tracking-tight">ziekenhuis</h4>
-                <div id="fcPronunciation" class="text-xs text-slate-400 dark:text-slate-500 font-mono mt-1">/ˈzi.kə(n)ˌɦœy̯s/</div>
-                <!-- Ön Yüz Örnek Cümle İpucu -->
-                <div id="fcFrontExample" class="hidden mt-3 p-2.5 rounded-xl bg-sky-50/80 dark:bg-slate-900/60 border border-sky-100 dark:border-slate-700 text-xs sm:text-sm text-slate-700 dark:text-sky-200 leading-relaxed font-medium"></div>
-              </div>
-              <div class="w-full flex items-center justify-between text-xs text-slate-400 dark:text-slate-500 pt-2 border-t border-slate-100 dark:border-slate-700/60">
-                <button id="fcSpeakBtn" type="button" aria-label="Sesli Dinle" class="flex items-center gap-1 hover:text-primary-600 dark:hover:text-primary-400 py-1 px-2 rounded-lg min-h-[36px]">
-                  <i class="ph-bold ph-speaker-high text-base"></i>
-                  <span>Dinle</span>
-                </button>
-                <span class="flex items-center gap-1 font-medium text-slate-500 dark:text-slate-400">
-                  <i class="ph-bold ph-arrows-clockwise text-xs"></i>
-                  <span>Çevirmek için dokun</span>
-                </span>
-              </div>
-            </div>
-
-            <!-- Back Face -->
-            <div id="flashcardBack" class="flashcard-face flashcard-back absolute inset-0 p-5 flex flex-col justify-between items-center bg-slate-950 text-white rounded-2xl border border-slate-800 shadow-xl">
-              <div class="w-full flex items-center justify-between">
-                <span class="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1">
-                  <i class="ph-bold ph-translate text-sm"></i>
-                  <span>Türkçe Anlamı</span>
-                </span>
-                <span id="fcBackWord" class="text-xs font-mono font-semibold text-slate-400">ziekenhuis</span>
-              </div>
-              <div class="my-auto text-center px-2 w-full">
-                <!-- Türkçe Anlam: Diğer metinlerden farklı, arka planda parlak seçilen Zümrüt Yeşili -->
-                <div id="fcTranslation" class="text-2xl md:text-3xl font-black text-emerald-300 dark:text-emerald-300 tracking-tight mb-2.5">hastane</div>
-                <!-- Örnek Cümle: Okunaklılığı yüksek Gök Mavisi ve hedef kelime Kehribar Sarısı vurgulu -->
-                <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 shadow-inner max-w-sm mx-auto">
-                  <div id="fcExample" class="text-sm md:text-base text-sky-200 font-medium leading-relaxed">
-                    "Hij ligt in het ziekenhuis."
-                  </div>
-                  <div id="fcExampleTr" class="text-xs sm:text-sm text-slate-300/90 mt-1.5 font-normal">
-                    (O hastanede yatıyor.)
-                  </div>
-                </div>
-              </div>
-              <div class="w-full text-center text-xs text-slate-400 pt-2 border-t border-slate-800 flex items-center justify-center gap-1">
-                <i class="ph-bold ph-arrows-clockwise text-xs"></i>
-                <span>Ön yüze dönmek için dokunun</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Rating / Action Controls -->
-        <div id="flashcardControls" class="w-full grid grid-cols-2 gap-3 mt-4">
-          <button id="fcNeedPracticeBtn" type="button" class="flex items-center justify-center gap-2 py-3 px-4 min-h-[48px] rounded-xl bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 hover:bg-red-100 font-bold text-xs md:text-sm transition-all border border-red-200/80 dark:border-red-900/60 active:scale-95">
-            <i class="ph-bold ph-arrow-counter-clockwise text-base"></i>
-            <span>Tekrar Lazım</span>
-          </button>
-          <button id="fcMasteredBtn" type="button" class="flex items-center justify-center gap-2 py-3 px-4 min-h-[48px] rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 font-bold text-xs md:text-sm transition-all active:scale-95 shadow-sm shadow-emerald-500/20">
-            <i class="ph-bold ph-check text-base"></i>
-            <span>Biliyorum ✓</span>
-          </button>
-        </div>
-
-        <!-- Finish Screen (Hidden by default) -->
-        <div id="flashcardFinishScreen" class="hidden w-full text-center py-6">
-          <div class="w-16 h-16 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-3 text-3xl">
-            🎉
-          </div>
-          <h4 class="text-xl font-bold text-slate-800 dark:text-slate-100 mb-1">Tebrikler! Set Tamamlandı</h4>
-          <p id="flashcardScoreText" class="text-sm text-slate-500 dark:text-slate-400 mb-6">10 kelimeden 8 tanesini başarıyla bildiniz.</p>
-          <div class="flex gap-2 justify-center">
-            <button id="fcRestartBtn" type="button" class="px-5 py-2.5 min-h-[44px] bg-primary-600 text-white text-sm font-bold rounded-xl hover:bg-primary-700 transition-colors">
-              Tekrar Pratik Yap
-            </button>
-            <button type="button" onclick="window.closeFlashcardModal()" class="px-4 py-2.5 min-h-[44px] bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm font-semibold rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
-              Kapat
-            </button>
-          </div>
-        </div>
-
-      </div>
-
     </div>
   </div>
 

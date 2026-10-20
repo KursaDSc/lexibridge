@@ -1298,8 +1298,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const s = parent.dataset.source;
         if (s && s !== sourceLang) toggleLanguage();
         searchInput.value = w;
-        const favModal = document.getElementById('favoritesModal');
-        if (favModal) favModal.classList.add('hidden');
+        if (typeof window.switchMainTab === 'function') {
+          window.switchMainTab('dictionary');
+        } else {
+          const favModal = document.getElementById('favoritesModal');
+          if (favModal) favModal.classList.add('hidden');
+        }
         handleSearch();
       });
     });
@@ -2331,7 +2335,11 @@ document.addEventListener('DOMContentLoaded', () => {
     saveStatusText.classList.remove('opacity-0');
     setTimeout(() => {
       saveStatusText.classList.add('opacity-0');
-      settingsModal.classList.add('hidden');
+      if (typeof window.switchMainTab === 'function') {
+        window.switchMainTab('dictionary');
+      } else {
+        settingsModal.classList.add('hidden');
+      }
     }, 600);
   });
 
