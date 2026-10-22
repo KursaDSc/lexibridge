@@ -1,4 +1,4 @@
-# 📱 LingoMate Android Termux & Ollama Kullanım Kılavuzu
+﻿# 📱 LingoMate Android Termux & Ollama Kullanım Kılavuzu
 
 Bu rehber, **LingoMate** akıllı sözlük uygulamasını Android telefonunuzda **Termux** ve **Ollama** ile tamamen yerel (cihaz içinde, internetsiz ve %100 gizli) olarak çalıştırmanızı sağlar.
 
@@ -59,7 +59,7 @@ Uygulama açıldığında Ayarlar menüsündeki **"Modelleri Algıla"** butonu y
 
 ## 🌐 4. GitHub Pages Kullanımı
 
-* **Bilgisayarda:** GitHub Pages (`https://kursadsc.github.io/lexibridge/`) üzerinden doğrudan Google Gemini ile sorunsuz kullanabilirsiniz.
+* **Bilgisayarda:** GitHub Pages (`https://kursadsc.github.io/lingomate/`) üzerinden doğrudan Google Gemini ile sorunsuz kullanabilirsiniz.
 * **Mobilde:** GitHub Pages'i doğrudan açtığınızda Google Gemini hazır çalışır. Eğer GitHub Pages (HTTPS) üzerinden yerel Ollama'yı (HTTP) bağlamak isterseniz Chrome Android'de `chrome://flags/#unsafely-treat-insecure-origin-as-secure` ayarına `http://127.0.0.1:11434` ekleyebilirsiniz. *(Ancak en konforlu ve sekme kapanınca otomatik durduran yöntem yukarıdaki Widget ile çalıştırmaktır).*
 
 ---
