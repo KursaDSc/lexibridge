@@ -99,16 +99,16 @@
 
     window.switchMainTab = function(tabName, deckType) {
       var vd = document.getElementById('viewDictionary');
-      var qm = document.getElementById('flashcardModal');
-      var fm = document.getElementById('favoritesModal');
-      var sm = document.getElementById('settingsModal');
+      var vp = document.getElementById('viewPractice');
+      var vf = document.getElementById('viewFavorites');
+      var vs = document.getElementById('viewSettings');
       var qp = document.getElementById('quickPeekSheet');
       var hm = document.getElementById('historyModal');
       
       if (qp && window.closeQuickPeek) window.closeQuickPeek();
       if (hm) hm.classList.add('hidden');
 
-      var views = { dictionary: vd, practice: qm, favorites: fm, settings: sm };
+      var views = { dictionary: vd, practice: vp, favorites: vf, settings: vs };
       Object.keys(views).forEach(function(k) {
         if (views[k]) views[k].classList.toggle('hidden', k !== tabName);
       });
@@ -126,7 +126,8 @@
 
       if (tabName === 'dictionary') {
         var input = document.getElementById('searchInput');
-        if (input && window.innerWidth >= 768) {
+        if (input) {
+          // Focus on all screen sizes - mobile users need immediate typing too
           setTimeout(function() { input.focus(); }, 100);
         }
       } else if (tabName === 'practice') {
@@ -160,6 +161,9 @@
     window.closeHistoryModal = function() {
       var m = document.getElementById('historyModal');
       if (m) m.classList.add('hidden');
+      // Focus search input after closing modal
+      var input = document.getElementById('searchInput');
+      if (input) setTimeout(function() { input.focus(); }, 50);
     };
     window.openFlagModal = function(query) {
       var m = document.getElementById('flagModal');
@@ -174,6 +178,9 @@
       if (m) m.classList.add('hidden');
       var statusMsg = document.getElementById('flagStatusMsg');
       if (statusMsg) statusMsg.classList.add('hidden');
+      // Focus search input after closing modal
+      var input = document.getElementById('searchInput');
+      if (input) setTimeout(function() { input.focus(); }, 50);
     };
     window.toggleTheme = function() {
       var isDark = document.documentElement.classList.toggle('dark');
@@ -199,6 +206,9 @@
         s.classList.remove('is-visible');
         setTimeout(function() { s.classList.add('hidden'); }, 250);
       }
+      // Focus search input after closing quick peek
+      var input = document.getElementById('searchInput');
+      if (input) setTimeout(function() { input.focus(); }, 300);
     };
   </script>
 </head>
@@ -283,12 +293,12 @@
   </div>
 
   <!-- Main Container -->
-  <main class="flex-1 w-full max-w-2xl mx-auto px-4 py-4 md:py-6 pb-24 md:pb-28 flex flex-col">
+  <main class="flex-1 w-full max-w-2xl mx-auto px-4 py-4 md:py-6 pb-20 md:pb-24 flex flex-col" id="mainViews">
     
-    <!-- Tab 1: Sözlük Görünümü (SPA View) -->
-    <div id="viewDictionary" class="w-full flex flex-col transition-all">
-    <!-- Search & Language Card -->
-    <div class="w-full bg-white dark:bg-slate-900 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 dark:border-slate-800 overflow-hidden mb-4 transition-all">
+    <!-- View 1: Sözlük (Dictionary) -->
+    <div id="viewDictionary" class="tab-view w-full flex flex-col" data-tab="dictionary" role="tabpanel" aria-labelledby="navTabDictionary">
+      <!-- Search & Language Card -->
+      <div class="w-full bg-white dark:bg-slate-900 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 dark:border-slate-800 overflow-hidden mb-4 transition-all">
       
       <!-- Language Switcher Bar -->
       <div class="flex items-center justify-center gap-2 px-3 py-2.5 border-b border-slate-50 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40">
@@ -484,10 +494,10 @@
       <!-- Populated dynamically via JS -->
     </div>
   </div>
-  <!-- End of Tab 1: viewDictionary -->
+  <!-- End of View 1: viewDictionary -->
 
-  <!-- Tab 2: Pratik Görünümü (Flashcards & Quiz Full SPA View) -->
-  <div id="flashcardModal" class="hidden w-full bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col transition-all overflow-hidden" role="region" aria-labelledby="flashcardModalTitle">
+  <!-- View 2: Pratik (Flashcards & Quiz) -->
+  <div id="viewPractice" class="tab-view hidden w-full bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col transition-all overflow-hidden" role="tabpanel" aria-labelledby="navTabPractice">
     <!-- Header -->
     <div class="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/50">
       <div class="flex items-center gap-2.5">
@@ -505,9 +515,6 @@
           <span id="fcStreakText">1 Gün</span>
         </span>
         <span id="flashcardCounter" class="text-xs font-mono font-bold px-2.5 py-1 bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg">1 / 10</span>
-        <button id="closeFlashcardBtn" type="button" onclick="window.switchMainTab('dictionary')" aria-label="Sözlüğe Dön" class="w-10 h-10 min-w-[40px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" title="Sözlüğe Dön">
-          <i class="ph-bold ph-x text-lg"></i>
-        </button>
       </div>
     </div>
 
@@ -608,6 +615,28 @@
         </button>
       </div>
 
+      <!-- Keyboard Shortcuts Legend (Hidden by default, shown on '?' key) -->
+      <div id="kbdLegend" class="kbd-legend hidden" role="dialog" aria-label="Klavye Kısayolları">
+        <div class="flex items-center justify-between mb-3">
+          <h4 class="font-bold">Klavye Kısayolları</h4>
+          <button id="kbdLegendClose" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300" aria-label="Kapat">
+            <i class="ph-bold ph-x text-lg"></i>
+          </button>
+        </div>
+        <dl class="grid grid-cols-2 gap-2 text-xs">
+          <dt class="font-mono bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">Space / Enter</dt>
+          <dd class="text-slate-600 dark:text-slate-300">Kartı çevir</dd>
+          <dt class="font-mono bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">→ (Sağ ok)</dt>
+          <dd class="text-slate-600 dark:text-slate-300">Biliyorum</dd>
+          <dt class="font-mono bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">← (Sol ok)</dt>
+          <dd class="text-slate-600 dark:text-slate-300">Tekrar Lazım</dd>
+          <dt class="font-mono bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">?</dt>
+          <dd class="text-slate-600 dark:text-slate-300">Bu yardımı göster/gizle</dd>
+          <dt class="font-mono bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">Esc</dt>
+          <dd class="text-slate-600 dark:text-slate-300">Sözlüğe dön</dd>
+        </dl>
+      </div>
+
       <!-- Finish Screen (Hidden by default) -->
       <div id="flashcardFinishScreen" class="hidden w-full text-center py-6">
         <div class="w-16 h-16 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-3 text-3xl">
@@ -627,16 +656,18 @@
 
     </div>
   </div>
+  </div>
+  <!-- End of View 2: viewPractice -->
 
-  <!-- Tab 3: Kelimelerim Görünümü (Favorites Full SPA View) -->
-  <div id="favoritesModal" class="hidden w-full bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col transition-all overflow-hidden min-h-[500px]" role="region" aria-labelledby="favoritesModalTitle">
+  <!-- View 3: Kelimelerim (Favorites) -->
+  <div id="viewFavorites" class="tab-view hidden w-full bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col transition-all overflow-hidden min-h-[500px]" role="tabpanel" aria-labelledby="navTabFavorites">
     <div class="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40">
       <div class="flex items-center gap-2.5">
         <div class="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-500 flex items-center justify-center">
           <i class="ph-bold ph-star text-xl"></i>
         </div>
         <div>
-          <h3 id="favoritesModalTitle" class="font-bold text-slate-800 dark:text-slate-100 text-base leading-tight">Favori Kelimelerim</h3>
+          <h3 class="font-bold text-slate-800 dark:text-slate-100 text-base leading-tight">Favori Kelimelerim</h3>
           <span class="text-xs text-slate-500 dark:text-slate-400">Kaydettiğiniz kelimeler ve özel sözlüğünüz</span>
         </div>
       </div>
@@ -646,9 +677,6 @@
           <span>Kartlarla Çalış</span>
         </button>
         <button id="clearFavoritesBtn" class="text-xs text-red-500 hover:text-red-700 font-semibold px-2.5 py-2 min-h-[44px] rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors">Temizle</button>
-        <button id="closeFavoritesBtn" onclick="window.switchMainTab('dictionary')" aria-label="Sözlüğe Dön" class="w-10 h-10 min-w-[40px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" title="Sözlüğe Dön">
-          <i class="ph-bold ph-x text-lg"></i>
-        </button>
       </div>
     </div>
 
@@ -678,9 +706,10 @@
       <!-- Favorites items dynamically inserted -->
     </div>
   </div>
+  <!-- End of View 3: viewFavorites -->
 
-  <!-- Tab 4: Ayarlar Görünümü (Settings & Provider Full SPA View) -->
-  <div id="settingsModal" class="hidden w-full bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col transition-all overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle">
+  <!-- View 4: Ayarlar (Settings) -->
+  <div id="viewSettings" class="tab-view hidden w-full bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col transition-all overflow-hidden" role="tabpanel" aria-labelledby="navTabSettings">
     
     <!-- View Header -->
     <div class="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
@@ -689,13 +718,10 @@
           <i class="ph-bold ph-gear-six text-xl"></i>
         </div>
         <div>
-          <h3 id="settingsModalTitle" class="font-bold text-slate-800 dark:text-slate-100 text-base leading-tight">LexiBridge Yapay Zeka Ayarları</h3>
+          <h3 class="font-bold text-slate-800 dark:text-slate-100 text-base leading-tight">LexiBridge Yapay Zeka Ayarları</h3>
           <span class="text-xs text-slate-500 dark:text-slate-400">Model sağlayıcıları, API anahtarları ve sistem tercihleri</span>
         </div>
       </div>
-      <button id="closeSettingsBtn" onclick="window.switchMainTab('dictionary')" aria-label="Sözlüğe Dön" class="w-10 h-10 min-w-[40px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" title="Sözlüğe Dön">
-        <i class="ph-bold ph-x text-lg"></i>
-      </button>
     </div>
 
     <!-- View Body -->

@@ -141,9 +141,12 @@ html.dark .lookup-word:hover, html.dark .lookup-word:active {
   color: #38bdf8;
 }
 
-/* Bottom Navigation Bar (4-Tab Native Standard) */
+/* Bottom Navigation Bar (4-Tab Native Standard) - 64px height (Material 3) */
 #bottomNavBar {
   box-shadow: 0 -4px 20px -2px rgba(0, 0, 0, 0.05);
+  padding-top: 4px;
+  padding-bottom: max(4px, env(safe-area-inset-bottom));
+  height: 64px;
 }
 
 html.dark #bottomNavBar {
@@ -153,6 +156,7 @@ html.dark #bottomNavBar {
 .nav-tab-btn {
   position: relative;
   transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), color 0.15s ease;
+  min-height: 56px; /* 64px - 4px top - 4px bottom padding */
 }
 
 .nav-tab-btn:active {
@@ -178,10 +182,10 @@ html.dark .nav-tab-btn.active span {
   color: #38bdf8;
 }
 
-/* Micro Toast Notification (Offset above Bottom Nav Bar) */
+/* Micro Toast Notification (Offset above Bottom Nav Bar - 64px nav + 8px gap) */
 #toast {
   position: fixed;
-  bottom: 76px;
+  bottom: 72px;
   left: 50%;
   transform: translateX(-50%) translateY(24px);
   opacity: 0;
@@ -433,5 +437,152 @@ html.dark .is-listening {
     max-width: 80px !important;
   }
 }
+
+/* Reduced Motion - Respect user preference */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .flashcard-inner { transition: none !important; }
+  #quickPeekSheet { transition: none !important; }
+  #stickySearchBar { transition: none !important; }
+  .nav-tab-btn { transition: none !important; }
+  .animate-slide-up { animation: none !important; opacity: 1; transform: none; }
+}
+
+/* High Contrast Mode - Better visibility */
+@media (prefers-contrast: high) {
+  :root {
+    --primary: #0056a0;
+    --primary-dark: #003d6b;
+  }
+  .card-border { border-width: 2px; }
+  .lookup-word { border-bottom-width: 3px; }
+  .nav-tab-btn.active .nav-tab-icon-wrapper { border: 2px solid currentColor; }
+  button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: 3px solid #0056a0 !important;
+    outline-offset: 2px !important;
+  }
+  .provider-tab { border-width: 2px; }
+  .topic-chip, .seed-chip { border-width: 2px; }
+}
+
+/* Dark Mode Contrast Fixes - Semantic tokens approach */
+html.dark {
+  color-scheme: dark;
+}
+
+/* Fix provider tab text contrast in dark mode */
+html.dark .provider-tab {
+  background-color: #1e293b;
+  border-color: #334155;
+  color: #e2e8f0;
+}
+
+html.dark .provider-tab .text-slate-800 {
+  color: #f8fafc !important;
+}
+
+html.dark .provider-tab .text-slate-500 {
+  color: #94a3b8 !important;
+}
+
+html.dark .provider-tab:hover {
+  border-color: #38bdf8 !important;
+}
+
+/* Fix seed/topic chip contrast */
+html.dark .topic-chip,
+html.dark .seed-chip {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #e2e8f0 !important;
+}
+
+html.dark .topic-chip:hover,
+html.dark .seed-chip:hover {
+  background-color: #334155 !important;
+  color: #38bdf8 !important;
+}
+
+/* Fix history item contrast */
+html.dark .history-item {
+  color: #f1f5f9 !important;
+}
+
+html.dark .history-item:hover {
+  background-color: #1e293b !important;
+}
+
+/* Fix autocomplete dropdown */
+html.dark #autocompleteDropdown {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+}
+
+html.dark .autocomplete-item {
+  color: #f1f5f9 !important;
+}
+
+html.dark .autocomplete-item:hover {
+  background-color: #1e293b !important;
+}
+
+/* Fix fav search input */
+html.dark #favSearchFilterInput {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+  color: #f1f5f9 !important;
+}
+
+/* Fix modal/dialog backgrounds */
+html.dark [role="dialog"] > div {
+  background-color: #0f172a !important;
+  border-color: #1e293b !important;
+  color: #f1f5f9 !important;
+}
+
+html.dark [role="dialog"] header,
+html.dark [role="dialog"] footer {
+  border-color: #1e293b !important;
+}
+
+/* Fix sticky search bar */
+html.dark #stickySearchBar {
+  background-color: rgba(15, 23, 42, 0.95) !important;
+  border-color: #1e293b !important;
+}
+
+html.dark #stickySearchTrigger {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #e2e8f0 !important;
+}
+
+/* Fix header */
+html.dark header {
+  background-color: rgba(15, 23, 42, 0.92) !important;
+  border-color: #1e293b !important;
+}
+
+html.dark h1 {
+  color: #f8fafc !important;
+}
+
+/* Fix body */
+html.dark body {
+  background-color: #0b1120 !important;
+  color: #f1f5f9 !important;
+}
+
+/* Keyboard shortcut legend for flashcards */
+.kbd-legend {
+  @apply fixed bottom-20 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 dark:bg-white/95 backdrop-blur-xl rounded-2xl p-4 shadow-2xl border border-slate-200/80 dark:border-slate-800/80 text-sm text-slate-800 dark:text-slate-100;
+}
+
+.kbd-legend.hidden { display: none; }
 
 
