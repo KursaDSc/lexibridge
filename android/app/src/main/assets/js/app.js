@@ -239,6 +239,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 2000);
   }
 
+  // Fallback toast - longer duration, warning style
+  function showFallbackToast(providerName, errorMsg) {
+    const msg = `${providerName} kullanılamadı, Hızlı REST'e geçildi: ${errorMsg || 'bilinmeyen hata'}`;
+    showToast(msg, 'ph-bold ph-warning-circle text-amber-500');
+    // Longer duration for fallback warnings
+    if (toastTimeout) clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => {
+      toastEl.classList.remove('show');
+    }, 5000);
+  }
+  window.showFallbackToast = showFallbackToast;
+
   let lastThemeToggle = 0;
   window.toggleTheme = function() {
     const now = Date.now();

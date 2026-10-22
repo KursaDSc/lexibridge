@@ -573,3 +573,230 @@ html.dark .provider-tab[data-active='true'] .provider-tab-subtitle {
     border: 2px solid currentColor;
   }
 }
+
+/* ── Onboarding Modal ─────────────────────────────────────────────────────── */
+#onboardingModal {
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#onboardingModal .onboarding-step {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.onboarding-option {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.onboarding-option:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px -4px rgba(2, 132, 199, 0.15);
+}
+
+.onboarding-option:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+html.dark .onboarding-option {
+  border-color: #334155;
+}
+
+.onboarding-option[data-selected="true"] {
+  border-color: var(--brand) !important;
+  background: var(--brand-soft) !important;
+}
+
+html.dark .onboarding-option[data-selected="true"] {
+  background: var(--brand-soft) !important;
+}
+
+/* ── Install Prompt Banner ────────────────────────────────────────────────── */
+#installPromptBanner {
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+#installPromptBanner .action-btn {
+  transition: all 0.2s ease;
+}
+
+/* ── Enhanced Offline Banner ──────────────────────────────────────────────── */
+#offlineBanner {
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Voice Search Enhancements ────────────────────────────────────────────── */
+.voice-search-active {
+  animation: pulse-ring 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse-ring {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(2, 132, 199, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 12px rgba(2, 132, 199, 0);
+  }
+}
+
+/* ── PWA Install Button ───────────────────────────────────────────────────── */
+.install-btn {
+  transition: all 0.2s ease;
+}
+
+.install-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px -2px rgba(2, 132, 199, 0.3);
+}
+
+/* ── Onboarding Progress ──────────────────────────────────────────────────── */
+#onboardingProgressBar {
+  transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ── Offline-First Indicators ─────────────────────────────────────────────── */
+.offline-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+  border-radius: 9999px;
+  font-size: 0.625rem;
+  font-weight: 600;
+}
+
+html.dark .offline-indicator {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+}
+
+/* ── Speak & Learn Mode ───────────────────────────────────────────────────── */
+.speak-learn-active .result-card {
+  animation: speak-pulse 1s infinite ease-in-out;
+}
+
+@keyframes speak-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+}
+
+/* ── Onboarding Progress Bar Animation ────────────────────────────────────── */
+#onboardingProgressBar {
+  transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ── Install Prompt Animation ─────────────────────────────────────────────── */
+#installPromptBanner {
+  animation: slideUpAndFade 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUpAndFade {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Enhanced Offline Banner ──────────────────────────────────────────────── */
+#offlineBanner.enhanced {
+  animation: slideDownAndFade 0.4s ease;
+}
+
+@keyframes slideDownAndFade {
+  from {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Onboarding Step Transition ───────────────────────────────────────────── */
+.onboarding-step {
+  animation: slideInRight 0.3s ease;
+}
+
+.onboarding-step.exiting {
+  animation: slideOutLeft 0.2s ease forwards;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideOutLeft {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+}
+
+/* ── Reduced Motion ───────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .onboarding-step,
+  #installPromptBanner,
+  #offlineBanner,
+  #onboardingProgressBar,
+  .onboarding-option {
+    animation: none !important;
+    transition: none !important;
+  }
+  
+  .onboarding-step.exiting {
+    animation: none !important;
+  }
+}
+
+/* ── Print Styles ─────────────────────────────────────────────────────────── */
+@media print {
+  #installPromptBanner,
+  #offlineBanner,
+  #onboardingModal {
+    display: none !important;
+  }
+}

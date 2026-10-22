@@ -1057,6 +1057,9 @@ ${sanitized}
           return await callNvidiaNIM(cleanQuery, sourceLang, settings.model, settings.nvidiaKey);
         } catch (nvidiaErr) {
           console.warn("NVIDIA NIM çağrısı başarısız oldu, Hızlı REST yedeğe geçiliyor:", nvidiaErr.message);
+          if (typeof showFallbackToast === 'function') {
+            showFallbackToast('NVIDIA NIM', nvidiaErr.message);
+          }
           const restResult = await quickTranslateRest(cleanQuery, sourceLang, targetLang);
           restResult._provider = "Hızlı REST (NVIDIA Yedeği)";
           restResult._fallbackFrom = "nvidia";
@@ -1069,6 +1072,9 @@ ${sanitized}
           return await callLocalLLM(cleanQuery, sourceLang, settings.localModel, settings.localUrl);
         } catch (localErr) {
           console.warn("Yerel Ollama'ya ulaşılamadı. Akıllı hibrit yedek devreye giriyor:", localErr.message);
+          if (typeof showFallbackToast === 'function') {
+            showFallbackToast('Yerel LLM (Ollama)', localErr.message);
+          }
           // Fallback 1: Google Gemini (High-speed linguistic AI)
           try {
             const geminiResult = await callGoogleGemini(cleanQuery, sourceLang, "gemini-3.5-flash-lite", settings.googleKey);
@@ -1078,6 +1084,9 @@ ${sanitized}
             return geminiResult;
           } catch (geminiErr) {
             console.warn("Google Gemini de yanıt vermedi, Hızlı REST yedeğe geçiliyor:", geminiErr.message);
+            if (typeof showFallbackToast === 'function') {
+              showFallbackToast('Google Gemini (Ollama yedeği)', geminiErr.message);
+            }
             // Fallback 2: Quick REST (0 API Key, reliable fallback)
             const restResult = await quickTranslateRest(cleanQuery, sourceLang, targetLang);
             restResult._provider = "Hızlı REST (Ollama & Gemini Çevrimdışı)";
@@ -1092,6 +1101,10 @@ ${sanitized}
           return await callGoogleGemini(cleanQuery, sourceLang, settings.model, settings.googleKey);
         } catch (googleErr) {
           console.warn("Google Gemini çağrısı başarısız oldu, Hızlı REST yedeğe geçiliyor:", googleErr.message);
+          // Fallback olduğunda kullanıcıyı bilgilendir
+          if (typeof showFallbackToast === 'function') {
+            showFallbackToast('Google Gemini', googleErr.message);
+          }
           const restResult = await quickTranslateRest(cleanQuery, sourceLang, targetLang);
           restResult._provider = "Hızlı REST (Gemini Yedeği)";
           restResult._fallbackFrom = "google";

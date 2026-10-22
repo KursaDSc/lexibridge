@@ -398,6 +398,152 @@
       </div>
     </div>
 
+    <!-- Onboarding Modal (First Launch) -->
+    <div id="onboardingModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle">
+      <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto animate-slide-up border border-slate-100 dark:border-slate-800">
+        <div class="p-6 text-center border-b border-slate-100 dark:border-slate-800">
+          <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-50 to-sky-100 dark:from-primary-950/40 dark:to-sky-950/40 border border-primary-100 dark:border-primary-800 flex items-center justify-center mx-auto mb-4 shadow-inner">
+            <img src="icon-192.png?v=5.0" alt="LingoMate" class="w-10 h-10 rounded-xl object-cover">
+          </div>
+          <h2 id="onboardingTitle" class="text-xl font-bold text-slate-800 dark:text-slate-100">LingoMate'e Hoş Geldiniz!</h2>
+          <p class="text-sm text-slate-500 dark:text-slate-400 mt-2">Size en iyi öğrenme deneyimini sunmak için 3 hızlı soru...</p>
+        </div>
+        <div class="p-6 space-y-6" id="onboardingSteps">
+          <!-- Step 1: Purpose -->
+          <div id="onboardingStep1" class="onboarding-step">
+            <h3 class="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2">Ne için öğreniyorsunuz?</h3>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">Size en uygun kelime listelerini ve örnekleri önerebilmek için...</p>
+            <div class="grid grid-cols-2 gap-3" id="purposeOptions">
+              <button type="button" data-purpose="work" class="onboarding-option p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-all text-left">
+                <div class="text-3xl mb-1">💼</div>
+                <div class="font-semibold text-slate-800 dark:text-slate-100">İş / Kariyer</div>
+                <div class="text-xs text-slate-500 dark:text-slate-400">Resmi yazışma, toplantı, e-posta</div>
+              </button>
+              <button type="button" data-purpose="study" class="onboarding-option p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-all text-left">
+                <div class="text-3xl mb-1">🎓</div>
+                <div class="font-semibold text-slate-800 dark:text-slate-100">Okul / Çalışma</div>
+                <div class="text-xs text-slate-500 dark:text-slate-400">Sınav, ödev, akademik kelimeler</div>
+              </button>
+              <button type="button" data-purpose="daily" class="onboarding-option p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-all text-left">
+                <div class="text-3xl mb-1">☕</div>
+                <div class="font-semibold text-slate-800 dark:text-slate-100">Günlük Yaşam</div>
+                <div class="text-xs text-slate-500 dark:text-slate-400">Alışveriş, kafe, ulaşım, sohbet</div>
+              </button>
+              <button type="button" data-purpose="travel" class="onboarding-option p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-all text-left">
+                <div class="text-3xl mb-1">✈️</div>
+                <div class="font-semibold text-slate-800 dark:text-slate-100">Seyahat / Tatil</div>
+                <div class="text-xs text-slate-500 dark:text-slate-400">Yolculuk, yer bulma, acil durum</div>
+              </button>
+            </div>
+          </div>
+
+          <!-- Step 2: Level -->
+          <div id="onboardingStep2" class="onboarding-step hidden">
+            <h3 class="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2">Felemenkçe seviyeniz nedir?</h3>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">Doğru seviyede kelimeler önerebilmek için...</p>
+            <div class="space-y-3" id="levelOptions">
+              <button type="button" data-level="A1" class="onboarding-option p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-all text-left flex items-center justify-between">
+                <div>
+                  <div class="font-semibold text-slate-800 dark:text-slate-100">A1 - Başlangıç</div>
+                  <div class="text-xs text-slate-500 dark:text-slate-400">Temel kelimeler, basit cümleler</div>
+                </div>
+                <span class="text-xs px-2 py-1 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 rounded-full font-bold">Yeni</span>
+              </button>
+              <button type="button" data-level="A2" class="onboarding-option p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-all">
+                <div class="font-semibold text-slate-800 dark:text-slate-100">A2 - Temel</div>
+                <div class="text-xs text-slate-500 dark:text-slate-400">Günlük iletişim, basit metinler</div>
+              </button>
+              <button type="button" data-level="B1" class="onboarding-option p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-all">
+                <div class="font-semibold text-slate-800 dark:text-slate-100">B1 - Orta</div>
+                <div class="text-xs text-slate-500 dark:text-slate-400">İş/okul, karma cümleler</div>
+              </button>
+              <button type="button" data-level="B2" class="onboarding-option p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-all">
+                <div class="font-semibold text-slate-800 dark:text-slate-100">B2 - İleri</div>
+                <div class="text-xs text-slate-500 dark:text-slate-400">Karmaşık metinler, nüanslar</div>
+              </button>
+            </div>
+          </div>
+
+          <!-- Step 3: Time Commitment -->
+          <div id="onboardingStep3" class="onboarding-step hidden">
+            <h3 class="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2">Günlük ne kadar süre ayırabilirsiniz?</h3>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">Gerçekçi bir hedef koyarak motivasyonunuzu koruyun...</p>
+            <div class="space-y-3" id="timeOptions">
+              <button type="button" data-time="5" class="onboarding-option p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-all flex items-center justify-between">
+                <div>
+                  <div class="font-semibold text-slate-800 dark:text-slate-100">5 dakika / gün</div>
+                  <div class="text-xs text-slate-500 dark:text-slate-400">~3 kelime/gün, ~90 kelime/ay</div>
+                </div>
+                <span class="text-xs px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full font-medium">Yoğun</span>
+              </button>
+              <button type="button" data-time="15" class="onboarding-option p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-all">
+                <div class="font-semibold text-slate-800 dark:text-slate-100">15 dakika / gün</div>
+                <div class="text-xs text-slate-500 dark:text-slate-400">~8 kelime/gün, ~240 kelime/ay</div>
+              </button>
+              <button type="button" data-time="30" class="onboarding-option p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-all">
+                <div class="font-semibold text-slate-800 dark:text-slate-100">30 dakika / gün</div>
+                <div class="text-xs text-slate-500 dark:text-slate-400">~15 kelime/gün, ~450 kelime/ay</div>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Progress Indicator -->
+        <div class="pt-4 border-t border-slate-100 dark:border-slate-800">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs text-slate-500 dark:text-slate-400" id="onboardingProgressText">Adım 1 / 3</span>
+            <span class="text-xs font-bold text-primary-600 dark:text-primary-400" id="onboardingProgressPercent">%33</span>
+          </div>
+          <div class="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+            <div id="onboardingProgressBar" class="h-full bg-primary-600 rounded-full transition-all duration-300" style="width: 33%"></div>
+          </div>
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="pt-4 flex items-center justify-between gap-3">
+          <button id="onboardingBackBtn" type="button" class="flex-1 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-semibold transition-all hidden" disabled>
+            Geri
+          </button>
+          <button id="onboardingNextBtn" type="button" class="flex-1 px-4 py-3 rounded-xl bg-primary-600 text-white font-semibold hover:bg-primary-700 transition-all">
+            İleri
+          </button>
+          <button id="onboardingFinishBtn" type="button" class="flex-1 px-4 py-3 rounded-xl bg-primary-600 text-white font-semibold hover:bg-primary-700 transition-all hidden">
+            Başla
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PWA Install Prompt Banner -->
+    <div id="installPromptBanner" class="hidden fixed bottom-20 left-4 right-4 z-50 max-w-md mx-auto animate-slide-up" role="banner">
+      <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 p-4 flex items-start gap-3">
+        <div class="w-12 h-12 rounded-xl bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0">
+          <i class="ph-bold ph-device-mobile text-xl"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <h4 class="font-bold text-slate-800 dark:text-slate-100 text-sm">LingoMate'i Yükleyin</h4>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Ana ekrana ekleyin, çevrimdışı kullanın, bildirim alın.</p>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <button id="installPromptDismiss" class="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 font-medium px-2 py-1">Kapat</button>
+          <button id="installPromptAccept" class="px-3 py-1.5 text-xs font-semibold bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-all">
+            Yükle
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Enhanced Offline Banner -->
+    <div id="offlineBanner" role="status" aria-live="polite" class="hidden w-full bg-amber-50 dark:bg-amber-950/50 border-b border-amber-200 dark:border-amber-900 text-amber-800 dark:text-amber-200 text-xs font-medium px-4 py-2 text-center">
+      <div class="flex items-center justify-between gap-2">
+        <span class="flex items-center gap-1.5">
+          <i class="ph-bold ph-wifi-off text-amber-600"></i>
+          <span id="offlineBannerText">Çevrimdışısınız. Kayıtlı kelimeler ve yerel sözlük kullanılabilir.</span>
+        </span>
+        <button id="offlineBannerDismiss" class="text-xs text-amber-700 hover:text-amber-900 font-medium px-2 py-1 rounded">Kapat</button>
+      </div>
+    </div>
+
     <!-- Empty Welcome & Situational Practice Hub -->
     <div id="emptyState" class="w-full my-auto py-3 md:py-5 flex flex-col items-center">
       <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-50 to-sky-100 border border-primary-100 flex items-center justify-center text-primary-600 mb-3 shadow-inner">
