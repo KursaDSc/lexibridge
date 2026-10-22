@@ -3009,6 +3009,495 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('online', updateHeaderBadge);
   window.addEventListener('offline', updateHeaderBadge);
 
+  // ── Onboarding Modal Logic ────────────────────────────────────────────────
+  function setupOnboarding() {
+    const onboardingModal = document.getElementById('onboardingModal');
+    const onboardingSteps = document.getElementById('onboardingSteps');
+    const onboardingProgressBar = document.getElementById('onboardingProgressBar');
+    const onboardingProgressText = document.getElementById('onboardingProgressText');
+    const onboardingProgressPercent = document.getElementById('onboardingProgressPercent');
+    const onboardingBackBtn = document.getElementById('onboardingBackBtn');
+    const onboardingNextBtn = document.getElementById('onboardingNextBtn');
+    const onboardingFinishBtn = document.getElementById('onboardingFinishBtn');
+    const onboardingProgressBarEl = document.getElementById('onboardingProgressBar');
+
+    const steps = ['step1', 'step2', 'step3'];
+    let currentStep = 0;
+
+    // Check if onboarding already completed
+    const onboardingDone = localStorage.getItem('lexi_onboarding_done');
+    if (onboardingDone) {
+      return; // Already completed, don't show
+    }
+
+    const stepElements = {
+      step1: document.getElementById('onboardingStep1'),
+      step2: document.getElementById('onboardingStep2'),
+      step3: document.getElementById('onboardingStep3')
+    };
+
+    const progressData = {
+      step1: { text: 'Adım 1 / 3', percent: 33, width: '33%' },
+      step2: { text: 'Adım 2 / 3', percent: 66, width: '66%' },
+      step3: { text: 'Adım 3 / 3', percent: 100, width: '100%' }
+    };
+
+    function showStep(stepIndex) {
+      const stepKeys = Object.keys(stepElements);
+      const prevStep = steps[currentStep];
+      const nextStep = steps[stepIndex];
+
+      // Hide current step
+      if (stepElements[prevStep]) {
+        stepElements[prevStep].classList.add('exiting');
+        setTimeout(() => {
+          stepElements[prevStep].classList.add('hidden');
+          stepElements[prevStep].classList.remove('exiting');
+        }, 200);
+      }
+
+      // Show next step
+      setTimeout(() => {
+        if (stepElements[nextStep]) {
+          stepElements[nextStep].classList.remove('hidden');
+        }
+      }, 200);
+
+      currentStep = stepIndex;
+      updateProgress();
+      updateButtons();
+    }
+
+    function updateProgress() {
+      const progress = progressData[steps[currentStep]];
+      if (onboardingProgressBarEl) {
+        onboardingProgressBarEl.style.width = progress.width;
+      }
+      if (onboardingProgressText) {
+        onboardingProgressText.textContent = progress.text;
+      }
+      if (onboardingProgressPercent) {
+        onboardingProgressPercent.textContent = '%' + progress.percent;
+      }
+    }
+
+    function updateButtons() {
+      if (onboardingBackBtn) {
+        onboardingBackBtn.classList.toggle('hidden', currentStep === 0);
+        onboardingBackBtn.disabled = currentStep === 0;
+      }
+      if (onboardingNextBtn) {
+        onboardingNextBtn.classList.toggle('hidden', currentStep === steps.length - 1);
+      }
+      if (onboardingFinishBtn) {
+        onboardingFinishBtn.classList.toggle('hidden', currentStep !== steps.length - 1);
+      }
+    }
+
+    function nextStep() {
+      if (currentStep < steps.length - 1) {
+        showStep(currentStep + 1);
+      }
+    }
+
+    function prevStep() {
+      if (currentStep > 0) {
+        showStep(currentStep - 1);
+      }
+    }
+
+    function finishOnboarding() {
+      const userProfile = {
+        purpose: document.querySelector('[data-purpose][data-selected="true"]')?.dataset.purpose || 'daily',
+        level: document.querySelector('[data-level][data-selected="true"]')?.dataset.level || 'A1',
+        time: document.querySelector('[data-time][data-selected="true"]')?.dataset.time || '15',
+        completedAt: new Date().toISOString()
+      };
+      localStorage.setItem('lexi_user_profile', JSON.stringify(userProfile));
+      localStorage.setItem('lexi_onboarding_done', 'true');
+      closeOnboarding();
+      applyUserProfile();
+    }
+
+    function closeOnboarding() {
+      const modal = document.getElementById('onboardingModal');
+      if (modal) {
+        modal.classList.add('hidden');
+      }
+    }
+
+    // Option selection
+    document.querySelectorAll('.onboarding-option').forEach(opt => {
+      opt.addEventListener('click', () => {
+        const parent = opt.closest('.onboarding-step');
+        if (!parent) return;
+        parent.querySelectorAll('.onboarding-option').forEach(o => {
+          o.removeAttribute('data-selected');
+          o.classList.remove('data-selected-true');
+        });
+        opt.setAttribute('data-selected', 'true');
+        opt.classList.add('data-selected-true');
+      });
+    });
+
+    // Navigation buttons
+    if (onboardingNextBtn) {
+      onboardingNextBtn.addEventListener('click', () => {
+        if (currentStep < 2) {
+          showStep(currentStep + 1);
+        }
+      });
+    }
+
+    if (onboardingBackBtn) {
+      onboardingBackBtn.addEventListener('click', () => {
+        if (currentStep > 0) {
+          showStep(currentStep - 1);
+        }
+      });
+    }
+
+    if (onboardingFinishBtn) {
+      onboardingFinishBtn.addEventListener('click', finishOnboarding);
+    }
+
+    // Show modal if not completed
+    const onboardingModal = document.getElementById('onboardingModal');
+    if (onboardingModal) {
+      onboardingModal.classList.remove('hidden');
+      // Focus first option
+      setTimeout(() => {
+        const firstOption = document.querySelector('.onboarding-option');
+        if (firstOption) firstOption.focus();
+      }, 300);
+    }
+  }
+
+  // ── Apply User Profile to Empty State ──────────────────────────────────────
+  function applyUserProfile() {
+    const profile = JSON.parse(localStorage.getItem('lexi_user_profile') || '{}');
+    if (!profile.purpose) return;
+
+    // Update empty state with personalized content
+    const emptyState = document.getElementById('emptyState');
+    if (!emptyState) return;
+
+    // Could add personalized greeting, suggested categories, etc.
+    console.log('Applying user profile:', profile);
+  }
+
+  // ── PWA Install Prompt ─────────────────────────────────────────────────────
+  let deferredPrompt = null;
+  let installPromptShown = false;
+
+  function setupInstallPrompt() {
+    const installBanner = document.getElementById('installPromptBanner');
+    const installAcceptBtn = document.getElementById('installPromptAccept');
+    const installDismissBtn = document.getElementById('installPromptDismiss');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+
+      // Show after 30 seconds if not dismissed
+      setTimeout(() => {
+        if (!installPromptShown && !localStorage.getItem('lexi_install_dismissed')) {
+          const banner = document.getElementById('installPromptBanner');
+          if (banner) {
+            banner.classList.remove('hidden');
+            installPromptShown = true;
+          }
+        }
+      }, 30000);
+    }
+
+    const acceptBtn = document.getElementById('installPromptAccept');
+    if (acceptBtn) {
+      acceptBtn.addEventListener('click', async () => {
+        if (deferredPrompt) {
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          if (outcome === 'accepted') {
+            console.log('User accepted PWA install');
+          }
+          deferredPrompt = null;
+        }
+        const banner = document.getElementById('installPromptBanner');
+        if (banner) banner.classList.add('hidden');
+        localStorage.setItem('lexi_install_dismissed', 'true');
+      });
+    }
+
+    const dismissBtn = document.getElementById('installPromptDismiss');
+    if (dismissBtn) {
+      dismissBtn.addEventListener('click', () => {
+        const banner = document.getElementById('installPromptBanner');
+        if (banner) banner.classList.add('hidden');
+        localStorage.setItem('lexi_install_dismissed', 'true');
+      });
+    }
+  }
+
+  // ── Enhanced Offline Support ───────────────────────────────────────────────
+  function setupOfflineSupport() {
+    const offlineBanner = document.getElementById('offlineBanner');
+    const offlineBannerText = document.getElementById('offlineBannerText');
+    const offlineDismissBtn = document.getElementById('offlineBannerDismiss');
+
+    function updateOfflineBanner() {
+      const isOffline = !navigator.onLine;
+      if (offlineBanner) {
+        offlineBanner.classList.toggle('hidden', !isOffline);
+        if (offlineBannerText) {
+          if (isOffline) {
+            // Show cache info
+            const cacheSize = getCacheSize();
+            offlineBannerText.textContent = `Çevrimdışısınız. ${cacheSize} önbellekte. Kayıtlı kelimeler ve yerel sözlük kullanılabilir.`;
+          }
+        }
+      }
+    }
+
+    async function getCacheSize() {
+      try {
+        if ('caches' in window) {
+          const cacheNames = await caches.keys();
+          let totalSize = 0;
+          for (const name of cacheNames) {
+            const cache = await caches.open(name);
+            const keys = await cache.keys();
+            for (const request of keys) {
+              const response = await cache.match(request);
+              if (response) {
+                const blob = await response.blob();
+                totalSize += blob.size;
+              }
+            }
+          }
+          return formatBytes(totalSize);
+        }
+      } catch (e) {
+        return 'bilinmeyen boyut';
+      }
+      return 'bilinmeyen boyut';
+    }
+
+    function formatBytes(bytes) {
+      if (bytes === 0) return '0 B';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    window.addEventListener('online', updateHeaderBadge);
+    window.addEventListener('offline', updateHeaderBanner);
+
+    function updateHeaderBanner() {
+      const offlineBanner = document.getElementById('offlineBanner');
+      if (offlineBanner) {
+        const isOffline = !navigator.onLine;
+        offlineBanner.classList.toggle('hidden', !isOffline);
+        if (isOffline) {
+          offlineBanner.classList.add('enhanced');
+        }
+      }
+    }
+
+    const dismissBtn = document.getElementById('offlineBannerDismiss');
+    if (dismissBtn) {
+      dismissBtn.addEventListener('click', () => {
+        const banner = document.getElementById('offlineBanner');
+        if (banner) banner.classList.add('hidden');
+      });
+    }
+
+    // Initial check
+    updateHeaderBanner();
+  }
+
+  // ── Enhanced Voice Search: "Konuşarak Öğren" Mode ───────────────────────────
+  let speakLearnMode = false;
+  let speakLearnInterval = null;
+
+  function setupEnhancedVoiceSearch() {
+    const voiceSearchBtn = document.getElementById('voiceSearchBtn');
+    const voiceSearchLabel = document.getElementById('voiceSearchLabel');
+
+    if (!voiceSearchBtn) return;
+
+    // Add long press for "Konuşarak Öğren" mode
+    let pressTimer = null;
+
+    voiceSearchBtn.addEventListener('mousedown', (e) => {
+      pressTimer = setTimeout(() => {
+        activateSpeakLearnMode();
+      }, 800); // 800ms long press
+    });
+
+    voiceSearchBtn.addEventListener('mouseup', () => {
+      clearTimeout(pressTimer);
+    });
+
+    voiceSearchBtn.addEventListener('mouseleave', () => {
+      clearTimeout(pressTimer);
+    });
+
+    voiceSearchBtn.addEventListener('touchstart', (e) => {
+      pressTimer = setTimeout(() => {
+        activateSpeakLearnMode();
+      }, 800);
+    });
+
+    voiceSearchBtn.addEventListener('touchend', () => {
+      clearTimeout(pressTimer);
+    });
+  }
+
+  function activateSpeakLearnMode() {
+    if (speakLearnMode) return;
+
+    speakLearnMode = true;
+    const voiceSearchBtn = document.getElementById('voiceSearchBtn');
+    const voiceSearchLabel = document.getElementById('voiceSearchLabel');
+
+    if (voiceSearchBtn) {
+      voiceSearchBtn.classList.add('voice-search-active');
+      voiceSearchBtn.setAttribute('aria-pressed', 'true');
+    }
+    if (voiceSearchLabel) voiceSearchLabel.textContent = 'Konuşarak Öğren...';
+
+    showToast('Konuşarak Öğren modu aktif. Kelimeler söylendiğinde otomatik çevrilir.', 'ph-bold ph-microphone text-primary-500');
+
+    // Start continuous recognition
+    startContinuousRecognition();
+  }
+
+  function deactivateSpeakLearnMode() {
+    if (!speakLearnMode) return;
+
+    speakLearnMode = false;
+    const voiceSearchBtn = document.getElementById('voiceSearchBtn');
+    const voiceSearchLabel = document.getElementById('voiceSearchLabel');
+
+    if (voiceSearchBtn) {
+      voiceSearchBtn.classList.remove('voice-search-active');
+      voiceSearchBtn.setAttribute('aria-pressed', 'false');
+    }
+    if (voiceSearchLabel) voiceSearchLabel.textContent = 'Sesle Ara';
+
+    stopContinuousRecognition();
+    showToast('Normal arama moduna dönüldü.', 'ph-bold ph-microphone text-primary-500');
+  }
+
+  let continuousRecognition = null;
+
+  function startContinuousRecognition() {
+    const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRec) return;
+
+    continuousRecognition = new SpeechRec();
+    continuousRecognition.lang = sourceLang === 'nl' ? 'nl-NL' : 'tr-TR';
+    continuousRecognition.continuous = true;
+    continuousRecognition.interimResults = true;
+    continuousRecognition.maxAlternatives = 1;
+
+    continuousRecognition.onresult = (event) => {
+      let finalTranscript = '';
+      let interimTranscript = '';
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript;
+        } else {
+          interimTranscript += transcript;
+        }
+      }
+
+      if (finalTranscript && finalTranscript.trim()) {
+        const word = finalTranscript.trim();
+        searchInput.value = word;
+        if (searchBtn) searchBtn.disabled = false;
+        if (clearBtn) clearBtn.classList.remove('hidden');
+        handleSearch();
+
+        // Auto-speak the result
+        setTimeout(() => {
+          const speakBtn = document.querySelector('.speak-btn[data-rate="1.0"]');
+          if (speakBtn) speakBtn.click();
+        }, 500);
+      }
+
+      if (interimTranscript) {
+        // Show interim results in search input
+        searchInput.value = interimTranscript;
+      }
+    };
+
+    continuousRecognition.onerror = (event) => {
+      console.warn('Continuous recognition error:', event.error);
+      if (event.error === 'not-allowed') {
+        deactivateSpeakLearnMode();
+        showToast('Mikrofon erişim izni verilmedi.', 'ph-bold ph-warning-circle text-amber-500');
+      }
+    };
+
+    continuousRecognition.onend = () => {
+      if (speakLearnMode) {
+        // Restart automatically
+        setTimeout(() => {
+          if (speakLearnMode) startContinuousRecognition();
+        }, 500);
+      }
+    };
+
+    continuousRecognition.start();
+  }
+
+  function stopContinuousRecognition() {
+    if (continuousRecognition) {
+      continuousRecognition.stop();
+      continuousRecognition = null;
+    }
+  }
+
+  // ── Service Worker Registration with Update Prompt ─────────────────────────
+  function setupServiceWorker() {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js?v=29').then(reg => {
+        reg.update();
+
+        // Check for updates
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          if (newWorker) {
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                showUpdateAvailable();
+              }
+            });
+          });
+        });
+
+        // Check for updates every hour
+        setInterval(() => reg.update(), 3600000);
+      }).catch(err => {
+        console.warn('SW registration failed:', err);
+      });
+    }
+
+    function showUpdateAvailable() {
+      showToast('Yeni sürüm mevcut! Sayfayı yenileyin.', 'ph-bold ph-arrow-clockwise text-primary-500');
+    }
+
+  // Initialize all new features
+  setupOnboarding();
+  setupInstallPrompt();
+  setupOfflineSupport();
+  setupEnhancedVoiceSearch();
+  setupServiceWorker();
+
   // Run initial setup safely
   try {
     init();

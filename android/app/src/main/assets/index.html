@@ -71,7 +71,7 @@
   <!-- Immediate Modal Handlers & Bottom Tab Controller (Fail-Safe) -->
   <script>
     window.setActiveNavTab = function(activeTab) {
-      var tabs = ['dictionary', 'practice', 'favorites', 'settings'];
+      var tabs = ['dictionary', 'practice', 'games', 'favorites', 'settings'];
       tabs.forEach(function(t) {
         var cap = t.charAt(0).toUpperCase() + t.slice(1);
         var btn = document.getElementById('navTab' + cap);
@@ -108,6 +108,7 @@
       var options = opts || {};
       var vd = document.getElementById('viewDictionary');
       var vp = document.getElementById('viewPractice');
+      var vg = document.getElementById('viewGames');
       var vf = document.getElementById('viewFavorites');
       var vs = document.getElementById('viewSettings');
       var qp = document.getElementById('quickPeekSheet');
@@ -116,7 +117,7 @@
       if (qp && window.closeQuickPeek) window.closeQuickPeek({ restoreFocus: false });
       if (hm) hm.classList.add('hidden');
 
-      var views = { dictionary: vd, practice: vp, favorites: vf, settings: vs };
+      var views = { dictionary: vd, practice: vp, games: vg, favorites: vf, settings: vs };
       Object.keys(views).forEach(function(k) {
         if (views[k]) views[k].classList.toggle('hidden', k !== tabName);
       });
@@ -140,6 +141,7 @@
         var labels = {
           dictionary: 'Sözlük',
           practice: 'Kelime Pratiği',
+          games: 'Kelime Oyunları',
           favorites: 'Favori Kelimelerim',
           settings: 'Ayarlar'
         };
@@ -150,6 +152,10 @@
         var deck = deckType || 'auto';
         if (typeof window.initFlashcards === 'function') {
           window.initFlashcards(deck);
+        }
+      } else if (tabName === 'games') {
+        if (window.GamesEngine && typeof window.GamesEngine.onTabOpen === 'function') {
+          window.GamesEngine.onTabOpen();
         }
       } else if (tabName === 'favorites') {
         if (typeof window.renderFavorites === 'function') {
@@ -1196,7 +1202,280 @@
     </div>
 
   </div>
-  <!-- End of View 4: viewSettings -->  </main>
+    <!-- View 5: Oyunlar (Games View) -->
+  <div id="viewGames" class="tab-view hidden w-full flex flex-col pb-24" data-tab="games" role="tabpanel" aria-labelledby="navTabGames">
+    
+    <!-- Games Hub View (Oyun Seçim Menüsü & İstatistikler) -->
+    <div id="gamesHubView" class="w-full flex flex-col">
+      <!-- Header -->
+      <div class="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/50">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-50 to-orange-100 dark:from-amber-950/60 dark:to-orange-950/40 border border-amber-200/80 dark:border-amber-800/60 text-amber-500 flex items-center justify-center shadow-xs">
+            <i class="ph-bold ph-game-controller text-2xl"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-slate-800 dark:text-slate-100 text-base leading-tight">Kelime Oyunları</h3>
+            <span class="text-xs text-slate-500 dark:text-slate-400">Eğlenerek öğren, skor topla, rozet kazan</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats Bar -->
+      <div class="p-4 grid grid-cols-3 gap-2.5 bg-slate-50/40 dark:bg-slate-900/40 border-b border-slate-100 dark:border-slate-800/60">
+        <div class="bg-white dark:bg-slate-800/80 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-2xs flex flex-col items-center text-center">
+          <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Toplam Puan</span>
+          <span id="gamesTotalScore" class="text-lg font-black text-amber-500 mt-0.5">0</span>
+        </div>
+        <div class="bg-white dark:bg-slate-800/80 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-2xs flex flex-col items-center text-center">
+          <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Günlük Seri</span>
+          <span id="gamesStreak" class="text-lg font-black text-orange-500 mt-0.5">0 Gün</span>
+        </div>
+        <div class="bg-white dark:bg-slate-800/80 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-2xs flex flex-col items-center text-center">
+          <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">En İyi Eşleme</span>
+          <span id="gamesMatchHigh" class="text-lg font-black text-primary-600 dark:text-primary-400 mt-0.5">0</span>
+        </div>
+      </div>
+
+      <!-- Games Grid -->
+      <div class="p-4 space-y-3.5 flex-1 overflow-y-auto">
+        <!-- Game 1: Hızlı Eşleştirme -->
+        <button type="button" id="gameMatchBtn" class="game-card w-full flex items-center gap-4 p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm hover:border-red-300 dark:hover:border-red-700 transition-all text-left group">
+          <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-red-50 to-rose-100 dark:from-red-950/60 dark:to-rose-950/40 border border-red-200/80 dark:border-red-900/50 text-red-500 flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+            <i class="ph-bold ph-lightning text-2xl"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between">
+              <h4 class="font-bold text-slate-800 dark:text-slate-100 text-base">Hızlı Eşleştirme</h4>
+              <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50">30 sn</span>
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Felemenkçe ↔ Türkçe hızlıca eşleştir. Süre bitmeden rekor kır!</p>
+            <div class="flex items-center gap-2 mt-2.5">
+              <span class="text-[11px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300 font-semibold">Zorluk: ★★☆</span>
+              <span class="text-[11px] px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 font-semibold">10 + Seri×2 Puan</span>
+            </div>
+          </div>
+          <i class="ph-bold ph-caret-right text-slate-300 dark:text-slate-600 group-hover:text-primary-500 group-hover:translate-x-0.5 transition-all text-xl shrink-0"></i>
+        </button>
+
+        <!-- Game 2: Boşluk Doldur -->
+        <button type="button" id="gameFillBtn" class="game-card w-full flex items-center gap-4 p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm hover:border-blue-300 dark:hover:border-blue-700 transition-all text-left group">
+          <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-50 to-sky-100 dark:from-blue-950/60 dark:to-sky-950/40 border border-blue-200/80 dark:border-blue-900/50 text-blue-500 flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+            <i class="ph-bold ph-text-box text-2xl"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between">
+              <h4 class="font-bold text-slate-800 dark:text-slate-100 text-base">Boşluk Doldur</h4>
+              <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900/50">10 Soru</span>
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Cümle bağlamından doğru kelimeyi çıkar. Anlam bütünlüğünü yakala!</p>
+            <div class="flex items-center gap-2 mt-2.5">
+              <span class="text-[11px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300 font-semibold">Zorluk: ★★★</span>
+              <span class="text-[11px] px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-semibold">15 + Seri×3 Puan</span>
+            </div>
+          </div>
+          <i class="ph-bold ph-caret-right text-slate-300 dark:text-slate-600 group-hover:text-primary-500 group-hover:translate-x-0.5 transition-all text-xl shrink-0"></i>
+        </button>
+
+        <!-- Game 3: Kelime Avı -->
+        <button type="button" id="gameHuntBtn" class="game-card w-full flex items-center gap-4 p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm hover:border-emerald-300 dark:hover:border-emerald-700 transition-all text-left group">
+          <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-100 dark:from-emerald-950/60 dark:to-teal-950/40 border border-emerald-200/80 dark:border-emerald-900/50 text-emerald-500 flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+            <i class="ph-bold ph-magnifying-glass text-2xl"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between">
+              <h4 class="font-bold text-slate-800 dark:text-slate-100 text-base">Kelime Avı</h4>
+              <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/50">90 sn</span>
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">7 harften Felemenkçe kelimeler türet. Harf uzunluğuna göre puan topla!</p>
+            <div class="flex items-center gap-2 mt-2.5">
+              <span class="text-[11px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300 font-semibold">Zorluk: ★★★★</span>
+              <span class="text-[11px] px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-semibold">Harf×10 Puan</span>
+            </div>
+          </div>
+          <i class="ph-bold ph-caret-right text-slate-300 dark:text-slate-600 group-hover:text-primary-500 group-hover:translate-x-0.5 transition-all text-xl shrink-0"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Game 1 Screen: Hızlı Eşleştirme (Match) -->
+    <div id="gameMatchView" class="hidden w-full flex flex-col">
+      <div class="p-3.5 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between">
+        <button id="matchBackBtn" type="button" class="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 px-2.5 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+          <i class="ph-bold ph-arrow-left text-sm"></i>
+          <span>Oyunlar</span>
+        </button>
+        <div class="flex items-center gap-2.5">
+          <div class="flex items-center gap-1 text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/60 px-2.5 py-1 rounded-full border border-red-200 dark:border-red-900/60">
+            <i class="ph-bold ph-timer text-sm"></i>
+            <span id="matchTimerText">30s</span>
+          </div>
+          <div class="flex items-center gap-1 text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 px-2.5 py-1 rounded-full border border-amber-200 dark:border-amber-900/60">
+            <span>Puan:</span>
+            <span id="matchScoreText">0</span>
+          </div>
+          <div class="text-xs font-bold text-slate-500 dark:text-slate-400">
+            <span id="matchStreakText" class="text-orange-500">0x</span>
+          </div>
+        </div>
+      </div>
+      <div class="w-full h-1.5 bg-slate-100 dark:bg-slate-800">
+        <div id="matchProgressBar" class="h-full bg-primary-600 transition-all duration-300" style="width: 100%"></div>
+      </div>
+      <div class="p-4">
+        <p class="text-xs text-slate-500 dark:text-slate-400 text-center mb-3">Felemenkçe kelime ve Türkçe anlamını eşleştirin:</p>
+        <div id="matchTilesGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+          <!-- 12 Tiles injected by MatchGame -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Game 2 Screen: Boşluk Doldur (Fill) -->
+    <div id="gameFillView" class="hidden w-full flex flex-col">
+      <div class="p-3.5 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between">
+        <button id="fillBackBtn" type="button" class="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 px-2.5 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+          <i class="ph-bold ph-arrow-left text-sm"></i>
+          <span>Oyunlar</span>
+        </button>
+        <div class="flex items-center gap-2.5">
+          <span id="fillQuestionCount" class="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-2.5 py-1 rounded-full border border-blue-200 dark:border-blue-900/60">1 / 10</span>
+          <div class="flex items-center gap-1 text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 px-2.5 py-1 rounded-full border border-amber-200 dark:border-amber-900/60">
+            <span>Puan:</span>
+            <span id="fillScoreText">0</span>
+          </div>
+          <div class="text-xs font-bold text-slate-500 dark:text-slate-400">
+            <span id="fillStreakText" class="text-orange-500">0x</span>
+          </div>
+        </div>
+      </div>
+      <div class="w-full h-1.5 bg-slate-100 dark:bg-slate-800">
+        <div id="fillProgressBar" class="h-full bg-blue-600 transition-all duration-300" style="width: 10%"></div>
+      </div>
+      <div class="p-4 space-y-4">
+        <!-- Question Card -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-800 p-5 shadow-xs flex flex-col gap-3">
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex-1">
+              <span class="text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Cümleyi Tamamlayın</span>
+              <p id="fillSentenceText" class="text-base sm:text-lg font-bold text-slate-800 dark:text-slate-100 leading-relaxed mt-1">...</p>
+            </div>
+            <button id="fillSpeakBtn" type="button" class="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300 hover:text-primary-600 flex items-center justify-center shrink-0 transition-colors" aria-label="Cümleyi Dinle">
+              <i class="ph-bold ph-speaker-high text-lg"></i>
+            </button>
+          </div>
+          <div class="pt-3 border-t border-slate-100 dark:border-slate-800/80">
+            <span class="text-[11px] font-medium text-slate-400">Türkçe Çevirisi:</span>
+            <p id="fillTranslationText" class="text-xs text-slate-600 dark:text-slate-300 italic mt-0.5">...</p>
+          </div>
+        </div>
+
+        <!-- 4 Options -->
+        <div id="fillOptionsGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <!-- Injected dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Game 3 Screen: Kelime Avı (Hunt) -->
+    <div id="gameHuntView" class="hidden w-full flex flex-col">
+      <div class="p-3.5 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between">
+        <button id="huntBackBtn" type="button" class="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 px-2.5 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+          <i class="ph-bold ph-arrow-left text-sm"></i>
+          <span>Oyunlar</span>
+        </button>
+        <div class="flex items-center gap-2.5">
+          <div class="flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-900/60">
+            <i class="ph-bold ph-timer text-sm"></i>
+            <span id="huntTimerText">90s</span>
+          </div>
+          <div class="flex items-center gap-1 text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 px-2.5 py-1 rounded-full border border-amber-200 dark:border-amber-900/60">
+            <span>Puan:</span>
+            <span id="huntScoreText">0</span>
+          </div>
+          <span id="huntFoundCountText" class="text-xs font-bold text-slate-500 dark:text-slate-400">0 Kelime</span>
+        </div>
+      </div>
+      <div class="w-full h-1.5 bg-slate-100 dark:bg-slate-800">
+        <div id="huntProgressBar" class="h-full bg-emerald-500 transition-all duration-300" style="width: 100%"></div>
+      </div>
+      <div class="p-4 space-y-4">
+        <!-- Current Word Box -->
+        <div id="huntCurrentWordBox" class="bg-white dark:bg-slate-800 rounded-2xl border-2 border-slate-200 dark:border-slate-700 p-4 flex items-center justify-between shadow-xs transition-all">
+          <div class="flex-1 text-center">
+            <span id="huntCurrentWord" class="text-2xl font-black tracking-widest text-slate-800 dark:text-slate-100 select-none">...</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button id="huntClearBtn" type="button" class="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300 hover:text-red-500 flex items-center justify-center transition-colors" title="Temizle">
+              <i class="ph-bold ph-x text-sm"></i>
+            </button>
+            <button id="huntBackspaceBtn" type="button" class="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300 hover:text-amber-500 flex items-center justify-center transition-colors" title="Geri Al">
+              <i class="ph-bold ph-backspace text-sm"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- 7 Letter Tiles -->
+        <div class="flex flex-col items-center gap-3">
+          <div id="huntLetterTiles" class="flex flex-wrap items-center justify-center gap-2 max-w-xs">
+            <!-- 7 Letters injected dynamically -->
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="huntShuffleBtn" type="button" class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-700 transition-all flex items-center gap-1.5 shadow-2xs">
+              <i class="ph-bold ph-shuffle text-sm"></i>
+              <span>Karıştır</span>
+            </button>
+            <button id="huntSubmitBtn" type="button" class="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 active:scale-95">
+              <i class="ph-bold ph-check text-sm"></i>
+              <span>Kelimeyi Gönder</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Found Words List -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 shadow-xs">
+          <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">Bulunan Kelimeler</span>
+          <div id="huntFoundList" class="flex flex-wrap gap-1.5 min-h-[32px]">
+            <span class="text-xs text-slate-400 italic">Henüz kelime bulunmadı.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Shared Game Result Modal -->
+    <div id="gameResultModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-labelledby="gameResultTitle">
+      <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center border border-slate-100 dark:border-slate-800 animate-scale-in">
+        <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-50 to-orange-100 dark:from-amber-950/60 dark:to-orange-950/40 text-amber-500 flex items-center justify-center mx-auto mb-3 shadow-inner">
+          <i class="ph-bold ph-trophy text-3xl"></i>
+        </div>
+        <div id="gameResultBadge" class="hidden inline-block px-3 py-1 rounded-full text-xs font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-300 mb-2">
+          🎉 YENİ REKOR!
+        </div>
+        <h3 id="gameResultTitle" class="text-xl font-bold text-slate-800 dark:text-slate-100">Tebrikler!</h3>
+        <p id="gameResultSubtitle" class="text-xs text-slate-500 dark:text-slate-400 mt-1">Oyun tamamlandı.</p>
+        
+        <div class="my-4 py-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl">
+          <span class="text-xs font-semibold text-slate-400 block">Kazanılan Puan</span>
+          <span id="gameResultScore" class="text-3xl font-black text-amber-500">0</span>
+        </div>
+
+        <div id="gameResultStats" class="space-y-1 mb-5">
+          <!-- Details injected dynamically -->
+        </div>
+
+        <div class="flex items-center gap-2.5">
+          <button id="gameResultCloseBtn" type="button" class="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+            Menüye Dön
+          </button>
+          <button id="gameResultRetryBtn" type="button" class="flex-1 py-2.5 px-4 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs transition-all shadow-sm active:scale-95">
+            Tekrar Oyna
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <!-- End of View 5: viewGames -->
+
+  </main>
 
   <!-- History Drawer Modal -->
   <div id="historyModal" class="hidden fixed inset-0 z-50 flex flex-col justify-end md:justify-center items-center bg-slate-900/40 backdrop-blur-xs p-0 md:p-4" role="dialog" aria-modal="true" aria-labelledby="historyModalTitle">
@@ -1316,16 +1595,16 @@
     </div>
   </div>
 
-  <!-- Modern Bottom Navigation Bar (4 Sekmeli Native Mimari) -->
-  <nav id="bottomNavBar" class="fixed bottom-0 inset-x-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-200/80 dark:border-slate-800/80 shadow-lg px-2 sm:px-4 transition-transform" aria-label="Ana Gezinme Çubuğu">
-    <div class="max-w-md mx-auto grid grid-cols-4 gap-1" role="tablist" aria-label="Ana sekmeler">
+  <!-- Modern Bottom Navigation Bar (5 Sekmeli Native Mimari) -->
+  <nav id="bottomNavBar" class="fixed bottom-0 inset-x-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-200/80 dark:border-slate-800/80 shadow-lg px-1 sm:px-4 transition-transform" aria-label="Ana Gezinme Çubuğu">
+    <div class="max-w-md mx-auto grid grid-cols-5 gap-1" role="tablist" aria-label="Ana sekmeler">
       
       <!-- Tab 1: Sözlük (Arama) -->
       <button id="navTabDictionary" type="button" role="tab" aria-selected="true" aria-controls="viewDictionary" onclick="window.switchMainTab('dictionary')" class="nav-tab-btn active flex flex-col items-center justify-center py-1 min-h-[44px] rounded-xl text-primary-600 dark:text-primary-400 transition-all group" aria-label="Sözlük ve Arama Sekmesi">
         <div class="nav-tab-icon-wrapper flex items-center justify-center w-8 h-7 rounded-full bg-primary-50 dark:bg-primary-950/60 transition-colors">
           <i class="ph-bold ph-magnifying-glass text-xl"></i>
         </div>
-        <span class="text-xs font-bold mt-0.5 tracking-tight">Sözlük</span>
+        <span class="text-[11px] sm:text-xs font-bold mt-0.5 tracking-tight">Sözlük</span>
       </button>
 
       <!-- Tab 2: Pratik (Flashcards & SRS) -->
@@ -1333,23 +1612,31 @@
         <div class="nav-tab-icon-wrapper flex items-center justify-center w-8 h-7 rounded-full transition-colors">
           <i class="ph-bold ph-cards text-xl"></i>
         </div>
-        <span class="text-xs font-semibold mt-0.5 tracking-tight">Pratik</span>
+        <span class="text-[11px] sm:text-xs font-semibold mt-0.5 tracking-tight">Pratik</span>
       </button>
 
-      <!-- Tab 3: Kelimelerim (Favoriler) -->
+      <!-- Tab 3: Oyunlar (Kelime Oyunları) -->
+      <button id="navTabGames" type="button" role="tab" aria-selected="false" aria-controls="viewGames" onclick="window.switchMainTab('games')" class="nav-tab-btn flex flex-col items-center justify-center py-1 min-h-[44px] rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-all group" aria-label="Oyunlar Sekmesi">
+        <div class="nav-tab-icon-wrapper flex items-center justify-center w-8 h-7 rounded-full transition-colors">
+          <i class="ph-bold ph-game-controller text-xl"></i>
+        </div>
+        <span class="text-[11px] sm:text-xs font-semibold mt-0.5 tracking-tight">Oyunlar</span>
+      </button>
+
+      <!-- Tab 4: Kelimelerim (Favoriler) -->
       <button id="navTabFavorites" type="button" role="tab" aria-selected="false" aria-controls="viewFavorites" onclick="window.switchMainTab('favorites')" class="nav-tab-btn flex flex-col items-center justify-center py-1 min-h-[44px] rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-all group relative" aria-label="Favori Kelimeler Sekmesi">
         <div class="nav-tab-icon-wrapper flex items-center justify-center w-8 h-7 rounded-full transition-colors">
           <i class="ph-bold ph-star text-xl"></i>
         </div>
-        <span class="text-xs font-semibold mt-0.5 tracking-tight">Kelimelerim</span>
+        <span class="text-[11px] sm:text-xs font-semibold mt-0.5 tracking-tight">Kelimelerim</span>
       </button>
 
-      <!-- Tab 4: Ayarlar & Yönetim -->
+      <!-- Tab 5: Ayarlar & Yönetim -->
       <button id="navTabSettings" type="button" role="tab" aria-selected="false" aria-controls="viewSettings" onclick="window.switchMainTab('settings')" class="nav-tab-btn flex flex-col items-center justify-center py-1 min-h-[44px] rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-all group" aria-label="Ayarlar ve Geçmiş Sekmesi">
         <div class="nav-tab-icon-wrapper flex items-center justify-center w-8 h-7 rounded-full transition-colors">
           <i class="ph-bold ph-gear-six text-xl"></i>
         </div>
-        <span class="text-xs font-semibold mt-0.5 tracking-tight">Ayarlar</span>
+        <span class="text-[11px] sm:text-xs font-semibold mt-0.5 tracking-tight">Ayarlar</span>
       </button>
 
     </div>
@@ -1366,6 +1653,7 @@
   <script src="js/cache.js?v=5.0"></script>
   <script src="js/aiEngine.js?v=5.0"></script>
   <script src="js/dictionary_seeds.js?v=5.0"></script>
+  <script src="js/games.js?v=5.0"></script>
   <script src="js/a11y.js?v=5.0"></script>
   <script src="js/app.js?v=5.0"></script>
   <script>

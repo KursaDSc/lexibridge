@@ -800,3 +800,62 @@ html.dark .offline-indicator {
     display: none !important;
   }
 }
+
+
+/* ── Kelime Oyunları (Games View) ─────────────────────────────────────────── */
+.game-card {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  outline: none;
+}
+
+.game-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.06), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+}
+
+.game-card:focus-visible {
+  outline: 2px solid var(--brand, #0284c7);
+  outline-offset: 2px;
+}
+
+.match-tile {
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.match-tile.selected {
+  transform: scale(1.02);
+  box-shadow: 0 0 0 2px var(--brand, #0284c7);
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+.animate-shake {
+  animation: shake 0.4s ease-in-out;
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.85); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-card,
+  .match-tile,
+  .fill-opt-btn,
+  .animate-shake,
+  .animate-scale-in {
+    animation: none !important;
+    transition: none !important;
+  }
+}
