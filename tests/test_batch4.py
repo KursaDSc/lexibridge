@@ -39,7 +39,7 @@ class TestBatch4StoreReadiness(unittest.TestCase):
             cfg = json.load(f)
 
         self.assertEqual(cfg.get("appId"), "com.visualdutch.lexibridge")
-        self.assertEqual(cfg.get("appName"), "LexiBridge")
+        self.assertEqual(cfg.get("appName"), "LingoMate")
 
     def test_package_json_scripts(self):
         """package.json must declare sync-assets, test, and android build scripts."""
@@ -59,7 +59,7 @@ class TestBatch4StoreReadiness(unittest.TestCase):
             content = f.read()
 
         self.assertIn("bundleRelease", content, "Missing bundleRelease task for Google Play AAB")
-        self.assertIn("LexiBridge.aab", content, "Missing LexiBridge.aab artifact handling")
+        self.assertIn("LingoMate.aab", content, "Missing LingoMate.aab artifact handling")
 
 if __name__ == "__main__":
     unittest.main()

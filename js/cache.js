@@ -1,5 +1,5 @@
 /**
- * LexiBridge Smart Query Cache (Offline-First Storage)
+ * LingoMate Smart Query Cache (Offline-First Storage)
  * Uses IndexedDB for rich persistent offline caching with transparent localStorage fallback.
  */
 

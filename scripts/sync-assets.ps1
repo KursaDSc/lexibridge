@@ -1,5 +1,5 @@
 # ==============================================================================
-# LexiBridge Asset Synchronization Script (Windows PowerShell)
+# LingoMate Asset Synchronization Script (Windows PowerShell)
 # Synchronizes web root assets with Android WebView assets to eliminate source drift
 # ==============================================================================
 
@@ -8,7 +8,7 @@ $ErrorActionPreference = "Stop"
 $RootDir = Resolve-Path "$PSScriptRoot\.."
 $TargetAssetsDir = Join-Path $RootDir "android\app\src\main\assets"
 
-Write-Host ">>> Synchronizing LexiBridge Assets..." -ForegroundColor Cyan
+Write-Host ">>> Synchronizing LingoMate Assets..." -ForegroundColor Cyan
 Write-Host "    Source: $RootDir"
 Write-Host "    Target: $TargetAssetsDir"
 

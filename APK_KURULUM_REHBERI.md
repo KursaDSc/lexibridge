@@ -1,4 +1,4 @@
-# 📱 LexiBridge Android APK Derleme ve Yükleme Rehberi
+# 📱 LingoMate Android APK Derleme ve Yükleme Rehberi
 
 Bu proje, **GitHub Actions** bulut derleme motoru ile otomatik olarak **Android APK** dosyası üretecek şekilde hazırlandı.
 
@@ -19,7 +19,7 @@ Bu klasörde PowerShell veya Terminal açıp şu 3 satırı çalıştırın (ken
 
 ```bash
 git add .
-git commit -m "feat: LexiBridge Android APK ve mobil sozluk"
+git commit -m "feat: LingoMate Android APK ve mobil sozluk"
 git branch -M main
 git remote add origin https://github.com/KULLANICI_ADINIZ/lexibridge.git
 git push -u origin main
@@ -29,9 +29,9 @@ git push -u origin main
 
 ### 3. Adım: APK Dosyasını Telefonunuza İndirin
 1. GitHub reponuzda üst menüdeki **"Actions"** sekmesine tıklayın.
-2. **"Build LexiBridge Android APK"** işinin otomatik başladığını göreceksiniz (~1-2 dakika sürer).
+2. **"Build LingoMate Android APK"** işinin otomatik başladığını göreceksiniz (~1-2 dakika sürer).
 3. Yeşil tik (Başarılı) olduğunda çalışan işe tıklayın.
-4. En alttaki **Artifacts** bölümünde **`LexiBridge-Android-APK`** dosyasını göreceksiniz.
+4. En alttaki **Artifacts** bölümünde **`LingoMate-Android-APK`** dosyasını göreceksiniz.
 5. İndirip telefonunuza gönderin ve üzerine dokunarak kurun!
 
 ---

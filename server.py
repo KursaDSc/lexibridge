@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-LexiBridge Termux & Local Server with Reverse Proxy to Ollama
+LingoMate Termux & Local Server with Reverse Proxy to Ollama
 - Serves static files on port 8080
 - Proxies /ollama/* requests to http://127.0.0.1:11434/*
 - Full CORS & Private Network Access support for browser compatibility
@@ -46,7 +46,7 @@ def perform_shutdown():
     if shutdown_triggered:
         return
     shutdown_triggered = True
-    print("\n[OK] LexiBridge sunucusu guvenle kapatildi (Ollama arka planda calismaya devam ediyor).")
+    print("\n[OK] LingoMate sunucusu guvenle kapatildi (Ollama arka planda calismaya devam ediyor).")
     os._exit(0)
 
 class LexiHandler(http.server.SimpleHTTPRequestHandler):
@@ -147,7 +147,7 @@ def main():
     # Allow port reuse immediately
     socketserver.TCPServer.allow_reuse_address = True
     with socketserver.TCPServer(("127.0.0.1", port), LexiHandler) as httpd:
-        print(f"[OK] LexiBridge Sunucu aktif: http://127.0.0.1:{port}")
+        print(f"[OK] LingoMate Sunucu aktif: http://127.0.0.1:{port}")
         print(f"[OK] Ollama Yerel Proxy aktif: http://127.0.0.1:{port}/ollama/")
         print("[BILGI] Durdurmak icin Termux'ta CTRL + C tuslarina basabilirsiniz.")
         try:

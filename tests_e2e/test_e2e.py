@@ -94,7 +94,7 @@ class E2E(unittest.TestCase):
         self.open(page)
         self.assertEqual(page.errors, [])
         header = page.locator("header")
-        self.assertIn("LexiBridge", header.inner_text())
+        self.assertIn("LingoMate", header.inner_text())
         self.assertFalse(page.locator("#headerProviderBadge").is_visible())
         self.assertNotIn("Google Gemini", header.inner_text())
         self.assertEqual(self.visible_views(page), ["viewDictionary"])

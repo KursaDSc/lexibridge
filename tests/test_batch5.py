@@ -15,9 +15,9 @@ class TestBatch5UserExperienceAndDesign(unittest.TestCase):
             cls.app_js_content = f.read()
 
     def test_header_uses_flagship_brand_icon(self):
-        """Header must feature the official 3D LexiBridge brand icon (icon-192.png)."""
+        """Header must feature the official 3D LingoMate brand icon (icon-192.png)."""
         self.assertIn('src="icon-192.png', self.html_content, "Header should display icon-192.png")
-        self.assertIn('alt="LexiBridge App Icon"', self.html_content)
+        self.assertIn('alt="LingoMate App Icon"', self.html_content)
 
     def test_empty_state_situational_practice_hub(self):
         """Empty state must feature interactive situational practice categories and the grammar pro-tip."""

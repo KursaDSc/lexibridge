@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lexibridge-cache-v25';
+const CACHE_NAME = 'lexibridge-cache-v28';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -9,6 +9,7 @@ const ASSETS_TO_CACHE = [
   './js/cache.js',
   './js/aiEngine.js',
   './js/dictionary_seeds.js',
+  './js/a11y.js',
   './js/app.js',
   './manifest.json',
   './app_icon.ico',

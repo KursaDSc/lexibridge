@@ -7,9 +7,9 @@
     "sync-assets": "powershell -ExecutionPolicy Bypass -File scripts/sync-assets.ps1",
     "sync-assets:bash": "bash scripts/sync-assets.sh",
     "test": "python -m unittest discover tests",
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
-    "test:e2e:headed": "playwright test --headed",
+    "test:ux": "python tests/e2e/test_ux_playwright.py",
+    "test:ux:headed": "python tests/e2e/test_ux_playwright.py --headed",
+    "capture": "python tests/e2e/capture_screenshots.py",
     "build:android": "cd android && ./gradlew assembleRelease bundleRelease"
   },
   "keywords": [
@@ -20,13 +20,12 @@
     "gemini",
     "mobile"
   ],
-  "author": "LexiBridge Team",
+  "author": "LingoMate Team",
   "license": "MIT",
   "devDependencies": {
     "@capacitor/cli": "^6.0.0",
     "@capacitor/core": "^6.0.0",
     "@capacitor/android": "^6.0.0",
-    "@capacitor/ios": "^6.0.0",
-    "@playwright/test": "^1.44.0"
+    "@capacitor/ios": "^6.0.0"
   }
 }

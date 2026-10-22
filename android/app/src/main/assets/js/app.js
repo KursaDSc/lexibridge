@@ -1,5 +1,5 @@
 /**
- * LexiBridge Mobile Application Controller
+ * LingoMate Mobile Application Controller
  * Handles UI interactions, multi-provider configuration, search history, and speech synthesis.
  */
 
@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const headerProviderName = document.getElementById('headerProviderName');
 
   const settingsBtn = document.getElementById('settingsBtn');
-  const settingsModal = document.getElementById('settingsModal');
+  const viewSettings = document.getElementById('viewSettings');
   const closeSettingsBtn = document.getElementById('closeSettingsBtn');
   const saveSettingsBtn = document.getElementById('saveSettingsBtn');
   const saveStatusText = document.getElementById('saveStatusText');
@@ -191,6 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     seedChipsContainer.querySelectorAll('.seed-chip').forEach((chip) => {
       chip.addEventListener('click', () => {
+        if (navigator.vibrate) navigator.vibrate(10);
         const word = chip.dataset.word || chip.textContent.trim();
         searchInput.value = word;
         searchBtn.disabled = false;
@@ -206,7 +207,6 @@ document.addEventListener('DOMContentLoaded', () => {
   let activeProvider = 'google';
   let activeModel = 'gemini-flash-latest';
   let isQuickMode = false;
-  let isCompactView = localStorage.getItem('lexi_view_mode') === 'compact';
 
   // ── UI Enhancements Elements ─────────────────────────────────────────────
   const themeToggleBtn = document.getElementById('themeToggleBtn');
@@ -217,12 +217,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const toastIcon = document.getElementById('toastIcon');
   let toastTimeout = null;
 
-  // Sticky Mini Search Bar & Tabs State
+  // Sticky Mini Search Bar
   const stickySearchBar = document.getElementById('stickySearchBar');
   const stickySearchTrigger = document.getElementById('stickySearchTrigger');
   const stickySearchText = document.getElementById('stickySearchText');
   const stickyScrollTopBtn = document.getElementById('stickyScrollTopBtn');
-  let activeResultTab = 'all'; // 'all' | 'examples' | 'conjugation' | 'details'
+
+  // Accessibility state
+  let announce = null;         // screen reader live-region announcer
+  let historyTrap = null;      // focus trap for the history dialog
+  let flagTrap = null;         // focus trap for the AI-flag dialog
 
   function showToast(msg, iconClass = 'ph-bold ph-check-circle text-emerald-400') {
     if (!toastEl || !toastMessage) return;
@@ -402,12 +406,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function closeQuickPeek() {
+  function closeQuickPeek(opts) {
+    const options = opts || {};
     if (!quickPeekSheet) return;
     quickPeekSheet.classList.remove('is-visible');
     setTimeout(() => {
       quickPeekSheet.classList.add('hidden');
     }, 250);
+    // Focus is only restored when the sheet is dismissed on its own.
+    // When a view switch closes it, the view switcher owns focus policy.
+    if (options.restoreFocus !== false && searchInput) {
+      setTimeout(() => searchInput.focus(), 300);
+    }
   }
   window.openQuickPeek = openQuickPeek;
   window.closeQuickPeek = closeQuickPeek;
@@ -811,7 +821,7 @@ document.addEventListener('DOMContentLoaded', () => {
     currentDeckType = deckType;
     document.querySelectorAll('.fc-deck-chip').forEach((chip) => {
       const on = chip.dataset.deck === deckType;
-      chip.setAttribute('aria-pressed', String(on));
+      chip.setAttribute('aria-selected', String(on));
       chip.classList.toggle('bg-primary-600', on);
       chip.classList.toggle('text-white', on);
       chip.classList.toggle('border-primary-600', on);
@@ -1045,6 +1055,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const cardEl = document.getElementById('flashcardElement');
     if (cardEl) cardEl.addEventListener('click', toggleCardFlip);
 
+    const kbdLegend = document.getElementById('kbdLegend');
+    const kbdLegendClose = document.getElementById('kbdLegendClose');
+    if (kbdLegendClose) {
+      kbdLegendClose.addEventListener('click', () => kbdLegend.classList.add('hidden'));
+    }
+
     document.addEventListener('keydown', (e) => {
       if (window.__activeTab !== 'practice') return;
       const tag = (e.target && e.target.tagName) || '';
@@ -1058,6 +1074,11 @@ document.addEventListener('DOMContentLoaded', () => {
         handleCardRating(true);
       } else if (e.key === 'ArrowLeft' && flashcardDeck.length) {
         handleCardRating(false);
+      } else if (e.key === '?' || e.key === '/') {
+        e.preventDefault();
+        if (kbdLegend) kbdLegend.classList.toggle('hidden');
+      } else if (e.key === 'Escape') {
+        window.switchMainTab('dictionary');
       }
     });
 
@@ -1092,6 +1113,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!autocompleteDropdown) return;
     if (!query || query.length < 2 || typeof window.LEXI_DICTIONARY_SEEDS === 'undefined') {
       autocompleteDropdown.classList.add('hidden');
+      if (searchInput) searchInput.setAttribute('aria-expanded', 'false');
       return;
     }
 
@@ -1102,15 +1124,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (matches.length === 0) {
       autocompleteDropdown.classList.add('hidden');
+      if (searchInput) searchInput.setAttribute('aria-expanded', 'false');
       return;
     }
 
-    autocompleteDropdown.innerHTML = matches.map(s => `
-      <div class="autocomplete-item p-3 hover:bg-slate-50 dark:hover:bg-slate-800/80 cursor-pointer flex items-center justify-between text-xs transition-colors" data-word="${escapeHtml(s.nl)}">
+    autocompleteDropdown.innerHTML = matches.map((s, i) => `
+      <div id="ac-opt-${i}" role="option" aria-selected="false" class="autocomplete-item p-3 hover:bg-slate-50 dark:hover:bg-slate-800/80 cursor-pointer flex items-center justify-between text-xs transition-colors" data-word="${escapeHtml(s.nl)}">
         <div class="flex items-center gap-2">
           <span class="font-bold text-slate-800 dark:text-slate-100 text-sm">${escapeHtml(s.nl)}</span>
           ${s.article ? `<span class="px-2 py-0.5 rounded text-xs font-bold uppercase ${s.article === 'de' ? 'bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800' : 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'}">${escapeHtml(s.article)}</span>` : ''}
-          <span class="text-slate-400">➔</span>
+          <span class="text-slate-400" aria-hidden="true">➔</span>
           <span class="text-slate-600 dark:text-slate-300 font-medium">${escapeHtml(s.tr)}</span>
         </div>
         <span class="text-xs font-bold text-slate-400 px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded">${escapeHtml(s.cefr || 'A1')}</span>
@@ -1128,6 +1151,78 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     autocompleteDropdown.classList.remove('hidden');
+    if (searchInput) searchInput.setAttribute('aria-expanded', 'true');
+  }
+
+  // ── Accessibility Layer (keyboard navigation + screen reader semantics) ──
+  function setupAccessibility() {
+    if (typeof window.LexiA11y === 'undefined') {
+      console.warn('LexiA11y not loaded - keyboard navigation disabled');
+      return;
+    }
+
+    const A11y = window.LexiA11y;
+    announce = A11y.createAnnouncer();
+    window.lexiAnnounce = announce;
+
+    // 1. Bottom navigation: roving tabindex + arrow key navigation
+    const navContainer = document.querySelector('#bottomNavBar [role="tablist"]');
+    if (navContainer) {
+      A11y.initRovingTabIndex(navContainer, '[role="tab"]', {
+        autoActivate: true,
+        orientation: 'horizontal',
+        onActivate: (tab) => {
+          const map = {
+            navTabDictionary: 'dictionary',
+            navTabPractice: 'practice',
+            navTabFavorites: 'favorites',
+            navTabSettings: 'settings'
+          };
+          const name = map[tab.id];
+          if (name && window.switchMainTab) {
+            // Keep focus on the nav button: arrow navigation must not lose
+            // the user's place, so the search field is not focused here.
+            window.switchMainTab(name, undefined, { focusSearch: false });
+          }
+        }
+      });
+    }
+
+    // 2. Flashcard deck chips: roving tabindex + arrow key navigation
+    const deckContainer = document.querySelector('#viewPractice [role="tablist"]');
+    if (deckContainer) {
+      A11y.initRovingTabIndex(deckContainer, '.fc-deck-chip', {
+        autoActivate: true,
+        orientation: 'horizontal',
+        onActivate: (chip) => {
+          if (typeof window.initFlashcards === 'function' && chip.dataset.deck) {
+            window.initFlashcards(chip.dataset.deck);
+          }
+        }
+      });
+    }
+
+    // 3. Search autocomplete: combobox keyboard navigation
+    if (searchInput && autocompleteDropdown) {
+      A11y.initCombobox(searchInput, autocompleteDropdown, (el) => {
+        searchInput.value = el.dataset.word || '';
+        if (clearBtn) clearBtn.classList.remove('hidden');
+        if (searchBtn) searchBtn.disabled = false;
+        autocompleteDropdown.classList.add('hidden');
+        searchInput.setAttribute('aria-expanded', 'false');
+        handleSearch();
+      });
+    }
+
+    // 4. Focus traps for modal dialogs
+    historyTrap = A11y.createFocusTrap(historyModal);
+    flagTrap = A11y.createFocusTrap(document.getElementById('flagModal'));
+
+    if (historyBtn) {
+      historyBtn.addEventListener('click', () => {
+        if (historyTrap) historyTrap.activate();
+      });
+    }
   }
 
   // ── Init Settings ───────────────────────────────────────────────────────
@@ -1162,7 +1257,14 @@ document.addEventListener('DOMContentLoaded', () => {
     setupVoiceSearch();
     setupQuickPeek();
     setupFlashcardListeners();
+    setupAccessibility();
     if (window.setActiveNavTab) window.setActiveNavTab('dictionary');
+
+    // Focus search input on initial load (mobile + desktop)
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+      setTimeout(() => searchInput.focus(), 100);
+    }
 
     // Autocomplete on search input
     if (searchInput) {
@@ -1175,12 +1277,14 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('click', (e) => {
       if (autocompleteDropdown && !autocompleteDropdown.contains(e.target) && e.target !== searchInput) {
         autocompleteDropdown.classList.add('hidden');
+        if (searchInput) searchInput.setAttribute('aria-expanded', 'false');
       }
     });
 
     // Attach click events to situational practice topic chips in empty state
     document.querySelectorAll('.topic-chip').forEach((chip) => {
       chip.addEventListener('click', () => {
+        if (navigator.vibrate) navigator.vibrate(10);
         if (sourceLang !== 'nl') toggleLanguage();
         const word = chip.dataset.word || chip.textContent.trim();
         searchInput.value = word;
@@ -1371,14 +1475,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function updateProviderModalUI() {
     providerTabs.forEach((tab) => {
-      const pId = tab.dataset.provider;
-      if (pId === activeProvider) {
-        tab.classList.add('border-primary-500', 'bg-primary-50/70', 'text-primary-900');
-        tab.classList.remove('border-slate-200', 'bg-white', 'text-slate-700');
-      } else {
-        tab.classList.remove('border-primary-500', 'bg-primary-50/70', 'text-primary-900');
-        tab.classList.add('border-slate-200', 'bg-white', 'text-slate-700');
-      }
+      // Single source of truth: CSS owns the visual state via [data-active]
+      tab.dataset.active = tab.dataset.provider === activeProvider ? 'true' : 'false';
     });
 
     // Populate default preset models
@@ -1451,6 +1549,11 @@ document.addEventListener('DOMContentLoaded', () => {
     searchInput.disabled = state;
     searchBtn.disabled = state || !searchInput.value.trim();
 
+    // Screen readers: mark the results region as busy while analysing
+    if (resultsContainer) {
+      resultsContainer.setAttribute('aria-busy', state ? 'true' : 'false');
+    }
+
     if (state) {
       searchBtnText.textContent = 'Analiz Ediliyor...';
       searchBtnIcon.classList.add('hidden');
@@ -1461,6 +1564,7 @@ document.addEventListener('DOMContentLoaded', () => {
       errorBox.classList.add('hidden');
       resultsContainer.classList.add('hidden');
       skeletonLoader.classList.remove('hidden');
+      if (announce) announce('Kelime analiz ediliyor, lütfen bekleyin.');
     } else {
       searchBtnText.textContent = 'Sözlükte Ara';
       searchBtnIcon.classList.remove('hidden');
@@ -1474,6 +1578,7 @@ document.addEventListener('DOMContentLoaded', () => {
     errorMsg.textContent = msg;
     errorBox.classList.remove('hidden');
     skeletonLoader.classList.add('hidden');
+    if (announce) announce('Hata: ' + msg);
   }
 
   // ── Pronunciation Audio (Google TTS Native Audio + SpeechSynthesis Fallback) ──
@@ -1688,8 +1793,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (typeof window.switchMainTab === 'function') {
           window.switchMainTab('dictionary');
         } else {
-          const favModal = document.getElementById('favoritesModal');
-          if (favModal) favModal.classList.add('hidden');
+          const favView = document.getElementById('viewFavorites');
+          if (favView) favView.classList.add('hidden');
         }
         handleSearch();
       });
@@ -1716,7 +1821,7 @@ document.addEventListener('DOMContentLoaded', () => {
     container.innerHTML = chars
       .map(
         (c) => `
-      <button type="button" class="diacritic-chip px-2.5 py-1 min-h-[36px] min-w-[32px] text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-primary-50 dark:hover:bg-primary-950/40 hover:text-primary-600 dark:hover:text-primary-400 rounded-lg active:scale-95 transition-all" data-char="${c}" title="'${c}' ekle">
+      <button type="button" class="diacritic-chip px-1.5 py-1 min-h-[36px] min-w-[28px] text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-primary-50 dark:hover:bg-primary-950/40 hover:text-primary-600 dark:hover:text-primary-400 rounded-lg active:scale-95 transition-all shrink-0" data-char="${c}" title="'${c}' ekle">
         ${c}
       </button>
     `
@@ -1910,7 +2015,7 @@ document.addEventListener('DOMContentLoaded', () => {
             meanings: [{ meaning: seedMatch.tr }],
             examples: seedMatch.example ? [seedMatch.example] : [],
             relatedWords: [],
-            _provider: 'LexiBridge Çevrimdışı Sözlük (0ms)',
+            _provider: 'LingoMate Çevrimdışı Sözlük (0ms)',
             _latency: 0,
             _isCached: true
           };
@@ -1984,8 +2089,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 1. Primary Word / Header Card
+    const wordId = 'lexi-word-' + Math.random().toString(36).slice(2, 9);
     html += `
-      <div class="bg-white dark:bg-slate-900 rounded-2xl p-3.5 sm:p-4 md:p-5 border border-slate-100 dark:border-slate-800 shadow-sm animate-slide-up ${cardAccentClass} overflow-hidden max-w-full">
+      <article class="bg-white dark:bg-slate-900 rounded-2xl p-3.5 sm:p-4 md:p-5 border border-slate-100 dark:border-slate-800 shadow-sm animate-slide-up ${cardAccentClass} overflow-hidden max-w-full" aria-labelledby="${wordId}">
         <div class="flex items-start justify-between gap-2 sm:gap-3 flex-wrap sm:flex-nowrap">
           <div class="min-w-0 flex-1">
             <div class="flex items-center flex-wrap gap-1.5 sm:gap-2">
@@ -2000,17 +2106,19 @@ document.addEventListener('DOMContentLoaded', () => {
                   <span>het</span>
                 </span>
               ` : ''}
-              <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-slate-800 dark:text-slate-100 tracking-tight break-words">${escapeHtml(data.input)}</h2>
-              <button class="speak-btn w-9 h-9 sm:w-11 sm:h-11 min-w-[36px] sm:min-w-[44px] min-h-[44px] flex items-center justify-center text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950/50 hover:bg-primary-100 dark:hover:bg-primary-900 active:scale-95 rounded-full transition-all" aria-label="Kelimeyi sesli telaffuz et" data-text="${escapeHtml(data.input)}" data-lang="${data.sourceLanguage}" data-rate="1.0" title="Sesli Telaffuz (1.0x)">
-                <i class="ph-bold ph-speaker-high text-lg sm:text-xl"></i>
-              </button>
-              <button class="speak-btn px-2 sm:px-2.5 py-1 min-h-[44px] flex items-center justify-center text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-amber-600 bg-slate-100 dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-amber-950/40 rounded-xl transition-all" aria-label="0.75x Yavaş Dinle" data-text="${escapeHtml(data.input)}" data-lang="${data.sourceLanguage}" data-rate="0.75" title="0.75x Yavaş Dinle">
-                0.75x
-              </button>
+              <h2 id="${wordId}" class="text-xl sm:text-2xl md:text-3xl font-bold text-slate-800 dark:text-slate-100 tracking-tight break-words">${escapeHtml(data.input)}</h2>
+              <div class="flex items-center gap-1 shrink-0">
+                <button class="speak-btn w-9 h-9 sm:w-10 sm:h-10 min-w-[36px] sm:min-w-[40px] min-h-[44px] flex items-center justify-center text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950/50 hover:bg-primary-100 dark:hover:bg-primary-900 active:scale-95 rounded-full transition-all" aria-label="Kelimeyi sesli telaffuz et" data-text="${escapeHtml(data.input)}" data-lang="${data.sourceLanguage}" data-rate="1.0" title="Sesli Telaffuz (1.0x)">
+                  <i class="ph-bold ph-speaker-high text-lg sm:text-xl"></i>
+                </button>
+                <button class="speak-btn hidden md:flex px-2.5 py-1 min-h-[36px] items-center justify-center text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-amber-600 bg-slate-100 dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-amber-950/40 rounded-xl transition-all" aria-label="0.75x Yavaş Dinle" data-text="${escapeHtml(data.input)}" data-lang="${data.sourceLanguage}" data-rate="0.75" title="0.75x Yavaş Dinle">
+                  0.75x
+                </button>
+              </div>
             </div>
 
             <div class="metadata-ribbon flex items-center gap-1.5 mt-2.5 overflow-x-auto pb-1 max-w-full">
-              ${isDe ? `<span class="text-xs px-2.5 py-1 rounded-lg font-bold uppercase tracking-wider bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800 shrink-0" title="De Belirteci">de</span>` : isHet ? `<span class="text-xs px-2.5 py-1 rounded-lg font-bold uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shrink-0" title="Het Belirteci">het</span>` : (data.grammar?.article ? renderArticleBadge(data.grammar.article) : '')}
+              ${!isDe && !isHet && data.grammar?.article ? renderArticleBadge(data.grammar.article) : ''}
               ${data.cefr ? `
                 <span class="text-xs px-2.5 py-1 rounded-lg font-bold uppercase shrink-0 ${
                   (data.cefr === 'A1' || data.cefr === 'A2')
@@ -2031,24 +2139,6 @@ document.addEventListener('DOMContentLoaded', () => {
                   /${escapeHtml(data.pronunciation.ipa)}/
                 </span>
               ` : ''}
-              ${data.grammar?.plural ? `
-                <span class="text-xs px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 font-medium border border-indigo-100/70 dark:border-indigo-800 inline-flex items-center gap-1 shrink-0" title="Çoğul Hali (Hollandaca çoğulların tamamı 'de' alır)">
-                  <span class="text-xs text-indigo-500 font-bold uppercase">çoğul:</span>
-                  <span class="font-semibold text-slate-800 dark:text-slate-100">de ${escapeHtml(data.grammar.plural)}</span>
-                </span>
-              ` : ''}
-              ${data.grammar?.diminutive ? `
-                <span class="text-xs px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 font-medium border border-emerald-100/70 dark:border-emerald-800 inline-flex items-center gap-1 shrink-0" title="Küçültme Hali (Hollandaca küçültmelerin tamamı 'het' alır)">
-                  <span class="text-xs text-emerald-500 font-bold uppercase">küçültme:</span>
-                  <span class="font-semibold text-slate-800 dark:text-slate-100">het ${escapeHtml(data.grammar.diminutive)}</span>
-                </span>
-              ` : ''}
-              ${data.grammar?.infinitive && data.grammar.infinitive !== data.input ? `
-                <span class="text-xs px-2.5 py-1 rounded-lg bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 font-medium border border-purple-100/70 dark:border-purple-800 inline-flex items-center gap-1 shrink-0" title="Fiil Mastar Hali">
-                  <span class="text-xs text-purple-500 font-bold uppercase">mastar:</span>
-                  <span class="font-semibold text-slate-800 dark:text-slate-100">${escapeHtml(data.grammar.infinitive)}</span>
-                </span>
-              ` : ''}
             </div>
           </div>
 
@@ -2059,10 +2149,6 @@ document.addEventListener('DOMContentLoaded', () => {
             </button>
             <button id="shareResultBtn" class="w-9 h-9 sm:w-11 sm:h-11 min-w-[36px] sm:min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors" title="Kelime Kartını Paylaş" aria-label="Kelime Kartını Paylaş">
               <i class="ph-bold ph-share-network text-base sm:text-lg"></i>
-            </button>
-            <button id="toggleDenseBtn" class="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 px-2 sm:px-2.5 py-1.5 min-h-[44px] rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors font-semibold shrink-0" title="Kompakt / Detaylı Modu Değiştir" aria-label="Kompakt / Detaylı Modu Değiştir">
-              <i class="ph-bold ${isCompactView ? 'ph-caret-down' : 'ph-caret-up'} text-xs"></i>
-              <span>${isCompactView ? 'Kompakt' : 'Detaylı'}</span>
             </button>
           </div>
         </div>
@@ -2082,15 +2168,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 <i class="ph-bold ph-copy text-base"></i>
               </button>
             </div>
-            ${data.translations?.length > 1 ? `
-              <div class="flex flex-wrap gap-1.5 mt-2">
-                ${data.translations.slice(1).map(t => `
-                  <span class="text-xs md:text-sm px-2.5 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300">
-                    ${escapeHtml(t.text)} ${t.context ? `<span class="text-slate-400 text-xs">(${escapeHtml(t.context)})</span>` : ''}
-                  </span>
-                `).join('')}
-              </div>
-            ` : ''}
           </div>
         </div>
 
@@ -2101,7 +2178,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <i class="ph-bold ph-link text-base"></i>
               </div>
               <div class="min-w-0">
-                <div class="text-xs uppercase tracking-wider font-bold text-indigo-600 dark:text-indigo-400">Sabit Edat (Vast Voorzetsel)</div>
+                <div class="text-xs uppercase tracking-wider font-bold text-indigo-600 dark:text-indigo-400">Sabit Edat</div>
                 <div class="font-bold text-slate-800 dark:text-slate-100 truncate">${escapeHtml(data.grammar.fixedPreposition)}</div>
               </div>
             </div>
@@ -2111,40 +2188,66 @@ document.addEventListener('DOMContentLoaded', () => {
             </button>
           </div>
         ` : ''}
-      </div>
+      </article>
     `;
 
-    // 1.2 Segmented Result Tabs Bar (NNGroup Cognitive Chunking Pattern)
-    const hasConjugation = !!(data.conjugation && data.conjugation.isVerb);
-    html += `
-      <div class="result-tabs-bar flex items-center gap-1.5 p-1 bg-slate-100/90 dark:bg-slate-800/80 rounded-2xl border border-slate-200/70 dark:border-slate-700/70 my-3 overflow-x-auto scrollbar-none max-w-full">
-        <button class="result-tab-btn flex-1 min-w-[65px] shrink-0 sm:shrink min-h-[40px] px-2 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 sm:gap-1.5 whitespace-nowrap ${activeResultTab === 'all' ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-300 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}" data-tab="all">
-          <i class="ph-bold ph-squares-four text-sm"></i>
-          <span>Tümü</span>
-        </button>
-        <button class="result-tab-btn flex-1 min-w-[75px] shrink-0 sm:shrink min-h-[40px] px-2 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 sm:gap-1.5 whitespace-nowrap ${activeResultTab === 'examples' ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-300 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}" data-tab="examples">
-          <i class="ph-bold ph-chat-circle-text text-sm"></i>
-          <span>Örnekler</span>
-        </button>
-        ${hasConjugation ? `
-          <button class="result-tab-btn flex-1 min-w-[80px] shrink-0 sm:shrink min-h-[40px] px-2 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 sm:gap-1.5 whitespace-nowrap ${activeResultTab === 'conjugation' ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-300 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}" data-tab="conjugation">
-            <i class="ph-bold ph-arrows-clockwise text-sm"></i>
-            <span>Fiil Çekimi</span>
-          </button>
-        ` : ''}
-        <button class="result-tab-btn flex-1 min-w-[70px] shrink-0 sm:shrink min-h-[40px] px-2 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 sm:gap-1.5 whitespace-nowrap ${activeResultTab === 'details' ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-300 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}" data-tab="details">
-          <i class="ph-bold ph-book-open text-sm"></i>
+    // 1.2 First Example (inline, always visible - "show me in context")
+    const firstExample = data.examples && data.examples.length > 0 ? data.examples[0] : null;
+    if (firstExample) {
+      html += `
+        <div class="bg-white dark:bg-slate-900 rounded-2xl p-3.5 md:p-4 border border-slate-100 dark:border-slate-800 shadow-sm animate-slide-up mb-3">
+          <div class="flex items-start justify-between gap-3">
+            <div class="font-medium text-sm md:text-base text-slate-900 dark:text-slate-100 leading-relaxed flex-1 min-w-0">
+              ${renderInteractiveSentence(firstExample.source, data.sourceLanguage, data.input)}
+            </div>
+            <div class="flex items-center shrink-0 bg-slate-50 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700 rounded-xl p-0.5 shadow-2xs">
+              <button class="speak-btn text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 w-9 h-9 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-lg hover:bg-white dark:hover:bg-slate-700 transition-colors" aria-label="Örnek cümleyi sesli oku" data-text="${escapeHtml(firstExample.source)}" data-lang="${data.sourceLanguage}" data-rate="1.0" title="Sesli Oku (1.0x)">
+                <i class="ph ph-speaker-simple-high text-base"></i>
+              </button>
+              <button class="speak-btn text-slate-400 hover:text-amber-600 px-1.5 h-9 min-h-[36px] flex items-center justify-center rounded-lg hover:bg-amber-50 dark:hover:bg-amber-950/40 text-xs font-bold transition-colors border-l border-slate-200 dark:border-slate-700" aria-label="Yavaş sesli oku" data-text="${escapeHtml(firstExample.source)}" data-lang="${data.sourceLanguage}" data-rate="0.75" title="0.75x Yavaş Dinle">
+                0.75x
+              </button>
+              <button class="copy-btn text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 w-9 h-9 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors border-l border-slate-200 dark:border-slate-700" data-copy="${escapeHtml(firstExample.source + (firstExample.translation ? ' — ' + firstExample.translation : ''))}" title="Örneği Kopyala" aria-label="Örneği Kopyala">
+                <i class="ph-bold ph-copy text-sm"></i>
+              </button>
+            </div>
+          </div>
+          ${firstExample.translation ? `<div class="text-xs md:text-sm text-slate-600 dark:text-slate-300 mt-2 pl-2.5 border-l-2 border-primary-200 dark:border-primary-800 leading-relaxed">${escapeHtml(firstExample.translation)}</div>` : ''}
+        </div>
+      `;
+    }
+
+    // 1.3 Details Toggle (Progressive Disclosure - single expand/collapse)
+    const hasDetails = !!(
+      (data.translations && data.translations.length > 1) ||
+      data.grammar?.fixedPreposition ||
+      data.conjugation?.isVerb ||
+      (data.examples && data.examples.length > 1) ||
+      (data.meanings && data.meanings.length > 0) ||
+      (data.grammar && Object.keys(data.grammar).length > 0) ||
+      data.etymology?.summary ||
+      (data.relatedWords && data.relatedWords.length > 0) ||
+      getCompoundInfo(data.input, data)
+    );
+
+    if (hasDetails) {
+      html += `
+        <button type="button" id="toggleDetailsBtn" class="w-full flex items-center justify-center gap-2 min-h-[48px] mt-3 px-4 py-2.5 rounded-2xl bg-slate-100/90 dark:bg-slate-800/80 border border-slate-200/70 dark:border-slate-700/70 text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 active:scale-[0.99] transition-all" aria-expanded="false" aria-controls="detailSections">
+          <i class="ph-bold ph-book-open text-base"></i>
           <span>Detaylar</span>
+          <i class="ph-bold ph-caret-down text-sm accordion-chevron transition-transform"></i>
         </button>
-      </div>
-    `;
+      `;
+    }
 
-    // 1.4 Compound Word Breakdown Card (Samenstelling)
+    // 1.4 Details Container (all secondary content lives here)
+    html += `<div id="detailSections" class="hidden space-y-4 mt-3" data-section="details">`;
+
+    // 1.5 Compound Word Breakdown Card (Samenstelling)
     const compoundInfo = getCompoundInfo(data.input, data);
     if (compoundInfo) {
-      const isCompoundVisible = activeResultTab === 'all' || activeResultTab === 'details';
       html += `
-        <div class="result-section-card ${isCompoundVisible ? '' : 'hidden'} bg-white dark:bg-slate-900 rounded-2xl p-4 md:p-5 border border-slate-100 dark:border-slate-800 shadow-sm animate-slide-up mb-4" data-section="compound" style="animation-delay: 0.04s">
+        <div class="result-section-card bg-white dark:bg-slate-900 rounded-2xl p-4 md:p-5 border border-slate-100 dark:border-slate-800 shadow-sm animate-slide-up mb-4" data-section="compound">
           <div class="flex items-center gap-2 mb-3">
             <div class="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
               <i class="ph-bold ph-puzzle-piece text-base"></i>
@@ -2175,12 +2278,11 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     }
 
-    // 1.5 Verb Conjugation Matrix Card (if verb)
+    // 1.6 Verb Conjugation Matrix Card (if verb)
     if (data.conjugation && data.conjugation.isVerb) {
       const conj = data.conjugation;
-      const isConjugationVisible = activeResultTab === 'all' || activeResultTab === 'conjugation';
       html += `
-        <div class="result-section-card ${isConjugationVisible ? '' : 'hidden'} bg-white dark:bg-slate-900 rounded-2xl p-4 md:p-5 border border-slate-100 dark:border-slate-800 shadow-sm animate-slide-up mb-4" data-section="conjugation" style="animation-delay: 0.05s">
+        <div class="result-section-card bg-white dark:bg-slate-900 rounded-2xl p-4 md:p-5 border border-slate-100 dark:border-slate-800 shadow-sm animate-slide-up mb-4" data-section="conjugation">
           <div class="flex items-center justify-between mb-3 cursor-pointer accordion-trigger select-none" title="Fiil çekim tablosunu aç / kapat">
             <div class="flex items-center gap-2 text-slate-700 dark:text-slate-300">
               <i class="ph-bold ph-arrows-clockwise text-indigo-500 text-lg"></i>
@@ -2220,24 +2322,24 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     }
 
-    // 2. Examples Card (with Tap-to-Lookup & Slow Audio)
-    if (data.examples && data.examples.length > 0) {
-      const isExamplesVisible = activeResultTab === 'all' || activeResultTab === 'examples';
+    // 1.7 Remaining Examples (inside details)
+    const restExamples = data.examples && data.examples.length > 1 ? data.examples.slice(1) : [];
+    if (restExamples.length > 0) {
       html += `
-        <div class="result-section-card ${isExamplesVisible ? '' : 'hidden'} bg-white dark:bg-slate-900 rounded-2xl p-4 md:p-5 border border-slate-100 dark:border-slate-800 shadow-sm animate-slide-up mb-4" data-section="examples" style="animation-delay: 0.08s">
+        <div class="result-section-card bg-white dark:bg-slate-900 rounded-2xl p-4 md:p-5 border border-slate-100 dark:border-slate-800 shadow-sm animate-slide-up mb-4" data-section="examples">
           <div class="flex items-center justify-between mb-3 text-slate-700 dark:text-slate-300">
             <div class="flex items-center gap-2">
               <i class="ph-bold ph-chat-circle-text text-blue-500 text-lg"></i>
-              <h3 class="dark:text-slate-100 font-bold text-base text-slate-800">Doğal Örnek Cümleler</h3>
+              <h3 class="dark:text-slate-100 font-bold text-base text-slate-800">Diğer Örnek Cümleler</h3>
             </div>
-            <span class="text-xs text-primary-600 dark:text-primary-400 font-medium flex items-center gap-1"><i class="ph-bold ph-hand-tap"></i> Kelimelere dokunup dinleyin</span>
+            <span class="text-xs text-primary-600 dark:text-primary-400 font-medium flex items-center gap-1 shrink-0"><i class="ph-bold ph-hand-tap"></i> <span class="hidden sm:inline">Kelimelere dokunup dinleyin</span><span class="sm:hidden">Dokun & dinle</span></span>
           </div>
           <div class="space-y-2.5">
-            ${data.examples.map(ex => `
+            ${restExamples.map(ex => `
               <div class="p-3.5 bg-slate-50/80 dark:bg-slate-800/60 rounded-xl border border-slate-100/90 dark:border-slate-700/60 hover:border-slate-200 dark:hover:border-slate-700 transition-colors">
                 <div class="flex items-start justify-between gap-3">
-                  <div class="font-medium text-sm md:text-base text-slate-900 dark:text-slate-100 leading-relaxed flex-1">
-                    ${renderInteractiveSentence(ex.source, data.sourceLanguage, data.input) /* highlightKeyword(ex.source, data.input) */}
+                  <div class="font-medium text-sm md:text-base text-slate-900 dark:text-slate-100 leading-relaxed flex-1 min-w-0">
+                    ${renderInteractiveSentence(ex.source, data.sourceLanguage, data.input)}
                   </div>
                   <!-- Compact Micro-Actions Capsule -->
                   <div class="flex items-center shrink-0 bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700 rounded-xl p-0.5 shadow-2xs">
@@ -2260,11 +2362,7 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     }
 
-    // Wrap detailed sections (Meanings, Grammar & Etymology, Related Words) in a collapsible container
-    const isDetailsVisible = (activeResultTab === 'all' && !isCompactView) || (activeResultTab === 'details');
-    html += `<div id="detailedSections" class="result-section-card ${isDetailsVisible ? '' : 'hidden'} space-y-4 mb-4" data-section="details">`;
-
-    // 3. Meanings Card
+    // 1.8 Meanings Card
     if (data.meanings && data.meanings.length > 0) {
       html += `
         <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 md:p-5 border border-slate-100 dark:border-slate-800 shadow-sm animate-slide-up" style="animation-delay: 0.1s">
@@ -2288,7 +2386,7 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     }
 
-    // 4. Grammar & Etymology Grid
+    // 1.9 Grammar & Etymology Grid
     const hasGrammar = data.grammar && Object.keys(data.grammar).length > 0;
     const hasEtymology = data.etymology?.summary;
 
@@ -2337,7 +2435,7 @@ document.addEventListener('DOMContentLoaded', () => {
       html += `</div>`;
     }
 
-    // 5. Related Words Chips
+    // 1.10 Related Words Chips
     if (data.relatedWords && data.relatedWords.length > 0) {
       html += `
         <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-100 dark:border-slate-800 shadow-sm animate-slide-up" style="animation-delay: 0.15s">
@@ -2357,7 +2455,26 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     }
 
-    // Close detailedSections wrapper
+    // 1.11 Alternative Translations
+    if (data.translations && data.translations.length > 1) {
+      html += `
+        <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-100 dark:border-slate-800 shadow-sm animate-slide-up">
+          <div class="flex items-center gap-1.5 mb-2.5 font-bold text-sm md:text-base text-slate-700 dark:text-slate-300">
+            <i class="ph-bold ph-translate text-primary-600 text-base"></i>
+            <span>Alternatif Çeviriler</span>
+          </div>
+          <div class="flex flex-wrap gap-1.5">
+            ${data.translations.slice(1).map(t => `
+              <span class="text-xs md:text-sm px-2.5 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300">
+                ${escapeHtml(t.text)} ${t.context ? `<span class="text-slate-400 text-xs">(${escapeHtml(t.context)})</span>` : ''}
+              </span>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    // Close detailSections wrapper
     html += `</div>`;
 
     // 6. Footer Provider Badge & In-App Flag Button (Google Play Compliance - STR-01)
@@ -2372,7 +2489,7 @@ document.addEventListener('DOMContentLoaded', () => {
               Yenile
             </button>
           ` : `
-            <span>⚡ ${escapeHtml(data._provider || 'LexiBridge Dil Motoru')}</span>
+            <span>⚡ ${escapeHtml(data._provider || 'LingoMate Dil Motoru')}</span>
             ${data._latency ? ` · <span>${data._latency}ms</span>` : ''}
           `}
         </div>
@@ -2407,6 +2524,12 @@ document.addEventListener('DOMContentLoaded', () => {
     resultsContainer.innerHTML = html;
     resultsContainer.classList.remove('hidden');
 
+    // Announce the outcome for screen reader users
+    if (announce) {
+      const art = data.grammar?.article ? data.grammar.article.toLowerCase() + ' ' : '';
+      announce(`${art}${data.input}: ${mainTrans || 'çeviri bulunamadı'}`);
+    }
+
     // Attach speech events (supports 1.0x and 0.75x slow audio + pulse feedback)
     resultsContainer.querySelectorAll('.speak-btn').forEach((b) => {
       b.addEventListener('click', (e) => {
@@ -2416,38 +2539,33 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
 
-    // Attach tab switching events (Cognitive Chunking)
-    resultsContainer.querySelectorAll('.result-tab-btn').forEach((tabBtn) => {
-      tabBtn.addEventListener('click', (e) => {
+    // Attach Details toggle (Progressive Disclosure expand/collapse)
+    const toggleDetailsBtn = resultsContainer.querySelector('#toggleDetailsBtn');
+    const detailSections = resultsContainer.querySelector('#detailSections');
+    if (toggleDetailsBtn && detailSections) {
+      toggleDetailsBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        activeResultTab = tabBtn.dataset.tab;
-        
-        // Update tab buttons styles
-        resultsContainer.querySelectorAll('.result-tab-btn').forEach((b) => {
-          const isActive = b.dataset.tab === activeResultTab;
-          b.className = `result-tab-btn flex-1 min-h-[40px] px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-            isActive 
-              ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-300 shadow-2xs' 
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-          }`;
-        });
+        const isExpanded = toggleDetailsBtn.getAttribute('aria-expanded') === 'true';
+        const next = !isExpanded;
+        toggleDetailsBtn.setAttribute('aria-expanded', String(next));
+        detailSections.classList.toggle('hidden', !next);
 
-        // Show/hide sections
-        const sections = resultsContainer.querySelectorAll('.result-section-card');
-        sections.forEach((sec) => {
-          const secName = sec.dataset.section;
-          if (activeResultTab === 'all') {
-            if (secName === 'details') {
-              sec.classList.toggle('hidden', isCompactView);
-            } else {
-              sec.classList.remove('hidden');
-            }
-          } else {
-            sec.classList.toggle('hidden', secName !== activeResultTab);
-          }
-        });
+        // Rotate chevron
+        const chevron = toggleDetailsBtn.querySelector('.accordion-chevron');
+        if (chevron) chevron.classList.toggle('rotated', next);
+
+        // Swap label for clarity
+        const label = toggleDetailsBtn.querySelector('span');
+        if (label) label.textContent = next ? 'Detayları Gizle' : 'Detaylar';
+
+        // Scroll into view when expanding (mobile)
+        if (next) {
+          setTimeout(() => {
+            detailSections.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 60);
+        }
       });
-    });
+    }
 
     // Update sticky search bar preview text
     if (stickySearchText) {
@@ -2525,7 +2643,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const exText = (data.examples && data.examples.length > 0) 
           ? `\nÖrnek: ${data.examples[0].source} (${data.examples[0].translation})` 
           : '';
-        const shareText = `LexiBridge: ${title}${exText}`;
+        const shareText = `LingoMate: ${title}${exText}`;
 
         if (navigator.share) {
           try {
@@ -2555,17 +2673,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) {
           console.warn('Fallback copy failed:', err);
         }
-      });
-    }
-
-    // Attach compact/detailed toggle
-    const toggleDenseBtn = resultsContainer.querySelector('#toggleDenseBtn');
-    if (toggleDenseBtn) {
-      toggleDenseBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        isCompactView = !isCompactView;
-        localStorage.setItem('lexi_view_mode', isCompactView ? 'compact' : 'detailed');
-        renderResult(data);
       });
     }
 
@@ -2625,6 +2732,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (typeof window.openFlagModal === 'function') {
           window.openFlagModal(q);
         }
+        if (flagTrap) flagTrap.activate();
       });
     });
 
@@ -2651,7 +2759,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // ── Event Listeners ─────────────────────────────────────────────────────
   window.openSettingsModal = function() {
     updateProviderModalUI();
-    settingsModal.classList.remove('hidden');
+    if (typeof window.switchMainTab === 'function') {
+      window.switchMainTab('settings');
+    } else {
+      viewSettings.classList.remove('hidden');
+    }
   };
   window.syncSettingsModalUI = updateProviderModalUI;
   window.syncHistoryUI = renderHistory;
@@ -2659,17 +2771,27 @@ document.addEventListener('DOMContentLoaded', () => {
   headerProviderBadge.addEventListener('click', window.openSettingsModal);
   settingsBtn.addEventListener('click', window.openSettingsModal);
 
-  closeSettingsBtn.addEventListener('click', () => {
-    settingsModal.classList.add('hidden');
-  });
+  // closeSettingsBtn removed in new tab-view architecture (handled by bottom nav)
 
   historyBtn.addEventListener('click', () => {
     renderHistory();
     historyModal.classList.remove('hidden');
+    if (historyTrap) historyTrap.activate();
   });
 
   closeHistoryBtn.addEventListener('click', () => {
     historyModal.classList.add('hidden');
+    if (historyTrap) historyTrap.release();
+  });
+
+  // Escape closes the history dialog and restores focus
+  historyModal.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      e.stopPropagation();
+      historyModal.classList.add('hidden');
+      if (historyTrap) historyTrap.release();
+      if (searchInput) searchInput.focus();
+    }
   });
 
   clearHistoryBtn.addEventListener('click', () => {
@@ -2725,7 +2847,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (typeof window.switchMainTab === 'function') {
         window.switchMainTab('dictionary');
       } else {
-        settingsModal.classList.add('hidden');
+        viewSettings.classList.add('hidden');
       }
     }, 600);
   });
@@ -2822,16 +2944,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Global Escape key listener for accessible modal closing
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      const overlayOpen = ['historyModal', 'flagModal'].some((id) => {
-        const el = document.getElementById(id);
-        return el && !el.classList.contains('hidden');
-      });
+    if (e.key !== 'Escape') return;
+
+    const historyOpen = (() => {
+      const el = document.getElementById('historyModal');
+      return el && !el.classList.contains('hidden');
+    })();
+    const flagOpen = (() => {
+      const el = document.getElementById('flagModal');
+      return el && !el.classList.contains('hidden');
+    })();
+
+    if (historyOpen) {
       if (typeof window.closeHistoryModal === 'function') window.closeHistoryModal();
+      if (historyTrap) historyTrap.release();
+      e.preventDefault();
+      return;
+    }
+    if (flagOpen) {
       if (typeof window.closeFlagModal === 'function') window.closeFlagModal();
-      if (!overlayOpen && window.__activeTab && window.__activeTab !== 'dictionary') {
-        window.switchMainTab('dictionary');
-      }
+      if (flagTrap) flagTrap.release();
+      e.preventDefault();
+      return;
+    }
+    if (window.__activeTab && window.__activeTab !== 'dictionary') {
+      window.switchMainTab('dictionary');
     }
   });
 
@@ -2864,6 +3001,6 @@ document.addEventListener('DOMContentLoaded', () => {
   try {
     init();
   } catch (err) {
-    console.error("LexiBridge init error:", err);
+    console.error("LingoMate init error:", err);
   }
 });

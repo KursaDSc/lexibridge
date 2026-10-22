@@ -1,5 +1,5 @@
 /**
- * LexiBridge Curated Offline Dictionary Seeds & High-Frequency Vocabulary
+ * LingoMate Curated Offline Dictionary Seeds & High-Frequency Vocabulary
  * Provides instant 0ms offline search suggestions, CEFR levels, and verb conjugations.
  */
 window.LEXI_DICTIONARY_SEEDS = [

@@ -1,5 +1,5 @@
 """
-LexiBridge - UX Doğrulama Testleri (Playwright / Python)
+LingoMate - UX Doğrulama Testleri (Playwright / Python)
 
 Kapsam:
   1. Navigation (4 sekme inline view)
@@ -14,6 +14,7 @@ Kapsam:
 
 import os
 import sys
+import json
 import time
 import threading
 import functools
@@ -303,58 +304,70 @@ def run_tests(headless=True):
         print(f"\n{BOLD}5. AŞAMA B - PROGRESSIVE DISCLOSURE{RESET}")
         # ─────────────────────────────────────────────────────────────
 
-        # Mock sonuç render et (API çağrısı olmadan)
-        page.evaluate(
-            """
-            () => {
-              const mockData = {
-                input: 'ziekenhuis', sourceLanguage: 'nl', targetLanguage: 'tr',
-                cefr: 'A1', partOfSpeech: 'noun',
-                pronunciation: { ipa: 'ˈzi.kə(n)ˌɦœy̯s' },
-                translations: [
-                  { text: 'hastane', frequency: 'very_common' },
-                  { text: 'hastahane', frequency: 'common' }
-                ],
-                meanings: [{ meaning: 'hastane', explanation: 'Sağlık kurumu', context: 'genel' }],
-                grammar: { article: 'het', plural: 'ziekenhuizen', fixedPreposition: 'in het' },
-                etymology: { summary: 'Eski Hollandacadan', certainty: 'high' },
-                examples: [
-                  { source: 'Hij ligt in het ziekenhuis.', translation: 'O hastanede yatıyor.' },
-                  { source: 'Het ziekenhuis is groot.', translation: 'Hastane büyük.' }
-                ],
-                relatedWords: [{ word: 'ziekenhuisbed', relation: 'related' }],
-                _provider: 'Test Motoru', _latency: 120
-              };
-              window.__lexiMock = mockData;
-            }
-            """
+        # Gemini API'yi mock'la (gerçek kod yolu: analyze -> normalize -> renderResult)
+        gemini_payload = {
+            "candidates": [
+                {
+                    "content": {
+                        "parts": [
+                            {
+                                "text": """{
+  "input": "ziekenhuis",
+  "sourceLanguage": "nl",
+  "targetLanguage": "tr",
+  "cefr": "A1",
+  "partOfSpeech": "noun",
+  "pronunciation": { "ipa": "ˈzi.kə(n)ˌɦœy̯s" },
+  "translations": [
+    { "text": "hastane", "context": "sağlık kurumu", "frequency": "very_common" },
+    { "text": "hastahane", "context": "alternatif", "frequency": "common" }
+  ],
+  "meanings": [
+    { "meaning": "hastane", "explanation": "Hastalıkların tedavi edildiği kurum", "context": "genel" }
+  ],
+  "grammar": {
+    "article": "het",
+    "plural": "ziekenhuizen",
+    "diminutive": "ziekenhuisje",
+    "fixedPreposition": "in het",
+    "register": "informal"
+  },
+  "etymology": { "summary": "Eski Hollandacadan 'zieken' + 'huis' kelimelerinden", "certainty": "high" },
+  "examples": [
+    { "source": "Hij ligt in het ziekenhuis.", "translation": "O hastanede yatıyor." },
+    { "source": "Het ziekenhuis is groot.", "translation": "Hastane büyük." },
+    { "source": "Naar het ziekenhuis gaan.", "translation": "Hastaneye gitmek." }
+  ],
+  "relatedWords": [
+    { "word": "ziekenhuisbed", "relation": "related" },
+    { "word": "ziekenauto", "relation": "related" }
+  ]
+}"""
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+
+        page.route(
+            "**/generativelanguage.googleapis.com/**",
+            lambda route: route.fulfill(
+                status=200,
+                content_type="application/json",
+                body=json.dumps(gemini_payload),
+            ),
         )
 
-        # renderResult'ı çağırmak için: search handler'ı mock data ile tetikle
-        # app.js search'i LexiCache üzerinden döndürür; bu yüzden cache'e yazıp arama yapalım
-        page.evaluate(
-            """
-            async () => {
-              const m = window.__lexiMock;
-              if (window.LexiCache && typeof window.LexiCache.set === 'function') {
-                await window.LexiCache.set('nl', 'tr', 'ziekenhuis', m, false);
-              } else {
-                localStorage.setItem('lexi_qcache_nl_tr::ziekenhuis', JSON.stringify({
-                  key: 'nl_tr::ziekenhuis', query: 'ziekenhuis',
-                  sourceLang: 'nl', targetLang: 'tr', data: m, timestamp: Date.now()
-                }));
-              }
-            }
-            """
-        )
-        page.reload(wait_until="domcontentloaded")
-        page.wait_for_timeout(500)
+        # Gemini API anahtari gerekli (fetch oncesi kontrol ediliyor)
+        page.evaluate("() => localStorage.setItem('gemini_api_key', 'test-key-mock')")
+
         page.fill("#searchInput", "ziekenhuis")
         page.click("#searchBtn")
-        page.wait_for_timeout(1500)
+        page.wait_for_timeout(2500)
 
         has_result = page.locator("#resultsContainer").is_visible()
-        record("Arama sonucu render oldu", has_result)
+        record("Arama sonucu render oldu (mock Gemini)", has_result)
 
         if has_result:
             record(
@@ -396,10 +409,9 @@ def run_tests(headless=True):
             label = page.locator("#toggleDetailsBtn span").first.inner_text()
             record("Toggle -> etiket 'Detayları Gizle' olur", "Gizle" in label, f"label = {label}")
 
-            # İçerik kontrolü
+            # İçerik kontrolü (mock veri: article=het, 3 örnek, 2 ilişkili kelime)
             for sel, name in [
                 ("[data-section='compound']", "Compound breakdown"),
-                ("[data-section='conjugation']", "Conjugation"),
                 ("[data-section='examples']", "Diğer örnekler"),
             ]:
                 cnt = page.locator(sel).count()
@@ -407,6 +419,18 @@ def run_tests(headless=True):
                     record(f"Detaylarda {name} var", True, "yok (bu kelimede yok) - OK")
                 else:
                     record(f"Detaylarda {name} var", page.locator(sel).first.is_visible())
+
+            details_text = page.locator("#detailSections").inner_text()
+            record("Detaylarda Anlamlar var", "Anlamlar" in details_text)
+            record("Detaylarda Gramer & Çekim var", "Gramer" in details_text)
+            record("Detaylarda Etimoloji var", "Etimoloji" in details_text)
+            record("Detaylarda İlişkili Kelimeler var", "İlişkili" in details_text)
+            record("Detaylarda Alternatif Çeviriler var", "Alternatif" in details_text)
+            record(
+                "Detaylarda 2. ve 3. örnek var (ilk örnek dışarıda)",
+                "Het ziekenhuis is groot." in details_text
+                and "Naar het ziekenhuis gaan." in details_text,
+            )
 
             # Toggle kapat
             page.click("#toggleDetailsBtn")
@@ -417,13 +441,231 @@ def run_tests(headless=True):
             )
 
             # Varsayılan görünüm içeriği
+            default_text = page.locator("#resultsContainer").inner_text()
+            record("Ana çeviri varsayılan görünür", "hastane" in default_text)
             record(
-                "Ana çeviri varsayılan görünür",
-                page.locator("#resultsContainer").inner_text().count("hastane") > 0,
+                "İlk örnek varsayılan görünür",
+                "Hij ligt in het ziekenhuis." in default_text,
+            )
+            record(
+                "Article badge (het) varsayılan görünür",
+                "het" in default_text.lower(),
+            )
+            record(
+                "Diğer örnekler varsayılan GİZLİ",
+                "Het ziekenhuis is groot." not in default_text,
+            )
+            record(
+                "Etimoloji varsayılan GİZLİ",
+                "Eski Hollandacadan" not in default_text,
             )
 
         # ─────────────────────────────────────────────────────────────
-        print(f"\n{BOLD}6. KONSOL HATALARI{RESET}")
+        print(f"\n{BOLD}6. AŞAMA D - KLAVYE & EKRAN OKUYUCU{RESET}")
+        # ─────────────────────────────────────────────────────────────
+
+        # a11y.js yuklendi mi
+        record(
+            "a11y.js modulu yuklendi (LexiA11y)",
+            page.evaluate("() => typeof window.LexiA11y === 'object'"),
+        )
+
+        # Bottom nav: roving tabindex
+        tabindexes = page.evaluate(
+            """() => Array.from(document.querySelectorAll('#bottomNavBar [role="tab"]'))
+                   .map(b => b.getAttribute('tabindex'))"""
+        )
+        record(
+            "Bottom nav: yalnizca aktif sekme tab sirasinda (roving tabindex)",
+            tabindexes.count("0") == 1,
+            f"tabindex degerleri = {tabindexes}",
+        )
+
+        # Bottom nav: ok tuslari ile gezinme
+        page.locator("#navTabDictionary").focus()
+        page.keyboard.press("ArrowRight")
+        page.wait_for_timeout(400)
+        active_id = page.evaluate("() => document.activeElement && document.activeElement.id")
+        record(
+            "ArrowRight -> Pratik sekmesine gecer ve odak nav butonunda kalir",
+            active_id == "navTabPractice",
+            f"activeElement = {active_id}",
+        )
+        record(
+            "ArrowRight ile sekme degeri degisti (otomatik aktivasyon)",
+            page.locator("#viewPractice").is_visible(),
+        )
+        page.keyboard.press("ArrowLeft")
+        page.wait_for_timeout(400)
+        active_id = page.evaluate("() => document.activeElement && document.activeElement.id")
+        record(
+            "ArrowLeft -> Sözlük sekmesine geri doner, odak nav'da",
+            page.locator("#viewDictionary").is_visible() and active_id == "navTabDictionary",
+            f"activeElement = {active_id}",
+        )
+
+        # aria-selected senkron
+        selected = page.evaluate(
+            """() => Array.from(document.querySelectorAll('#bottomNavBar [role="tab"]'))
+                   .map(b => b.getAttribute('aria-selected'))"""
+        )
+        record(
+            "aria-selected yalnizca aktif sekmede true",
+            selected.count("true") == 1,
+            f"aria-selected = {selected}",
+        )
+
+        # Combobox / listbox
+        record(
+            "searchInput role=combobox",
+            page.locator("#searchInput").get_attribute("role") == "combobox",
+        )
+        record(
+            "autocompleteDropdown role=listbox",
+            page.locator("#autocompleteDropdown").get_attribute("role") == "listbox",
+        )
+        record(
+            "searchInput aria-expanded=false ile baslar",
+            page.locator("#searchInput").get_attribute("aria-expanded") == "false",
+        )
+
+        # Autocomplete ok tuslari
+        page.fill("#searchInput", "")
+        page.click("#searchInput")
+        page.keyboard.type("ge")
+        page.wait_for_timeout(600)
+        dropdown_open = page.locator("#autocompleteDropdown").is_visible()
+        record("Otomatik tamamlama acilir", dropdown_open)
+        if dropdown_open:
+            record(
+                "aria-expanded=true acilista",
+                page.locator("#searchInput").get_attribute("aria-expanded") == "true",
+            )
+            # Gercek tasma kontrolu: dropdown kart tarafindan kesilmemeli
+            not_clipped = page.evaluate(
+                """() => {
+                    const dd = document.getElementById('autocompleteDropdown');
+                    const container = dd.parentElement;   // .relative input alani
+                    const card = container.parentElement;  // arama karti
+                    const cs = getComputedStyle(card);
+                    if (cs.overflow === 'hidden' || cs.overflow === 'clip') return false;
+                    // Dropdown kartin alt kenarinin altina tasmali
+                    return dd.getBoundingClientRect().bottom >
+                           card.getBoundingClientRect().bottom + 1;
+                }"""
+            )
+            record(
+                "Dropdown kart tarafindan kesilmiyor (overflow clipping yok)",
+                not_clipped,
+            )
+            record(
+                "Dropdown ekran icinde gorunur (viewport clipping yok)",
+                page.evaluate(
+                    """() => {
+                        const r = document.getElementById('autocompleteDropdown').getBoundingClientRect();
+                        return r.top >= 0 && r.bottom <= window.innerHeight + 1;
+                    }"""
+                ),
+            )
+            record(
+                "Ogeler role=option ve aria-selected=false",
+                page.evaluate("() => Array.from(document.querySelectorAll('.autocomplete-item')).every(e => e.getAttribute('role') === 'option' && e.getAttribute('aria-selected') === 'false')"),
+            )
+            page.keyboard.press("ArrowDown")
+            page.wait_for_timeout(250)
+            record(
+                "ArrowDown -> ilk ogune odak (aria-activedescendant)",
+                page.locator("#searchInput").get_attribute("aria-activedescendant") is not None,
+            )
+            page.keyboard.press("ArrowDown")
+            page.wait_for_timeout(250)
+            active_desc = page.locator("#searchInput").get_attribute("aria-activedescendant")
+            record("ArrowDown -> ikinci oge aktif", active_desc == "ac-opt-1", f"activedescendant = {active_desc}")
+            page.keyboard.press("Escape")
+            page.wait_for_timeout(250)
+            record(
+                "Escape -> otomatik tamamlama kapanir",
+                not page.locator("#autocompleteDropdown").is_visible(),
+            )
+
+        # Focus trap - History modal
+        page.click("#historyBtn")
+        page.wait_for_timeout(400)
+        record("History modal focus alir (trap)", page.evaluate("() => document.activeElement !== document.body"))
+        for _ in range(12):
+            page.keyboard.press("Tab")
+        trapped_inside = page.evaluate(
+            "() => { const m = document.getElementById('historyModal'); return m.contains(document.activeElement); }"
+        )
+        record("Tab odagi modal icinde kalir (focus trap)", trapped_inside)
+        page.keyboard.press("Escape")
+        page.wait_for_timeout(300)
+        record(
+            "Escape -> history modal kapanir",
+            not page.locator("#historyModal").is_visible(),
+        )
+
+        # Flashcard deck chips: roving tabindex
+        page.click("#navTabPractice")
+        page.wait_for_timeout(500)
+        deck_tabindexes = page.evaluate(
+            """() => Array.from(document.querySelectorAll('.fc-deck-chip'))
+                   .map(b => b.getAttribute('tabindex'))"""
+        )
+        record(
+            "Deck chips: yalnizca biri tab sirasinda",
+            deck_tabindexes.count("0") == 1,
+            f"tabindex = {deck_tabindexes}",
+        )
+        record(
+            "Deck chips role=tab",
+            page.evaluate("() => Array.from(document.querySelectorAll('.fc-deck-chip')).every(b => b.getAttribute('role') === 'tab')"),
+        )
+        record(
+            "Aktif deck chip aria-selected=true",
+            page.evaluate("() => document.querySelector('.fc-deck-chip[data-deck=\"auto\"]').getAttribute('aria-selected') === 'true'"),
+        )
+
+        # Live region
+        record(
+            "Live region (role=status) olusturuldu",
+            page.evaluate("() => !!document.getElementById('lexiLiveRegion')"),
+        )
+
+        # Result card ARIA
+        page.click("#navTabDictionary")
+        page.wait_for_timeout(300)
+        page.fill("#searchInput", "ziekenhuis")
+        page.click("#searchBtn")
+        page.wait_for_timeout(2500)
+        record(
+            "Sonuc karti role=article",
+            page.locator("#resultsContainer article").count() >= 1,
+        )
+        record(
+            "article aria-labelledby -> basliga isaret ediyor",
+            page.evaluate(
+                """() => {
+                    const art = document.querySelector('#resultsContainer article');
+                    if (!art) return false;
+                    const id = art.getAttribute('aria-labelledby');
+                    return !!id && !!document.getElementById(id);
+                }"""
+            ),
+        )
+        record(
+            "resultsContainer aria-busy=false (yukleme bitti)",
+            page.locator("#resultsContainer").get_attribute("aria-busy") == "false",
+        )
+
+        # modeToggle aria-pressed
+        record(
+            "modeToggleBtn aria-pressed mevcut",
+            page.locator("#modeToggleBtn").get_attribute("aria-pressed") is not None,
+        )
+
+        # ─────────────────────────────────────────────────────────────
+        print(f"\n{BOLD}7. KONSOL HATALARI{RESET}")
         # ─────────────────────────────────────────────────────────────
         real_errors = [e for e in console_errors if "favicon" not in e.lower()]
         record("Konsol hatası yok", len(real_errors) == 0, "; ".join(real_errors[:3]))

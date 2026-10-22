@@ -1,6 +1,6 @@
 {
   "appId": "com.visualdutch.lexibridge",
-  "appName": "LexiBridge",
+  "appName": "LingoMate",
   "webDir": "android/app/src/main/assets",
   "bundledWebRuntime": false,
   "server": {

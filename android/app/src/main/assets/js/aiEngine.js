@@ -1,5 +1,5 @@
 /**
- * LexiBridge Unified Multi-Provider AI Engine
+ * LingoMate Unified Multi-Provider AI Engine
  * Compatible with SM Studio architecture.
  * Supports:
  *  1. Google Gemini REST API (gemini-flash-latest, 3.8-flash, 3.1-pro, etc.)
@@ -607,7 +607,7 @@ ${sanitized}
       relatedWords: relatedWords,
       compound: raw.compound || raw.compoundBreakdown || undefined,
       didYouMean: raw.didYouMean || "",
-      _provider: providerName || raw._provider || "LexiBridge Dil Motoru",
+      _provider: providerName || raw._provider || "LingoMate Dil Motoru",
       _latency: raw._latency || 0,
       _fallbackFrom: raw._fallbackFrom || undefined,
       _localError: raw._localError || undefined,

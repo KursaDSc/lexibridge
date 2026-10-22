@@ -1,7 +1,7 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 
 $DesktopPath = [Environment]::GetFolderPath('Desktop')
-$ShortcutPath = Join-Path $DesktopPath "LexiBridge Sozluk.lnk"
+$ShortcutPath = Join-Path $DesktopPath "LingoMate.lnk"
 $RepoDir = Resolve-Path "$PSScriptRoot\.."
 $IconPath = Join-Path $RepoDir "app_icon.ico"
 
@@ -20,13 +20,13 @@ if (-not (Test-Path $ShortcutPath)) {
     # If shortcut doesn't exist, create a new one pointing to index.html or local server
     $Shortcut.TargetPath = (Join-Path $RepoDir "index.html")
     $Shortcut.WorkingDirectory = $RepoDir
-    $Shortcut.Description = "LexiBridge - AI Destekli Felemenkçe Türkçe Sözlük"
+    $Shortcut.Description = "LingoMate - AI Destekli Felemenkçe Türkçe Sözlük"
 }
 
 $Shortcut.IconLocation = "$IconPath,0"
 $Shortcut.Save()
 
-Write-Host "  [OK] Successfully updated desktop shortcut with new LexiBridge icon!" -ForegroundColor Green
+Write-Host "  [OK] Successfully updated desktop shortcut with new LingoMate icon!" -ForegroundColor Green
 
 # Refresh Windows icon cache so the new icon appears immediately
 try {

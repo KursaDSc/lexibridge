@@ -1,5 +1,5 @@
 """
-LexiBridge Batch 1 (FAZ A: Risk, Doğruluk ve Güvenlik) Automated Verification Test Suite
+LingoMate Batch 1 (FAZ A: Risk, Doğruluk ve Güvenlik) Automated Verification Test Suite
 Tests:
   1. Secrets Hygiene (config.local.js)
   2. Prompt Sanitization & XML Boundary Isolation (SEC-02)

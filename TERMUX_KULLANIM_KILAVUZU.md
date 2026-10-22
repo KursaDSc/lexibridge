@@ -1,6 +1,6 @@
-# 📱 LexiBridge Android Termux & Ollama Kullanım Kılavuzu
+# 📱 LingoMate Android Termux & Ollama Kullanım Kılavuzu
 
-Bu rehber, **LexiBridge** akıllı sözlük uygulamasını Android telefonunuzda **Termux** ve **Ollama** ile tamamen yerel (cihaz içinde, internetsiz ve %100 gizli) olarak çalıştırmanızı sağlar.
+Bu rehber, **LingoMate** akıllı sözlük uygulamasını Android telefonunuzda **Termux** ve **Ollama** ile tamamen yerel (cihaz içinde, internetsiz ve %100 gizli) olarak çalıştırmanızı sağlar.
 
 ---
 
@@ -15,11 +15,11 @@ Telefonunuzun ana ekranından **tek bir dokunuşla** Ollama ve sözlüğü açab
    ```
 2. Android ana ekranınızda boş bir alana basılı tutun ve **"Widget'lar"** (Araç Takımları) menüsüne girin.
 3. **"Termux:Widget"** seçeneğini seçip ana ekranınıza yerleştirin.
-4. Listeden **`LexiBridge`** kısayolunu seçin.
+4. Listeden **`LingoMate`** kısayolunu seçin.
 
-> 🎯 **Artık Hazır:** Ana ekrandaki LexiBridge widget'ına bastığınız an:
+> 🎯 **Artık Hazır:** Ana ekrandaki LingoMate widget'ına bastığınız an:
 > - Ollama arka planda başlar.
-> - LexiBridge açılır ve tarayıcınızda otomatik ekrana gelir.
+> - LingoMate açılır ve tarayıcınızda otomatik ekrana gelir.
 > - **Tarayıcı sekmesini kapattığınız an:** Ollama ve Termux sunucusu arka planda kendiliğinden tamamen kapanır!
 
 ---

@@ -50,7 +50,7 @@ def main():
     local_ip = get_local_ip()
 
     print("=" * 60)
-    print("  \U0001f309 LexiBridge Akilli Sozluk - Mobil Baglanti Sunucusu")
+    print("  \U0001f309 LingoMate Akilli Sozluk - Mobil Baglanti Sunucusu")
     print("=" * 60)
     print(f"\n  \U0001f4f1 Telefonunuz icin guncel baglanti adresi:")
     print(f"\n     👉 http://{local_ip}:{port}")

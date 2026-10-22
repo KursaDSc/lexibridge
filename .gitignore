@@ -31,3 +31,8 @@ Thumbs.db
 scratch/
 __pycache__/
 *.pyc
+
+# Playwright test artifacts
+tests/e2e/screenshots/
+playwright-report/
+test-results/

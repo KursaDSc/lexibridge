@@ -1,19 +1,19 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>LexiBridge | AI Mobil Sözlük</title>
+  <title>LingoMate | AI Mobil Sözlük</title>
   
   <!-- PWA & Mobile Meta Tags (Cache-Busted v4.0) -->
-  <link rel="manifest" href="manifest.json?v=4.0">
+  <link rel="manifest" href="manifest.json?v=5.0">
   <meta name="theme-color" content="#0284c7">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="LexiBridge">
-  <link rel="apple-touch-icon" href="icon-192.png?v=4.0">
-  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=4.0">
-  <link rel="icon" type="image/x-icon" href="app_icon.ico?v=4.0">
+  <meta name="apple-mobile-web-app-title" content="LingoMate">
+  <link rel="apple-touch-icon" href="icon-192.png?v=5.0">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=5.0">
+  <link rel="icon" type="image/x-icon" href="app_icon.ico?v=5.0">
 
   <!-- Local Tailwind Engine (with CDN fallback) -->
   <script src="vendor/tailwindcss.js" onerror="this.onerror=null;this.src='https://cdn.tailwindcss.com'"></script>
@@ -44,9 +44,15 @@
             primary: {
               50: '#f0f9ff',
               100: '#e0f2fe',
+              200: '#bae6fd',
+              300: '#7dd3fc',
+              400: '#38bdf8',
               500: '#0ea5e9',
               600: '#0284c7',
               700: '#0369a1',
+              800: '#075985',
+              900: '#0c4a6e',
+              950: '#082f49',
             }
           }
         }
@@ -72,8 +78,9 @@
         if (!btn) return;
         var iconWrap = btn.querySelector('.nav-tab-icon-wrapper');
         var label = btn.querySelector('span');
-        if (t === activeTab) btn.setAttribute('aria-current', 'page'); else btn.removeAttribute('aria-current');
-        if (t === activeTab) {
+        var isActive = (t === activeTab);
+        btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        if (isActive) {
           btn.classList.add('active', 'text-primary-600', 'dark:text-primary-400');
           btn.classList.remove('text-slate-500', 'dark:text-slate-400');
           if (iconWrap) {
@@ -97,18 +104,19 @@
       });
     };
 
-    window.switchMainTab = function(tabName, deckType) {
+    window.switchMainTab = function(tabName, deckType, opts) {
+      var options = opts || {};
       var vd = document.getElementById('viewDictionary');
-      var qm = document.getElementById('flashcardModal');
-      var fm = document.getElementById('favoritesModal');
-      var sm = document.getElementById('settingsModal');
+      var vp = document.getElementById('viewPractice');
+      var vf = document.getElementById('viewFavorites');
+      var vs = document.getElementById('viewSettings');
       var qp = document.getElementById('quickPeekSheet');
       var hm = document.getElementById('historyModal');
       
-      if (qp && window.closeQuickPeek) window.closeQuickPeek();
+      if (qp && window.closeQuickPeek) window.closeQuickPeek({ restoreFocus: false });
       if (hm) hm.classList.add('hidden');
 
-      var views = { dictionary: vd, practice: qm, favorites: fm, settings: sm };
+      var views = { dictionary: vd, practice: vp, favorites: vf, settings: vs };
       Object.keys(views).forEach(function(k) {
         if (views[k]) views[k].classList.toggle('hidden', k !== tabName);
       });
@@ -117,19 +125,28 @@
       window.setActiveNavTab(tabName);
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
-      var active = views[tabName];
-      if (active && tabName !== 'dictionary') {
-        active.setAttribute('tabindex', '-1');
-        active.style.outline = 'none';
-        active.focus({ preventScroll: true });
-      }
-
-      if (tabName === 'dictionary') {
+      // Focus policy: never steal focus implicitly. Callers that want focus
+      // in the search field pass { focusSearch: true }. Keyboard users
+      // navigating with arrow keys keep focus on the nav button itself.
+      if (tabName === 'dictionary' && options.focusSearch !== false) {
         var input = document.getElementById('searchInput');
-        if (input && window.innerWidth >= 768) {
+        if (input) {
           setTimeout(function() { input.focus(); }, 100);
         }
-      } else if (tabName === 'practice') {
+      }
+
+      // Announce the section change for screen reader users
+      if (typeof window.lexiAnnounce === 'function') {
+        var labels = {
+          dictionary: 'Sözlük',
+          practice: 'Kelime Pratiği',
+          favorites: 'Favori Kelimelerim',
+          settings: 'Ayarlar'
+        };
+        window.lexiAnnounce(labels[tabName] || tabName);
+      }
+
+      if (tabName === 'practice') {
         var deck = deckType || 'auto';
         if (typeof window.initFlashcards === 'function') {
           window.initFlashcards(deck);
@@ -160,6 +177,9 @@
     window.closeHistoryModal = function() {
       var m = document.getElementById('historyModal');
       if (m) m.classList.add('hidden');
+      // Focus search input after closing modal
+      var input = document.getElementById('searchInput');
+      if (input) setTimeout(function() { input.focus(); }, 50);
     };
     window.openFlagModal = function(query) {
       var m = document.getElementById('flagModal');
@@ -174,6 +194,9 @@
       if (m) m.classList.add('hidden');
       var statusMsg = document.getElementById('flagStatusMsg');
       if (statusMsg) statusMsg.classList.add('hidden');
+      // Focus search input after closing modal
+      var input = document.getElementById('searchInput');
+      if (input) setTimeout(function() { input.focus(); }, 50);
     };
     window.toggleTheme = function() {
       var isDark = document.documentElement.classList.toggle('dark');
@@ -193,11 +216,18 @@
     window.closeFlashcardModal = function() {
       window.switchMainTab('dictionary');
     };
-    window.closeQuickPeek = function() {
+    window.closeQuickPeek = function(opts) {
+      var options = opts || {};
       var s = document.getElementById('quickPeekSheet');
       if (s) {
         s.classList.remove('is-visible');
         setTimeout(function() { s.classList.add('hidden'); }, 250);
+      }
+      // Focus is only restored when the sheet is dismissed on its own.
+      // When a view switch closes it, the view switcher owns focus policy.
+      if (options.restoreFocus !== false) {
+        var input = document.getElementById('searchInput');
+        if (input) setTimeout(function() { input.focus(); }, 300);
       }
     };
   </script>
@@ -210,8 +240,8 @@
       
       <!-- Brand (Pure, Minimal & Aesthetic) -->
       <div class="flex items-center gap-2.5 min-w-0">
-        <img src="icon-192.png?v=4.0" alt="LexiBridge App Icon" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl shadow-sm shadow-primary-500/20 object-cover border border-slate-100 dark:border-slate-800 shrink-0">
-        <h1 class="text-base sm:text-lg font-bold tracking-tight text-slate-800 dark:text-slate-100 leading-tight">LexiBridge</h1>
+        <img src="icon-192.png?v=5.0" alt="LingoMate App Icon" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl shadow-sm shadow-primary-500/20 object-cover border border-slate-100 dark:border-slate-800 shrink-0">
+        <h1 class="text-base sm:text-lg font-bold tracking-tight text-slate-800 dark:text-slate-100 leading-tight">LingoMate</h1>
 
         <!-- Hidden provider metadata container for background state management & tests -->
         <div id="headerProviderBadge" class="hidden" aria-hidden="true">
@@ -247,7 +277,7 @@
       <!-- Action Buttons (WCAG AA >= 44x44px Touch Targets) -->
       <div class="flex items-center gap-1 sm:gap-2 shrink-0">
         <!-- Iconic Mode Toggle (Derin AI vs Hızlı API) -->
-        <button id="modeToggleBtn" title="Aktif Mod: Derin AI (Hızlı REST için dokunun)" aria-label="Derin AI ve Hızlı REST Arasında Geçiş Yap" class="w-9 h-9 sm:w-10 sm:h-10 min-w-[36px] sm:min-w-[40px] min-h-[44px] flex items-center justify-center text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/40 active:scale-95 rounded-full transition-all border border-amber-200/80 dark:border-amber-800/80 bg-amber-50/40 dark:bg-amber-950/20 shadow-2xs">
+        <button id="modeToggleBtn" title="Aktif Mod: Derin AI (Hızlı REST için dokunun)" aria-label="Derin AI ve Hızlı REST Arasında Geçiş Yap" aria-pressed="false" class="w-9 h-9 sm:w-10 sm:h-10 min-w-[36px] sm:min-w-[40px] min-h-[44px] flex items-center justify-center text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/40 active:scale-95 rounded-full transition-all border border-amber-200/80 dark:border-amber-800/80 bg-amber-50/40 dark:bg-amber-950/20 shadow-2xs">
           <i id="modeToggleIcon" class="ph-bold ph-sparkle text-lg sm:text-xl text-amber-500"></i>
           <span id="modeToggleText" class="sr-only">Derin AI</span>
         </button>
@@ -283,12 +313,12 @@
   </div>
 
   <!-- Main Container -->
-  <main class="flex-1 w-full max-w-2xl mx-auto px-4 py-4 md:py-6 pb-24 md:pb-28 flex flex-col">
+  <main class="flex-1 w-full max-w-2xl mx-auto px-4 py-4 md:py-6 pb-20 md:pb-24 flex flex-col" id="mainViews">
     
-    <!-- Tab 1: Sözlük Görünümü (SPA View) -->
-    <div id="viewDictionary" class="w-full flex flex-col transition-all">
-    <!-- Search & Language Card -->
-    <div class="w-full bg-white dark:bg-slate-900 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 dark:border-slate-800 overflow-hidden mb-4 transition-all">
+    <!-- View 1: Sözlük (Dictionary) -->
+    <div id="viewDictionary" class="tab-view w-full flex flex-col" data-tab="dictionary" role="tabpanel" aria-labelledby="navTabDictionary">
+      <!-- Search & Language Card -->
+      <div class="w-full bg-white dark:bg-slate-900 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 dark:border-slate-800 mb-4 transition-all">
       
       <!-- Language Switcher Bar -->
       <div class="flex items-center justify-center gap-2 px-3 py-2.5 border-b border-slate-50 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40">
@@ -310,7 +340,7 @@
       <!-- Input Area -->
       <div class="p-3.5 md:p-4 relative">
         <div class="relative">
-          <textarea id="searchInput" rows="2" placeholder="Hollandaca bir kelime, deyim veya cümle yazın..." 
+          <textarea id="searchInput" rows="2" placeholder="Hollandaca bir kelime, deyim veya cümle yazın..."
             class="w-full text-base md:text-lg bg-transparent border-none focus:ring-0 resize-none outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 text-slate-800 dark:text-slate-100 leading-relaxed pr-10"></textarea>
           
           <button id="clearBtn" aria-label="Arama Metnini Temizle" class="hidden absolute right-0 top-0 w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
@@ -319,24 +349,24 @@
         </div>
 
         <!-- Autocomplete Suggestions Dropdown -->
-        <div id="autocompleteDropdown" class="hidden absolute left-3.5 right-3.5 top-full mt-1 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-700 rounded-2xl shadow-xl z-30 max-h-60 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800"></div>
+        <div id="autocompleteDropdown" class="hidden absolute left-3.5 right-3.5 top-full mt-1 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-700 rounded-2xl shadow-xl z-40 max-h-60 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800" role="listbox" aria-label="Arama önerileri"></div>
         
         <!-- Controls & Search Button -->
-        <div class="flex items-center justify-between pt-2 border-t border-slate-50 dark:border-slate-800/60 mt-1 flex-wrap gap-2">
-          <div class="flex items-center gap-1.5 flex-wrap">
-            <button id="pasteBtn" type="button" aria-label="Panodan Yapıştır" class="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 px-3 py-2 min-h-[44px] rounded-xl transition-colors font-medium">
+        <div class="pt-2 border-t border-slate-50 dark:border-slate-800/60 mt-1 flex flex-col gap-2">
+          <div class="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+            <button id="pasteBtn" type="button" aria-label="Panodan Yapıştır" class="flex items-center gap-1.5 shrink-0 text-xs text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 px-3 py-2 min-h-[44px] rounded-xl transition-colors font-medium">
               <i class="ph ph-clipboard-text text-base"></i>
               <span>Yapıştır</span>
             </button>
-            <button id="voiceSearchBtn" type="button" aria-label="Sesli Arama" title="Sesle Ara (Mikrofon)" class="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-slate-100 dark:hover:bg-slate-800 px-3 py-2 min-h-[44px] rounded-xl transition-all font-medium">
+            <button id="voiceSearchBtn" type="button" aria-label="Sesli Arama" title="Sesle Ara (Mikrofon)" class="flex items-center gap-1.5 shrink-0 text-xs text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-slate-100 dark:hover:bg-slate-800 px-3 py-2 min-h-[44px] rounded-xl transition-all font-medium">
               <i id="voiceSearchIcon" class="ph-bold ph-microphone text-base text-primary-600 dark:text-primary-400"></i>
               <span id="voiceSearchLabel">Sesle Ara</span>
             </button>
-            <div id="diacriticsBar" class="flex items-center gap-1 pl-1 border-l border-slate-200/80 dark:border-slate-700/80 overflow-x-auto scrollbar-none py-0.5"></div>
+            <div id="diacriticsBar" class="flex items-center gap-1 pl-1 border-l border-slate-200/80 dark:border-slate-700/80 py-0.5"></div>
           </div>
 
           <button id="searchBtn" disabled aria-label="Sözlükte Ara"
-            class="flex items-center gap-2 px-5 py-2.5 min-h-[48px] bg-gradient-to-r from-primary-600 to-primary-700 active:scale-98 text-white rounded-xl font-semibold hover:from-primary-700 hover:to-primary-800 disabled:opacity-40 disabled:pointer-events-none transition-all shadow-sm shadow-primary-500/20">
+            class="w-full flex items-center justify-center gap-2 px-4 py-2.5 min-h-[48px] bg-gradient-to-r from-primary-600 to-primary-700 active:scale-[0.99] text-white rounded-xl font-semibold hover:from-primary-700 hover:to-primary-800 disabled:opacity-40 disabled:pointer-events-none transition-all shadow-sm shadow-primary-500/20">
             <span id="searchBtnText">Sözlükte Ara</span>
             <i id="searchBtnIcon" class="ph-bold ph-magnifying-glass text-base"></i>
             <i id="loadingSpinner" class="ph-bold ph-spinner-gap text-base animate-spin hidden"></i>
@@ -348,7 +378,7 @@
 
     <!-- Quick Seed Suggestions (One-tap test) -->
     <div id="quickSeeds" class="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none mb-3 text-xs">
-      <span class="text-slate-600 flex items-center gap-1 pl-1 font-semibold flex-shrink-0">
+      <span class="text-slate-600 dark:text-slate-400 flex items-center gap-1 pl-1 font-semibold flex-shrink-0">
         <i class="ph ph-sparkle text-amber-500"></i> Örnekler:
       </span>
       <div id="seedChipsContainer" class="flex items-center gap-1.5">
@@ -373,7 +403,7 @@
       <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-50 to-sky-100 border border-primary-100 flex items-center justify-center text-primary-600 mb-3 shadow-inner">
         <i class="ph-bold ph-translate text-3xl"></i>
       </div>
-      <h3 class="font-bold text-slate-800 text-base md:text-lg">Felemenkçe ↔ Türkçe Akıllı Sözlük</h3>
+      <h3 class="font-bold text-slate-800 dark:text-slate-100 text-base md:text-lg">Felemenkçe ↔ Türkçe Akıllı Sözlük</h3>
       <p class="text-xs text-slate-500 max-w-sm text-center mt-1 leading-relaxed">
         Doğru artikeller (de/het), bağlamsal anlamlar, deyimler ve doğal telaffuz rehberi.
       </p>
@@ -385,7 +415,7 @@
 
       <!-- Situational Practice Categories (Customer-Centric Learning Hub) -->
       <div class="w-full mt-5 space-y-3">
-        <div class="flex items-center justify-between text-sm font-bold text-slate-800 px-1">
+        <div class="flex items-center justify-between text-sm font-bold text-slate-800 dark:text-slate-100 px-1">
           <span class="flex items-center gap-1.5">
             <i class="ph-bold ph-lightbulb text-amber-500 text-base"></i>
             <span>Günlük Hayattan Sık Kullanılanlar</span>
@@ -484,10 +514,10 @@
       <!-- Populated dynamically via JS -->
     </div>
   </div>
-  <!-- End of Tab 1: viewDictionary -->
+  <!-- End of View 1: viewDictionary -->
 
-  <!-- Tab 2: Pratik Görünümü (Flashcards & Quiz Full SPA View) -->
-  <div id="flashcardModal" class="hidden w-full bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col transition-all overflow-hidden" role="region" aria-labelledby="flashcardModalTitle">
+  <!-- View 2: Pratik (Flashcards & Quiz) -->
+  <div id="viewPractice" class="tab-view hidden w-full bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col transition-all overflow-hidden" role="tabpanel" aria-labelledby="navTabPractice">
     <!-- Header -->
     <div class="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/50">
       <div class="flex items-center gap-2.5">
@@ -505,28 +535,25 @@
           <span id="fcStreakText">1 Gün</span>
         </span>
         <span id="flashcardCounter" class="text-xs font-mono font-bold px-2.5 py-1 bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg">1 / 10</span>
-        <button id="closeFlashcardBtn" type="button" onclick="window.switchMainTab('dictionary')" aria-label="Sözlüğe Dön" class="w-10 h-10 min-w-[40px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" title="Sözlüğe Dön">
-          <i class="ph-bold ph-x text-lg"></i>
-        </button>
       </div>
     </div>
 
     <!-- CEFR & Deck Selector Tabs -->
-    <div role="group" aria-label="Deste seçimi" class="px-4 py-2.5 bg-slate-50/50 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2 overflow-x-auto no-scrollbar">
-      <button type="button" data-deck="auto" onclick="window.initFlashcards('auto')" class="fc-deck-chip shrink-0 text-xs font-semibold px-3 py-1.5 min-h-[44px] rounded-lg border">Tümü (15'li Set)</button>
-      <button type="button" data-deck="due" onclick="window.initFlashcards('due')" class="fc-deck-chip shrink-0 text-xs font-semibold px-3 py-1.5 min-h-[44px] rounded-lg border flex items-center gap-1.5" title="Aralıklı tekrar zamanı gelen kelimeler (Leitner Kutuları)">
+    <div role="tablist" aria-label="Deste seçimi" class="px-4 py-2.5 bg-slate-50/50 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2 overflow-x-auto no-scrollbar">
+      <button type="button" role="tab" aria-selected="true" data-deck="auto" onclick="window.initFlashcards('auto')" class="fc-deck-chip shrink-0 text-xs font-semibold px-3 py-1.5 min-h-[44px] rounded-lg border">Tümü (15'li Set)</button>
+      <button type="button" role="tab" aria-selected="false" data-deck="due" onclick="window.initFlashcards('due')" class="fc-deck-chip shrink-0 text-xs font-semibold px-3 py-1.5 min-h-[44px] rounded-lg border flex items-center gap-1.5" title="Aralıklı tekrar zamanı gelen kelimeler (Leitner Kutuları)">
         <i class="ph-bold ph-hourglass-high text-primary-500"></i>
         <span>Tekrar Zamanı</span>
         <span id="fcDueBadge" class="hidden text-xs font-bold px-1.5 py-0.5 rounded-full bg-primary-100 dark:bg-primary-900/60 text-primary-700 dark:text-primary-300">0</span>
       </button>
-      <button type="button" data-deck="favorites" onclick="window.initFlashcards('favorites')" class="fc-deck-chip shrink-0 text-xs font-semibold px-3 py-1.5 min-h-[44px] rounded-lg border flex items-center gap-1">
+      <button type="button" role="tab" aria-selected="false" data-deck="favorites" onclick="window.initFlashcards('favorites')" class="fc-deck-chip shrink-0 text-xs font-semibold px-3 py-1.5 min-h-[44px] rounded-lg border flex items-center gap-1">
         <i class="ph-bold ph-star text-amber-500"></i>
         <span>Favorilerim</span>
       </button>
-      <button type="button" data-deck="a1" onclick="window.initFlashcards('a1')" class="fc-deck-chip shrink-0 text-xs font-semibold px-3 py-1.5 min-h-[44px] rounded-lg border">A1 Başlangıç</button>
-      <button type="button" data-deck="a2" onclick="window.initFlashcards('a2')" class="fc-deck-chip shrink-0 text-xs font-semibold px-3 py-1.5 min-h-[44px] rounded-lg border">A2 Temel</button>
-      <button type="button" data-deck="b1" onclick="window.initFlashcards('b1')" class="fc-deck-chip shrink-0 text-xs font-semibold px-3 py-1.5 min-h-[44px] rounded-lg border">B1 Orta</button>
-      <button type="button" data-deck="cefr" onclick="window.initFlashcards('cefr')" class="fc-deck-chip shrink-0 text-xs font-semibold px-3 py-1.5 min-h-[44px] rounded-lg border">A1-B2 Tümü</button>
+      <button type="button" role="tab" aria-selected="false" data-deck="a1" onclick="window.initFlashcards('a1')" class="fc-deck-chip shrink-0 text-xs font-semibold px-3 py-1.5 min-h-[44px] rounded-lg border">A1 Başlangıç</button>
+      <button type="button" role="tab" aria-selected="false" data-deck="a2" onclick="window.initFlashcards('a2')" class="fc-deck-chip shrink-0 text-xs font-semibold px-3 py-1.5 min-h-[44px] rounded-lg border">A2 Temel</button>
+      <button type="button" role="tab" aria-selected="false" data-deck="b1" onclick="window.initFlashcards('b1')" class="fc-deck-chip shrink-0 text-xs font-semibold px-3 py-1.5 min-h-[44px] rounded-lg border">B1 Orta</button>
+      <button type="button" role="tab" aria-selected="false" data-deck="cefr" onclick="window.initFlashcards('cefr')" class="fc-deck-chip shrink-0 text-xs font-semibold px-3 py-1.5 min-h-[44px] rounded-lg border">A1-B2 Tümü</button>
     </div>
 
     <!-- Card Stage / Body -->
@@ -608,6 +635,28 @@
         </button>
       </div>
 
+      <!-- Keyboard Shortcuts Legend (Hidden by default, shown on '?' key) -->
+      <div id="kbdLegend" class="kbd-legend hidden" role="dialog" aria-label="Klavye Kısayolları">
+        <div class="flex items-center justify-between mb-3">
+          <h4 class="font-bold">Klavye Kısayolları</h4>
+          <button id="kbdLegendClose" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300" aria-label="Kapat">
+            <i class="ph-bold ph-x text-lg"></i>
+          </button>
+        </div>
+        <dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-2 text-xs items-center">
+          <dt class="font-mono bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded whitespace-nowrap text-center">Space</dt>
+          <dd class="text-slate-600 dark:text-slate-300">Kartı çevir (Enter de olur)</dd>
+          <dt class="font-mono bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded whitespace-nowrap text-center">&rarr;</dt>
+          <dd class="text-slate-600 dark:text-slate-300">Biliyorum</dd>
+          <dt class="font-mono bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded whitespace-nowrap text-center">&larr;</dt>
+          <dd class="text-slate-600 dark:text-slate-300">Tekrar Lazım</dd>
+          <dt class="font-mono bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded whitespace-nowrap text-center">?</dt>
+          <dd class="text-slate-600 dark:text-slate-300">Bu yardımı göster/gizle</dd>
+          <dt class="font-mono bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded whitespace-nowrap text-center">Esc</dt>
+          <dd class="text-slate-600 dark:text-slate-300">Sözlüğe dön</dd>
+        </dl>
+      </div>
+
       <!-- Finish Screen (Hidden by default) -->
       <div id="flashcardFinishScreen" class="hidden w-full text-center py-6">
         <div class="w-16 h-16 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-3 text-3xl">
@@ -627,16 +676,18 @@
 
     </div>
   </div>
+  </div>
+  <!-- End of View 2: viewPractice -->
 
-  <!-- Tab 3: Kelimelerim Görünümü (Favorites Full SPA View) -->
-  <div id="favoritesModal" class="hidden w-full bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col transition-all overflow-hidden min-h-[500px]" role="region" aria-labelledby="favoritesModalTitle">
+  <!-- View 3: Kelimelerim (Favorites) -->
+  <div id="viewFavorites" class="tab-view hidden w-full bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col transition-all overflow-hidden min-h-[500px]" role="tabpanel" aria-labelledby="navTabFavorites">
     <div class="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40">
       <div class="flex items-center gap-2.5">
         <div class="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-500 flex items-center justify-center">
           <i class="ph-bold ph-star text-xl"></i>
         </div>
         <div>
-          <h3 id="favoritesModalTitle" class="font-bold text-slate-800 dark:text-slate-100 text-base leading-tight">Favori Kelimelerim</h3>
+          <h3 class="font-bold text-slate-800 dark:text-slate-100 text-base leading-tight">Favori Kelimelerim</h3>
           <span class="text-xs text-slate-500 dark:text-slate-400">Kaydettiğiniz kelimeler ve özel sözlüğünüz</span>
         </div>
       </div>
@@ -646,9 +697,6 @@
           <span>Kartlarla Çalış</span>
         </button>
         <button id="clearFavoritesBtn" class="text-xs text-red-500 hover:text-red-700 font-semibold px-2.5 py-2 min-h-[44px] rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors">Temizle</button>
-        <button id="closeFavoritesBtn" onclick="window.switchMainTab('dictionary')" aria-label="Sözlüğe Dön" class="w-10 h-10 min-w-[40px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" title="Sözlüğe Dön">
-          <i class="ph-bold ph-x text-lg"></i>
-        </button>
       </div>
     </div>
 
@@ -678,9 +726,10 @@
       <!-- Favorites items dynamically inserted -->
     </div>
   </div>
+  <!-- End of View 3: viewFavorites -->
 
-  <!-- Tab 4: Ayarlar Görünümü (Settings & Provider Full SPA View) -->
-  <div id="settingsModal" class="hidden w-full bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col transition-all overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle">
+  <!-- View 4: Ayarlar (Settings) -->
+  <div id="viewSettings" class="tab-view hidden w-full bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col transition-all overflow-hidden" role="tabpanel" aria-labelledby="navTabSettings">
     
     <!-- View Header -->
     <div class="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
@@ -689,13 +738,10 @@
           <i class="ph-bold ph-gear-six text-xl"></i>
         </div>
         <div>
-          <h3 id="settingsModalTitle" class="font-bold text-slate-800 dark:text-slate-100 text-base leading-tight">LexiBridge Yapay Zeka Ayarları</h3>
+          <h3 class="font-bold text-slate-800 dark:text-slate-100 text-base leading-tight">LingoMate Yapay Zeka Ayarları</h3>
           <span class="text-xs text-slate-500 dark:text-slate-400">Model sağlayıcıları, API anahtarları ve sistem tercihleri</span>
         </div>
       </div>
-      <button id="closeSettingsBtn" onclick="window.switchMainTab('dictionary')" aria-label="Sözlüğe Dön" class="w-10 h-10 min-w-[40px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" title="Sözlüğe Dön">
-        <i class="ph-bold ph-x text-lg"></i>
-      </button>
     </div>
 
     <!-- View Body -->
@@ -705,32 +751,32 @@
       <div>
         <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Yapay Zeka Sağlayıcısı</label>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2" id="providerButtonGroup">
-          <button data-provider="google" class="provider-tab flex items-center gap-2 p-2.5 rounded-xl border border-primary-500 bg-primary-50/60 dark:bg-primary-950/40 text-primary-900 dark:text-primary-100 font-semibold text-left transition-all min-w-0">
+          <button data-provider="google" data-active="true" class="provider-tab flex items-center gap-2 p-2.5 rounded-xl border font-semibold text-left transition-all min-w-0">
             <span class="text-xl shrink-0">🔵</span>
             <div class="min-w-0 flex-1">
-              <div class="text-sm font-semibold text-slate-800">Google Gemini</div>
-              <div class="text-xs text-slate-500 dark:text-slate-400 font-normal truncate">Flash / Pro REST</div>
+              <div class="text-sm font-semibold provider-tab-title">Google Gemini</div>
+              <div class="text-xs provider-tab-subtitle font-normal truncate">Flash / Pro REST</div>
             </div>
           </button>
-          <button data-provider="nvidia" class="provider-tab flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-left transition-all min-w-0">
+          <button data-provider="nvidia" data-active="false" class="provider-tab flex items-center gap-2 p-2.5 rounded-xl border font-semibold text-left transition-all min-w-0">
             <span class="text-xl shrink-0">🟢</span>
             <div class="min-w-0 flex-1">
-              <div class="text-sm font-semibold text-slate-800">NVIDIA NIM</div>
-              <div class="text-xs text-slate-500 dark:text-slate-400 font-normal truncate">Nemotron / Mistral</div>
+              <div class="text-sm font-semibold provider-tab-title">NVIDIA NIM</div>
+              <div class="text-xs provider-tab-subtitle font-normal truncate">Nemotron / Mistral</div>
             </div>
           </button>
-          <button data-provider="local" class="provider-tab flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-left transition-all min-w-0">
+          <button data-provider="local" data-active="false" class="provider-tab flex items-center gap-2 p-2.5 rounded-xl border font-semibold text-left transition-all min-w-0">
             <span class="text-xl shrink-0">🏠</span>
             <div class="min-w-0 flex-1">
-              <div class="text-sm font-semibold text-slate-800">Yerel LLM (Ollama)</div>
-              <div class="text-xs text-slate-500 dark:text-slate-400 font-normal truncate">Termux / Localhost</div>
+              <div class="text-sm font-semibold provider-tab-title">Yerel LLM (Ollama)</div>
+              <div class="text-xs provider-tab-subtitle font-normal truncate">Termux / Localhost</div>
             </div>
           </button>
-          <button data-provider="quick_rest" class="provider-tab flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-left transition-all min-w-0">
+          <button data-provider="quick_rest" data-active="false" class="provider-tab flex items-center gap-2 p-2.5 rounded-xl border font-semibold text-left transition-all min-w-0">
             <span class="text-xl shrink-0">⚡</span>
             <div class="min-w-0 flex-1">
-              <div class="text-sm font-semibold text-slate-800">Hızlı REST</div>
-              <div class="text-xs text-slate-500 dark:text-slate-400 font-normal truncate">0 Key - Anında</div>
+              <div class="text-sm font-semibold provider-tab-title">Hızlı REST</div>
+              <div class="text-xs provider-tab-subtitle font-normal truncate">0 Key - Anında</div>
             </div>
           </button>
         </div>
@@ -788,7 +834,7 @@
               <span>Gizlilik & Veri Güvenliği Beyanı</span>
             </summary>
             <div class="mt-2 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 text-xs leading-relaxed text-slate-600 dark:text-slate-300 space-y-2">
-              <p>• <strong>Sıfır Kişisel Veri:</strong> LexiBridge hiçbir kişisel veri, kimlik, konum veya analitik takip verisi toplamaz.</p>
+              <p>• <strong>Sıfır Kişisel Veri:</strong> LingoMate hiçbir kişisel veri, kimlik, konum veya analitik takip verisi toplamaz.</p>
               <p>• <strong>BYOK Güvenliği:</strong> Girdiğiniz API anahtarları yalnızca cihazınızda saklanır, geliştiriciye veya harici sunucuya iletilmez.</p>
               <p>• <strong>Yapay Zeka İletimi:</strong> Sözcükler yalnızca anlık dilbilimsel analiz için seçilen yapay zeka modeline iletilir.</p>
             </div>
@@ -935,11 +981,11 @@
   </div>
 
   <!-- Modern Bottom Navigation Bar (4 Sekmeli Native Mimari) -->
-  <nav id="bottomNavBar" class="fixed bottom-0 inset-x-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-200/80 dark:border-slate-800/80 shadow-lg px-2 sm:px-4 py-1 pb-[calc(0.25rem+env(safe-area-inset-bottom,0px))] transition-transform" aria-label="Ana Gezinme Çubuğu">
-    <div class="max-w-md mx-auto grid grid-cols-4 gap-1">
+  <nav id="bottomNavBar" class="fixed bottom-0 inset-x-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-200/80 dark:border-slate-800/80 shadow-lg px-2 sm:px-4 transition-transform" aria-label="Ana Gezinme Çubuğu">
+    <div class="max-w-md mx-auto grid grid-cols-4 gap-1" role="tablist" aria-label="Ana sekmeler">
       
       <!-- Tab 1: Sözlük (Arama) -->
-      <button id="navTabDictionary" type="button" onclick="window.switchMainTab('dictionary')" class="nav-tab-btn active flex flex-col items-center justify-center py-1 min-h-[44px] rounded-xl text-primary-600 dark:text-primary-400 transition-all group" aria-label="Sözlük ve Arama Sekmesi">
+      <button id="navTabDictionary" type="button" role="tab" aria-selected="true" aria-controls="viewDictionary" onclick="window.switchMainTab('dictionary')" class="nav-tab-btn active flex flex-col items-center justify-center py-1 min-h-[44px] rounded-xl text-primary-600 dark:text-primary-400 transition-all group" aria-label="Sözlük ve Arama Sekmesi">
         <div class="nav-tab-icon-wrapper flex items-center justify-center w-8 h-7 rounded-full bg-primary-50 dark:bg-primary-950/60 transition-colors">
           <i class="ph-bold ph-magnifying-glass text-xl"></i>
         </div>
@@ -947,7 +993,7 @@
       </button>
 
       <!-- Tab 2: Pratik (Flashcards & SRS) -->
-      <button id="navTabPractice" type="button" onclick="window.switchMainTab('practice')" class="nav-tab-btn flex flex-col items-center justify-center py-1 min-h-[44px] rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-all group" aria-label="Kelime Pratiği ve Quiz Sekmesi">
+      <button id="navTabPractice" type="button" role="tab" aria-selected="false" aria-controls="viewPractice" onclick="window.switchMainTab('practice')" class="nav-tab-btn flex flex-col items-center justify-center py-1 min-h-[44px] rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-all group" aria-label="Kelime Pratiği ve Quiz Sekmesi">
         <div class="nav-tab-icon-wrapper flex items-center justify-center w-8 h-7 rounded-full transition-colors">
           <i class="ph-bold ph-cards text-xl"></i>
         </div>
@@ -955,7 +1001,7 @@
       </button>
 
       <!-- Tab 3: Kelimelerim (Favoriler) -->
-      <button id="navTabFavorites" type="button" onclick="window.switchMainTab('favorites')" class="nav-tab-btn flex flex-col items-center justify-center py-1 min-h-[44px] rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-all group relative" aria-label="Favori Kelimeler Sekmesi">
+      <button id="navTabFavorites" type="button" role="tab" aria-selected="false" aria-controls="viewFavorites" onclick="window.switchMainTab('favorites')" class="nav-tab-btn flex flex-col items-center justify-center py-1 min-h-[44px] rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-all group relative" aria-label="Favori Kelimeler Sekmesi">
         <div class="nav-tab-icon-wrapper flex items-center justify-center w-8 h-7 rounded-full transition-colors">
           <i class="ph-bold ph-star text-xl"></i>
         </div>
@@ -963,7 +1009,7 @@
       </button>
 
       <!-- Tab 4: Ayarlar & Yönetim -->
-      <button id="navTabSettings" type="button" onclick="window.switchMainTab('settings')" class="nav-tab-btn flex flex-col items-center justify-center py-1 min-h-[44px] rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-all group" aria-label="Ayarlar ve Geçmiş Sekmesi">
+      <button id="navTabSettings" type="button" role="tab" aria-selected="false" aria-controls="viewSettings" onclick="window.switchMainTab('settings')" class="nav-tab-btn flex flex-col items-center justify-center py-1 min-h-[44px] rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-all group" aria-label="Ayarlar ve Geçmiş Sekmesi">
         <div class="nav-tab-icon-wrapper flex items-center justify-center w-8 h-7 rounded-full transition-colors">
           <i class="ph-bold ph-gear-six text-xl"></i>
         </div>
@@ -980,15 +1026,16 @@
   </div>
 
   <!-- PWA Service Worker Registration & AI Engine Scripts (Cache-Busted v3.7) -->
-  <script src="js/config.local.js?v=3.7" onerror="this.remove()"></script>
-  <script src="js/cache.js?v=3.7"></script>
-  <script src="js/aiEngine.js?v=3.7"></script>
-  <script src="js/dictionary_seeds.js?v=3.7"></script>
-  <script src="js/app.js?v=3.7"></script>
+  <script src="js/config.local.js?v=5.0" onerror="this.remove()"></script>
+  <script src="js/cache.js?v=5.0"></script>
+  <script src="js/aiEngine.js?v=5.0"></script>
+  <script src="js/dictionary_seeds.js?v=5.0"></script>
+  <script src="js/a11y.js?v=5.0"></script>
+  <script src="js/app.js?v=5.0"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=3.7').then(reg => {
+        navigator.serviceWorker.register('./sw.js?v=5.0').then(reg => {
           reg.update();
         }).catch(err => {
           console.log('SW registration note:', err);

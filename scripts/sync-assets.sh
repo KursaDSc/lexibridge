@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# LexiBridge Asset Synchronization Script (Bash / Linux / CI/CD)
+# LingoMate Asset Synchronization Script (Bash / Linux / CI/CD)
 # Synchronizes web root assets with Android WebView assets
 # ==============================================================================
 
@@ -10,7 +10,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 TARGET_ASSETS="${ROOT_DIR}/android/app/src/main/assets"
 
-echo ">>> Synchronizing LexiBridge Assets for Android..."
+echo ">>> Synchronizing LingoMate Assets for Android..."
 mkdir -p "${TARGET_ASSETS}/css" "${TARGET_ASSETS}/js"
 
 # Root static files

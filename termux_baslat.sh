@@ -1,12 +1,12 @@
 #!/bin/bash
 # ========================================================
-#  LexiBridge Mobile (Termux + Ollama All-In-One Launcher)
+#  LingoMate Mobile (Termux + Ollama All-In-One Launcher)
 # ========================================================
 #  Bu betik Android Termux ortamında:
 #  1. Ollama CORS (OLLAMA_ORIGINS="*") ayarlarını yapar.
 #  2. Ollama arka plan servisini kontrol eder / başlatır.
 #  3. Yüklü modelleri listeler (yoksa hafif model önerir).
-#  4. LexiBridge Web Sunucusunu 127.0.0.1:8080 üzerinde başlatır.
+#  4. LingoMate Web Sunucusunu 127.0.0.1:8080 üzerinde başlatır.
 #  5. Telefonun varsayılan tarayıcısında uygulamayı otomatik açar.
 # ========================================================
 
@@ -22,7 +22,7 @@ export OLLAMA_ORIGINS="*"
 export OLLAMA_HOST="0.0.0.0:11434"
 
 echo "========================================================"
-echo " 📱 LexiBridge Android Termux & Ollama Baslatici"
+echo " 📱 LingoMate Android Termux & Ollama Baslatici"
 echo "========================================================"
 echo ""
 
@@ -102,7 +102,7 @@ fi
 pkill -f "server.py" 2>/dev/null || true
 sleep 0.3
 
-echo "🚀 LexiBridge Mobil Sunucu arka planda baslatiliyor..."
+echo "🚀 LingoMate Mobil Sunucu arka planda baslatiliyor..."
 if command -v python3 >/dev/null 2>&1; then
   python3 "$SCRIPT_DIR/server.py" $PORT >/dev/null 2>&1 &
 elif command -v python >/dev/null 2>&1; then
@@ -113,7 +113,7 @@ else
   exit 1
 fi
 sleep 0.8
-echo "✓ LexiBridge Web Sunucusu ve Ters Proxy aktif: http://127.0.0.1:$PORT"
+echo "✓ LingoMate Web Sunucusu ve Ters Proxy aktif: http://127.0.0.1:$PORT"
 
 # Tarayıcıyı otomatik açma denemesi (Termux api veya intent)
 (

@@ -1,6 +1,6 @@
-# 🌉 LexiBridge | AI Çok Dilli Mobil Sözlük & Dil Analizörü
+# 🌉 LingoMate | AI Çok Dilli Mobil Sözlük & Dil Analizörü
 
-**LexiBridge**, Hollandaca ↔ Türkçe başta olmak üzere diller arası derin dilbilimsel analiz, deyim çözümlemesi ve akıllı çeviri sunan, modern web (PWA), Android ve yerel yapay zeka (Ollama) destekli bir uygulamadır.
+**LingoMate**, Hollandaca ↔ Türkçe başta olmak üzere diller arası derin dilbilimsel analiz, deyim çözümlemesi ve akıllı çeviri sunan, modern web (PWA), Android ve yerel yapay zeka (Ollama) destekli bir uygulamadır.
 
 ---
 
