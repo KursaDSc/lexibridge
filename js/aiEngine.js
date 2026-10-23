@@ -32,11 +32,20 @@ const AIEngine = (function () {
       name: "NVIDIA NIM",
       icon: "🟢",
       badge: "NVIDIA AI",
-      default_model: "nvidia/llama-3.1-nemotron-70b-instruct",
+      default_model: "nvidia/nemotron-3-ultra-550b-a55b:free",
       models: [
-        { id: "nvidia/llama-3.1-nemotron-70b-instruct", name: "Nemotron 70B (NVIDIA Özel Model)", badge: "⚡ Önerilen" },
+        { id: "nvidia/nemotron-3-ultra-550b-a55b:free", name: "Nemotron 3 Ultra 550B (Frontier Zeka)", badge: "🎁 Ücretsiz" },
+        { id: "nvidia/llama-3.1-nemotron-70b-instruct:free", name: "Nemotron 70B Instruct (Dengeli)", badge: "🎁 Ücretsiz" },
+        { id: "nvidia/nemotron-3.5-super-vl:free", name: "Nemotron 3.5 Super VL 120B (Görsel & Dil)", badge: "🎁 Ücretsiz" },
+        { id: "nvidia/nemotron-3-super-120b-a12b:free", name: "Nemotron 3 Super 120B (Akıl Yürütme)", badge: "🎁 Ücretsiz" },
+        { id: "nvidia/nemotron-3-nano-30b-a3b:free", name: "Nemotron 3 Nano 30B (Ultra Hızlı)", badge: "⚡ Hızlı Free" },
+        { id: "nvidia/nemotron-3.5-lightning:free", name: "Nemotron 3.5 Lightning (Düşük Gecikme)", badge: "⚡ Hızlı Free" },
+        { id: "deepseek-ai/deepseek-r1:free", name: "DeepSeek-R1 (Derin Akıl Yürütme)", badge: "🎁 Ücretsiz" },
+        { id: "nvidia/nemotron-3-ultra-550b-a55b", name: "Nemotron 3 Ultra 550B (NVIDIA Direct)", badge: "👑 Ultra" },
+        { id: "nvidia/llama-3.1-nemotron-70b-instruct", name: "Nemotron 70B (NVIDIA Direct)", badge: "⚡ NIM" },
+        { id: "nvidia/nemotron-4-340b-instruct", name: "Nemotron-4 340B (NVIDIA Direct)", badge: "💎 340B" },
         { id: "mistralai/mistral-large-2-instruct", name: "Mistral Large 2 (Gelişmiş Çok Dilli)", badge: "🌍 Çok Dilli" },
-        { id: "deepseek-ai/deepseek-r1", name: "DeepSeek-R1 (Derin Akıl Yürütme & Gramer)", badge: "🧠 Zeka Devi" }
+        { id: "deepseek-ai/deepseek-r1", name: "DeepSeek-R1 (NVIDIA NIM Direct)", badge: "🧠 Zeka Devi" }
       ]
     },
     local: {
@@ -859,16 +868,25 @@ ${sanitized}
     return normalizeLinguisticResult(parsed, query, sourceLang, targetLang, "Google Gemini (" + activeModel + ")");
   }
 
-  // NVIDIA NIM API call (OpenAI compatible)
+  // NVIDIA NIM & OpenRouter Free API call (OpenAI compatible)
   async function callNvidiaNIM(query, sourceLang, model, apiKey) {
-    if (!apiKey) throw new Error("NVIDIA NIM API anahtarı girilmedi. Lütfen Ayarlar (⚙️) menüsünden API anahtarınızı girin.");
+    if (!apiKey) throw new Error("NVIDIA NIM / OpenRouter API anahtarı girilmedi. Lütfen Ayarlar (⚙️) menüsünden API anahtarınızı girin.");
     const targetLang = sourceLang === "nl" ? "tr" : "nl";
     const userPrompt = formatLinguisticUserPrompt(query, sourceLang, targetLang);
     
-    const activeModel = model || "nvidia/llama-3.1-nemotron-70b-instruct";
-    const url = "https://integrate.api.nvidia.com/v1/chat/completions";
+    const activeModel = model || "nvidia/nemotron-3-ultra-550b-a55b:free";
+    const isOpenRouter = (apiKey && apiKey.startsWith("sk-or-")) || activeModel.includes(":free");
+    const url = isOpenRouter 
+      ? "https://openrouter.ai/api/v1/chat/completions" 
+      : "https://integrate.api.nvidia.com/v1/chat/completions";
+
+    // Doğrudan NVIDIA NIM endpointine gönderiliyorsa :free etiketini temizle
+    const cleanModel = (!isOpenRouter && activeModel.endsWith(":free"))
+      ? activeModel.replace(":free", "")
+      : activeModel;
+
     const payload = {
-      model: activeModel,
+      model: cleanModel,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: userPrompt }
@@ -879,12 +897,18 @@ ${sanitized}
 
     let resp;
     try {
+      const headers = {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      };
+      if (isOpenRouter) {
+        headers["HTTP-Referer"] = "https://kursadsc.github.io/lingomate/";
+        headers["X-Title"] = "LingoMate AI Dictionary";
+      }
+
       resp = await fetch(url, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${apiKey}`
-        },
+        headers: headers,
         body: JSON.stringify(payload)
       });
     } catch (netErr) {
