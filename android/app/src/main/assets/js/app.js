@@ -3162,9 +3162,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Show modal if not completed
-    const onboardingModal = document.getElementById('onboardingModal');
-    if (onboardingModal) {
-      onboardingModal.classList.remove('hidden');
+    const onboardingModalEl = document.getElementById('onboardingModal');
+    if (onboardingModalEl) {
+      onboardingModalEl.classList.remove('hidden');
       // Focus first option
       setTimeout(() => {
         const firstOption = document.querySelector('.onboarding-option');
@@ -3490,6 +3490,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function showUpdateAvailable() {
       showToast('Yeni sürüm mevcut! Sayfayı yenileyin.', 'ph-bold ph-arrow-clockwise text-primary-500');
     }
+  }
 
   // Initialize all new features
   setupOnboarding();
