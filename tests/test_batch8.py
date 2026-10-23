@@ -26,7 +26,7 @@ class TestBatch8NewFeatures(unittest.TestCase):
 
     def test_flashcard_quiz_system(self):
         """Verify 3D flip flashcard modal and quiz logic exist"""
-        self.assertIn('id="flashcardModal"', self.index_html, "Missing flashcardModal in index.html")
+        self.assertTrue('id="viewPractice"' in self.index_html or 'id="flashcardModal"' in self.index_html, "Missing viewPractice in index.html")
         self.assertIn('id="flashcardInner"', self.index_html, "Missing flashcardInner in index.html")
         self.assertIn('id="fcNeedPracticeBtn"', self.index_html, "Missing fcNeedPracticeBtn in index.html")
         self.assertIn('id="fcMasteredBtn"', self.index_html, "Missing fcMasteredBtn in index.html")

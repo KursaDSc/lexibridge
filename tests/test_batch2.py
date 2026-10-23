@@ -30,7 +30,7 @@ class TestBatch2Quality(unittest.TestCase):
             'id="pasteBtn"',
             'id="searchBtn"',
             'id="closeHistoryBtn"',
-            'id="closeSettingsBtn"',
+            'id="saveSettingsBtn"',
             'id="closeFlagModalBtn"'
         ]
         for btn_id in buttons_to_check:
@@ -52,11 +52,12 @@ class TestBatch2Quality(unittest.TestCase):
     def test_accessibility_roles_and_aria_attributes(self):
         """Modals and alerts must declare standard ARIA roles and live regions."""
         self.assertIn('id="historyModal"', self.html_content)
-        self.assertIn('id="settingsModal"', self.html_content)
         self.assertIn('id="flagModal"', self.html_content)
+        self.assertIn('id="onboardingModal"', self.html_content)
+        self.assertIn('id="viewSettings"', self.html_content)
 
-        # Check role="dialog" and aria-modal="true"
-        for modal_id in ['historyModal', 'settingsModal', 'flagModal']:
+        # Check role="dialog" and aria-modal="true" for modal dialogs
+        for modal_id in ['historyModal', 'flagModal', 'onboardingModal']:
             pattern = re.compile(rf'<div[^>]*id="{modal_id}"[^>]*>', re.IGNORECASE)
             match = pattern.search(self.html_content)
             self.assertIsNotNone(match, f"Modal {modal_id} not found")
@@ -64,6 +65,9 @@ class TestBatch2Quality(unittest.TestCase):
             self.assertIn('role="dialog"', tag, f"{modal_id} missing role='dialog'")
             self.assertIn('aria-modal="true"', tag, f"{modal_id} missing aria-modal='true'")
             self.assertIn('aria-labelledby=', tag, f"{modal_id} missing aria-labelledby")
+
+        # Check viewSettings role="tabpanel"
+        self.assertIn('role="tabpanel"', self.html_content)
 
         # Check aria-live on results and role="alert" on errorBox
         self.assertIn('aria-live="polite"', self.html_content)

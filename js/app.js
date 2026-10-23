@@ -1491,6 +1491,17 @@ document.addEventListener('DOMContentLoaded', () => {
       tab.dataset.active = tab.dataset.provider === activeProvider ? 'true' : 'false';
     });
 
+    const currentSavedSettings = AIEngine.getSettings();
+    if (googleKeyInput && !googleKeyInput.value && currentSavedSettings.googleKey) {
+      googleKeyInput.value = currentSavedSettings.googleKey;
+    }
+    if (nvidiaKeyInput && !nvidiaKeyInput.value && currentSavedSettings.nvidiaKey) {
+      nvidiaKeyInput.value = currentSavedSettings.nvidiaKey;
+    }
+    if (localUrlInput && !localUrlInput.value && currentSavedSettings.localUrl) {
+      localUrlInput.value = currentSavedSettings.localUrl;
+    }
+
     // Populate default preset models
     const prov = AIEngine.PROVIDERS[activeProvider] || AIEngine.PROVIDERS.google;
     modelSelect.innerHTML = '';
@@ -2151,6 +2162,21 @@ document.addEventListener('DOMContentLoaded', () => {
                   /${escapeHtml(data.pronunciation.ipa)}/
                 </span>
               ` : ''}
+              ${data.grammar?.plural ? `
+                <span class="text-xs px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/50 dark:border-slate-700/50 shrink-0">
+                  <span class="font-semibold text-slate-400 dark:text-slate-500">çoğul:</span> ${escapeHtml(data.grammar.plural)}
+                </span>
+              ` : ''}
+              ${data.grammar?.diminutive ? `
+                <span class="text-xs px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/50 dark:border-slate-700/50 shrink-0">
+                  <span class="font-semibold text-slate-400 dark:text-slate-500">küçültme:</span> ${escapeHtml(data.grammar.diminutive)}
+                </span>
+              ` : ''}
+              ${data.grammar?.infinitive ? `
+                <span class="text-xs px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/50 dark:border-slate-700/50 shrink-0">
+                  <span class="font-semibold text-slate-400 dark:text-slate-500">mastar:</span> ${escapeHtml(data.grammar.infinitive)}
+                </span>
+              ` : ''}
             </div>
           </div>
 
@@ -2190,7 +2216,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <i class="ph-bold ph-link text-base"></i>
               </div>
               <div class="min-w-0">
-                <div class="text-xs uppercase tracking-wider font-bold text-indigo-600 dark:text-indigo-400">Sabit Edat</div>
+                <div class="text-xs uppercase tracking-wider font-bold text-indigo-600 dark:text-indigo-400">Sabit Edat (Vast Voorzetsel)</div>
                 <div class="font-bold text-slate-800 dark:text-slate-100 truncate">${escapeHtml(data.grammar.fixedPreposition)}</div>
               </div>
             </div>
@@ -2342,7 +2368,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="flex items-center justify-between mb-3 text-slate-700 dark:text-slate-300">
             <div class="flex items-center gap-2">
               <i class="ph-bold ph-chat-circle-text text-blue-500 text-lg"></i>
-              <h3 class="dark:text-slate-100 font-bold text-base text-slate-800">Diğer Örnek Cümleler</h3>
+              <h3 class="dark:text-slate-100 font-bold text-base text-slate-800">Doğal Örnek Cümleler</h3>
             </div>
             <span class="text-xs text-primary-600 dark:text-primary-400 font-medium flex items-center gap-1 shrink-0"><i class="ph-bold ph-hand-tap"></i> <span class="hidden sm:inline">Kelimelere dokunup dinleyin</span><span class="sm:hidden">Dokun & dinle</span></span>
           </div>
@@ -2853,6 +2879,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     updateHeaderBadge();
+    showToast('Ayarlar başarıyla kaydedildi.');
     saveStatusText.classList.remove('opacity-0');
     setTimeout(() => {
       saveStatusText.classList.add('opacity-0');
@@ -3209,7 +3236,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         }
       }, 30000);
-    }
+    });
 
     const acceptBtn = document.getElementById('installPromptAccept');
     if (acceptBtn) {
@@ -3465,7 +3492,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // ── Service Worker Registration with Update Prompt ─────────────────────────
   function setupServiceWorker() {
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js?v=29').then(reg => {
+      navigator.serviceWorker.register('./sw.js?v=5.0').then(reg => {
         reg.update();
 
         // Check for updates
@@ -3477,7 +3504,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 showUpdateAvailable();
               }
             });
-          });
+          }
         });
 
         // Check for updates every hour

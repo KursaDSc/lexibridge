@@ -18,6 +18,7 @@ class TestBatch10BottomNavigation(unittest.TestCase):
         self.assertIn('id="bottomNavBar"', self.index_html, "Missing bottomNavBar in index.html")
         self.assertIn('id="navTabDictionary"', self.index_html, "Missing navTabDictionary")
         self.assertIn('id="navTabPractice"', self.index_html, "Missing navTabPractice")
+        self.assertIn('id="navTabGames"', self.index_html, "Missing navTabGames")
         self.assertIn('id="navTabFavorites"', self.index_html, "Missing navTabFavorites")
         self.assertIn('id="navTabSettings"', self.index_html, "Missing navTabSettings")
 
@@ -25,6 +26,7 @@ class TestBatch10BottomNavigation(unittest.TestCase):
         """Verify tab labels are clear, user-facing, and localized."""
         self.assertIn('Sözlük', self.index_html)
         self.assertIn('Pratik', self.index_html)
+        self.assertIn('Oyunlar', self.index_html)
         self.assertIn('Kelimelerim', self.index_html)
         self.assertIn('Ayarlar', self.index_html)
 
@@ -32,7 +34,7 @@ class TestBatch10BottomNavigation(unittest.TestCase):
         """Verify all bottom nav tabs satisfy WCAG AA >= 44px touch target height."""
         nav_section = self.index_html[self.index_html.find('id="bottomNavBar"'):self.index_html.find('</nav>')]
         tab_buttons = re.findall(r'<button[^>]+id="navTab[^"]+"[^>]*>', nav_section)
-        self.assertEqual(len(tab_buttons), 4, "Expected 4 bottom nav buttons")
+        self.assertEqual(len(tab_buttons), 5, "Expected 5 bottom nav buttons")
         for btn in tab_buttons:
             self.assertIn('min-h-[44px]', btn, f"Tab button missing min-h-[44px]: {btn}")
 

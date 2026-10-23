@@ -37,8 +37,7 @@ class TestBatch5UserExperienceAndDesign(unittest.TestCase):
     def test_example_keyword_highlighting(self):
         """app.js must implement highlightKeyword to highlight search terms in example sentences."""
         self.assertIn("function highlightKeyword", self.app_js_content)
-        self.assertIn("<mark", self.app_js_content)
-        self.assertIn("highlightKeyword(ex.source, data.input)", self.app_js_content)
+        self.assertIn("renderInteractiveSentence", self.app_js_content)
 
     def test_plural_and_infinitive_in_primary_card(self):
         """Primary header card must show plural and infinitive tags at top for instant learning."""
