@@ -17,12 +17,13 @@ except ImportError:  # pragma: no cover
     sync_playwright = None
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-VIEWS = ["viewDictionary", "flashcardModal", "favoritesModal", "settingsModal"]
+VIEWS = ["viewDictionary", "viewPractice", "viewGames", "viewFavorites", "viewSettings"]
 TABS = {
     "dictionary": ("navTabDictionary", "viewDictionary"),
-    "practice": ("navTabPractice", "flashcardModal"),
-    "favorites": ("navTabFavorites", "favoritesModal"),
-    "settings": ("navTabSettings", "settingsModal"),
+    "practice": ("navTabPractice", "viewPractice"),
+    "games": ("navTabGames", "viewGames"),
+    "favorites": ("navTabFavorites", "viewFavorites"),
+    "settings": ("navTabSettings", "viewSettings"),
 }
 FAVORITES = [
     {"word": w, "article": "de", "cefr": "A1", "translation": t, "source": "nl"}
@@ -58,11 +59,13 @@ class E2E(unittest.TestCase):
             opts.update(viewport={"width": 390, "height": 700}, has_touch=True, is_mobile=True)
         ctx = self.browser.new_context(**opts)
         self.addCleanup(ctx.close)
+        s_dict = {"lexi_onboarding_done": "true"}
         if storage:
-            ctx.add_init_script(
-                "(() => { const s = %s; for (const k in s) localStorage.setItem(k, s[k]); })()"
-                % json.dumps(storage)
-            )
+            s_dict.update(storage)
+        ctx.add_init_script(
+            "(() => { const s = %s; for (const k in s) localStorage.setItem(k, s[k]); })()"
+            % json.dumps(s_dict)
+        )
         page = ctx.new_page()
         page.errors = []
         page.on("pageerror", lambda e: page.errors.append(str(e)))
@@ -108,13 +111,13 @@ class E2E(unittest.TestCase):
     def test_tab_switching_shows_exactly_one_view_with_aria_current(self):
         page = self.new_page()
         self.open(page)
-        for name in ["practice", "favorites", "settings", "dictionary"]:
+        for name in ["practice", "games", "favorites", "settings", "dictionary"]:
             nav_id, view_id = TABS[name]
             page.click(f"#{nav_id}")
             self.assertEqual(self.visible_views(page), [view_id], name)
             for other, (other_nav, _) in TABS.items():
-                attr = page.get_attribute(f"#{other_nav}", "aria-current")
-                self.assertEqual(attr, "page" if other == name else None, f"{name}/{other}")
+                attr = page.get_attribute(f"#{other_nav}", "aria-selected")
+                self.assertEqual(attr, "true" if other == name else "false", f"{name}/{other}")
         self.assertEqual(page.errors, [])
 
     def test_escape_returns_to_dictionary_from_tab_pages(self):
@@ -161,7 +164,7 @@ class E2E(unittest.TestCase):
         page = self.new_page(storage={"lexi_favorites": json.dumps(FAVORITES)})
         self.open(page)
         page.click("#navTabPractice")
-        self.assertEqual(page.get_attribute('.fc-deck-chip[data-deck="auto"]', "aria-pressed"), "true")
+        self.assertEqual(page.get_attribute('.fc-deck-chip[data-deck="auto"]', "aria-selected"), "true")
 
         page.click("#flashcardElement")
         self.assertTrue(page.evaluate("document.getElementById('flashcardInner').classList.contains('flipped')"))
@@ -173,8 +176,8 @@ class E2E(unittest.TestCase):
         self.assertNotEqual(page.inner_text("#flashcardCounter"), first)
 
         page.click('.fc-deck-chip[data-deck="favorites"]')
-        self.assertEqual(page.get_attribute('.fc-deck-chip[data-deck="favorites"]', "aria-pressed"), "true")
-        self.assertEqual(page.get_attribute('.fc-deck-chip[data-deck="auto"]', "aria-pressed"), "false")
+        self.assertEqual(page.get_attribute('.fc-deck-chip[data-deck="favorites"]', "aria-selected"), "true")
+        self.assertEqual(page.get_attribute('.fc-deck-chip[data-deck="auto"]', "aria-selected"), "false")
         self.assertIn("/ 5", page.inner_text("#flashcardCounter"))
         self.assertEqual(page.errors, [])
 
@@ -187,7 +190,7 @@ class E2E(unittest.TestCase):
         )
         page.click("#navTabFavorites")
         page.click("#quizFavoritesBtn")
-        self.assertEqual(self.visible_views(page), ["flashcardModal"])
+        self.assertEqual(self.visible_views(page), ["viewPractice"])
         self.assertEqual(page.evaluate("window.__initCalls"), 1)
         self.assertIn("/ 5", page.inner_text("#flashcardCounter"))
 
@@ -289,7 +292,7 @@ class E2E(unittest.TestCase):
 
         # Tekrar Zamanı ("due") çipine tıkla
         page.click('.fc-deck-chip[data-deck="due"]')
-        self.assertEqual(page.get_attribute('.fc-deck-chip[data-deck="due"]', "aria-pressed"), "true")
+        self.assertEqual(page.get_attribute('.fc-deck-chip[data-deck="due"]', "aria-selected"), "true")
         self.assertTrue(page.locator("#fcBoxBadge").is_visible())
 
         # Kartı "Biliyorum" olarak puanla -> seri (streak) tetiklenmeli
